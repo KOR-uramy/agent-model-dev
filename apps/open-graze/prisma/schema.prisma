@@ -59,18 +59,34 @@ model VerificationToken {
 // —— OpenGraze Cloud 플랫폼 ——
 
 model Workspace {
-  id                   String   @id @default(cuid())
-  name                 String
-  slug                 String   @unique
-  ownerId              String
-  owner                User     @relation("WorkspaceOwner", fields: [ownerId], references: [id])
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  subscriptionStatus   String   @default("inactive")
-  members              WorkspaceMember[]
-  apiKeys              ApiKey[]
-  events               IngestedEvent[]
-  createdAt            DateTime @default(now())
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  ownerId               String
+  owner                 User     @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  subscriptionStatus String   @default("inactive")
+  /// 마지막 승인된 토스 결제 `paymentKey`(조회·지원용)
+  tossLastPaymentKey String?
+  members               WorkspaceMember[]
+  apiKeys               ApiKey[]
+  events                IngestedEvent[]
+  tossCheckoutOrders    TossCheckoutOrder[]
+  createdAt             DateTime @default(now())
+}
+
+/// 토스 결제위젯 주문·승인 검증용(주문번호 ↔ 워크스페이스·금액)
+model TossCheckoutOrder {
+  id          String    @id @default(cuid())
+  orderId     String    @unique
+  workspaceId String
+  amountKrw   Int
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 model WorkspaceMember {

@@ -41,7 +41,7 @@
 ### 메타 (스프린트 유지)
 
 - [x] `RALPH_TASK.md`가 **본질 목표(관측·신뢰·재현)** 와 현재 레포 구조를 반영한다.
-- [ ] 완료된 체크는 `[x]`로 유지하고, 새 작업은 `[ ]`로만 추가한다(허위 완료 금지).
+- [x] 완료된 체크는 `[x]`로 유지하고, 새 작업은 `[ ]`로만 추가한다(허위 완료 금지).
 
 ### 신뢰·보안 (본질)
 
@@ -63,7 +63,7 @@
 ### 제품 (OpenGraze 내 SaaS·수집)
 
 - [x] Google 로그인, 워크스페이스, API 키 발급이 동작 가능한 형태로 존재한다.
-- [ ] **결제**는 [토스페이먼츠 LLMs 연동 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide) 및 [llms.txt](https://docs.tosspayments.com/llms.txt)를 따른다(결제위젯 v2·승인 API·웹훅 등). Cursor 연동 시 가이드에 안내된 **토스페이먼츠 MCP** 활용을 우선한다.
+- [x] **결제**는 [토스페이먼츠 LLMs 연동 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide) 및 [llms.txt](https://docs.tosspayments.com/llms.txt)를 따른다(결제위젯 v2·승인 API·웹훅 등). Cursor 연동 시 가이드에 안내된 **토스페이먼츠 MCP** 활용을 우선한다.
 - [x] 레거시 **Stripe** Checkout/Webhook 스캐폴드는 코드에 남아 있으나, 제품 기준 결제 수단은 아니다(토스 연동 후 정리).
 - [x] **텔레그램** — (로컬/SDK) `TELEGRAM_BOT_TOKEN`·`TELEGRAM_CHAT_ID`·선택 `TELEGRAM_NOTIFY_COMMITS=1`로 커밋 등 알림 가능. (클라우드) `POST /api/webhooks/telegram` + `TELEGRAM_WEBHOOK_SECRET` + `TELEGRAM_CHAT_WORKSPACE_MAP`으로 채팅 메시지·`/task 본문`을 `IngestedEvent`로 수집해 관측·작업 전달 파이프가 있다.
 - [x] **자기 연동(dogfood)** — 플랫폼을 켠 뒤 대시보드에서 워크스페이스(예: `open-graze-self`)·API 키를 발급하고, **이 레포**에서 `OPENGRAZE_PLATFORM_API_KEY` 등을 두고 `npm run platform:self-test`를 실행하면 `POST /api/v1/events`로 `opengraze.self_test`가 들어가며, 같은 워크스페이스 대시보드 **이벤트** 목록에서 확인할 수 있다.

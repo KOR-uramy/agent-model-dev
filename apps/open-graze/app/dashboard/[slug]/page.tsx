@@ -70,21 +70,6 @@ export default function WorkspaceDetailPage() {
     await load();
   }
 
-  async function checkout() {
-    setErr(null);
-    const r = await fetch("/api/billing/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug }),
-    });
-    const j = await r.json();
-    if (!r.ok) {
-      setErr(typeof j.error === "string" ? j.error : JSON.stringify(j));
-      return;
-    }
-    if (j.url) window.location.href = j.url as string;
-  }
-
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -94,14 +79,13 @@ export default function WorkspaceDetailPage() {
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">{slug}</h1>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/dashboard/${slug}/billing`}
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700"
-            onClick={() => checkout()}
           >
-            구독 (Stripe·임시)
-          </button>
+            구독 (토스)
+          </Link>
           <button
             type="button"
             className="rounded-md px-3 py-1.5 text-sm text-zinc-500 hover:underline"

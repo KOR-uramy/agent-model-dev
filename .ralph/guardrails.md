@@ -24,4 +24,8 @@
 
 ## Learned Signs
 
+### Sign: Prisma SQLite `DATABASE_URL` is schema-relative
+- **Trigger**: `apps/open-graze`에서 `prisma/schema.prisma`가 `prisma/` 안에 있을 때
+- **Instruction**: `DATABASE_URL`은 **스키마 파일이 있는 폴더** 기준이다. `file:./dev.db` → `prisma/dev.db`. `file:./prisma/dev.db`는 중첩 `prisma/prisma/dev.db`를 만들 수 있으므로 쓰지 않는다.
+
 (Signs added from observed failures will appear below)
