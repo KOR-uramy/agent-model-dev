@@ -5,7 +5,7 @@
 ## Summary
 
 - Iterations completed: 2 (ingest abuse mitigation; agent/model selection doc)
-- Current status: `docs/agent-model-selection.md`로 에이전트·모델 선택 근거 문서화 완료; 미완료는 결제(토스)·Postgres 경로·README 핵심 플로·메타 체크박스 유지 규약 등
+- Current status: OpenGraze README에 **핵심 플로(결제 미설정)**·**Postgres 전환** 문서화 완료; 미완료는 결제(토스)·메타 체크박스 유지 규약 등
 
 ## Session History
 
@@ -47,3 +47,9 @@
 
 ### 2026-05-03 01:13:36
 **Session 3 started** (model: auto)
+
+### 2026-05-03 (Iteration 3)
+
+- **`apps/open-graze/README.md`**: 결제·토스·Stripe 없이 재현 가능한 **핵심 플로** 섹션(환경 최소값, migrate, dev, UI 단계, `platform:self-test` / `curl` 예시) 추가.
+- 동 파일에 **프로덕션 Postgres 전환** 요약(SQLite 개발 전제, `provider` 변경, `migrate deploy`, 데이터 이전·OAuth URL 주의) 추가.
+- 루트 `README.md`에서 해당 절로 안내 한 줄 추가. `RALPH_TASK.md` 위 두 기준 `[x]`.

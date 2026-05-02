@@ -38,7 +38,7 @@ npm run dev
 curl -sS -o /dev/null -w "%{http_code}\n" "http://localhost:3000/api/ralph/events?tail=5"
 ```
 
-OpenGraze 앱 안에 Google 로그인, 워크스페이스, API 키, Stripe 레거시·토스 결제 규범이 들어 있다. 설정은 **`apps/open-graze/README.md`** — 결제 표준은 **[토스페이먼츠 v2 LLMs 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide)**.
+OpenGraze 앱 안에 Google 로그인, 워크스페이스, API 키, Stripe 레거시·토스 결제 규범이 들어 있다. 설정은 **`apps/open-graze/README.md`** — 결제 표준은 **[토스페이먼츠 v2 LLMs 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide)**. 결제 키 없이 **로그인 → 워크스페이스 → 키 → ingest**만 재현하려면 같은 파일의 **핵심 플로 (결제 미설정)** 절을 따른다.
 
 ### 자기 연동 테스트(dogfood)
 
