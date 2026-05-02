@@ -9,19 +9,21 @@
 # Usage:
 #   ./ralph-loop.sh                              # Start from current directory
 #   ./ralph-loop.sh /path/to/project             # Start from specific project
-#   ./ralph-loop.sh -n 50 -m gpt-5.2-high        # Custom iterations and model
+#   ./ralph-loop.sh -n 50 -m opus-4.5-thinking   # Custom iterations and model (default model: auto)
 #   ./ralph-loop.sh --branch feature/foo --pr   # Create branch and PR
 #   ./ralph-loop.sh -y                           # Skip confirmation (for scripting)
+#   ./ralph-loop.sh -y --infinite                # No iteration cap (until all [x] or GUTTER / Ctrl-C)
 #
 # Flags:
-#   -n, --iterations N     Max iterations (default: 20)
-#   -m, --model MODEL      Model to use (default: opus-4.5-thinking)
+#   -n, --iterations N     Max iterations (default: 20). Use 0 for unlimited.
+#   -m, --model MODEL      Model to use (default: auto; override with RALPH_MODEL)
 #   --branch NAME          Sequential: create/work on branch; Parallel: integration branch name
 #   --pr                   Sequential: open PR (requires --branch); Parallel: open ONE integration PR (branch optional)
 #   --parallel             Run tasks in parallel with worktrees
 #   --max-parallel N       Max parallel agents (default: 3)
 #   --no-merge             Skip auto-merge in parallel mode
 #   -y, --yes              Skip confirmation prompt
+#   --infinite             Same as -n 0 (no cap; tmux + interrupt 권장)
 #   -h, --help             Show this help
 #
 # Requirements:
@@ -54,8 +56,9 @@ Usage:
   ./ralph-loop.sh [options] [workspace]
 
 Options:
-  -n, --iterations N     Max iterations (default: 20)
-  -m, --model MODEL      Model to use (default: opus-4.5-thinking)
+  -n, --iterations N     Max iterations (default: 20). 0 = unlimited until task done / GUTTER / interrupt
+  --infinite             Same as -n 0
+  -m, --model MODEL      Model to use (default: auto; env RALPH_MODEL)
   --branch NAME          Sequential: create/work on branch; Parallel: integration branch name
   --pr                   Sequential: open PR (requires --branch); Parallel: open ONE integration PR (branch optional)
   --parallel             Run tasks in parallel with worktrees
@@ -67,12 +70,13 @@ Options:
 Examples:
   ./ralph-loop.sh                                    # Interactive mode
   ./ralph-loop.sh -n 50                              # 50 iterations max
+  ./ralph-loop.sh -y --infinite                      # No iteration cap (use tmux)
   ./ralph-loop.sh -m gpt-5.2-high                    # Use GPT model
   ./ralph-loop.sh --branch feature/api --pr -y      # Scripted PR workflow
   ./ralph-loop.sh --parallel --max-parallel 4        # Run 4 agents in parallel
   
 Environment:
-  RALPH_MODEL            Override default model (same as -m flag)
+  RALPH_MODEL            Override default model (same as -m; default in repo: auto)
 
 For interactive setup with a beautiful UI, use ralph-setup.sh instead.
 EOF
@@ -121,6 +125,10 @@ while [[ $# -gt 0 ]]; do
       SKIP_CONFIRM=true
       shift
       ;;
+    --infinite)
+      MAX_ITERATIONS="0"
+      shift
+      ;;
     -h|--help)
       show_help
       exit 0
@@ -137,6 +145,13 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# -n 0 / --infinite → 사실상 무제한 (성공 기준 전부 [x]·GUTTER·Ctrl-C까지)
+if [[ "${MAX_ITERATIONS:-20}" -le 0 ]]; then
+  export RALPH_INFINITE_LOOP=1
+  MAX_ITERATIONS=2147483647
+  echo "♾️  Iteration cap: none (stop when RALPH_TASK criteria all [x], on GUTTER, or Ctrl-C)." >&2
+fi
 
 # =============================================================================
 # MAIN
@@ -192,7 +207,11 @@ main() {
   
   echo "Progress: $done_criteria / $total_criteria criteria complete ($remaining remaining)"
   echo "Model:    $MODEL"
-  echo "Max iter: $MAX_ITERATIONS"
+  if [[ "${RALPH_INFINITE_LOOP:-0}" == "1" ]]; then
+    echo "Max iter: unlimited (-n 0 / --infinite)"
+  else
+    echo "Max iter: $MAX_ITERATIONS"
+  fi
   [[ -n "$USE_BRANCH" ]] && echo "Branch:   $USE_BRANCH"
   [[ "$OPEN_PR" == "true" ]] && echo "Open PR:  Yes"
   [[ "$PARALLEL_MODE" == "true" ]] && echo "Parallel: Yes ($MAX_PARALLEL agents)"

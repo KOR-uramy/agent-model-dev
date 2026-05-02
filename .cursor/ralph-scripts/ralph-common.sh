@@ -31,7 +31,8 @@ ROTATE_THRESHOLD="${ROTATE_THRESHOLD:-80000}"
 MAX_ITERATIONS="${MAX_ITERATIONS:-20}"
 
 # Model selection
-DEFAULT_MODEL="opus-4.5-thinking"
+# Cursor가 라우팅하는 Auto(구독·쿼터에 따름). 고정 모델은 RALPH_MODEL 또는 -m 로 지정.
+DEFAULT_MODEL="auto"
 MODEL="${RALPH_MODEL:-$DEFAULT_MODEL}"
 
 # Feature flags (set by caller)
@@ -529,7 +530,7 @@ run_iteration() {
   fi
 
   # Build agent command (same flags as legacy cursor-agent)
-  local cmd="$agent_bin -p --force --output-format stream-json --model $MODEL"
+  local cmd="$agent_bin -p --force --output-format stream-json --model \"$MODEL\""
   
   if [[ -n "$session_id" ]]; then
     echo "Resuming session: $session_id" >&2

@@ -79,14 +79,30 @@
 4. **기록** — **`git commit`**(스코프 단위로 자주), `.ralph/progress.md`에 “무엇을 왜 했는지” 한 단락, 해당 기준이 끝났으면 `RALPH_TASK.md`에서 `[x]`.
 5. **검토** — 남은 `[ ]` 중 다음에 가장 본질에 가까운 것을 고른다(가짜 바쁨: 문서만 양산하지 않기).
 
-**연속 실행(예: 24h)** — 터미널이 끊기지 않게 `tmux`/`screen` 등을 쓰고, 이터 상한은 환경 변수로 늘린다.
+**연속 실행(예: 24h)** — 터미널이 끊기지 않게 `tmux`/`screen` 등을 쓴다.
+
+**이터 상한 없음(무한에 가깝게)** — `ralph-loop.sh`에 **`-n 0`** 또는 **`--infinite`** 를 쓰면, `RALPH_TASK.md` 체크가 전부 `[x]`이거나 GUTTER·직접 중단(Ctrl-C)할 때까지 이터를 이어 간다(내부적으로 큰 정수 상한). 장시간은 반드시 `tmux` 등에서 실행할 것.
 
 ```bash
-export MAX_ITERATIONS=999   # 기본 20보다 크게; 머신·쿼터 감안해 조정
-./.cursor/ralph-scripts/ralph-loop.sh
+# 상한만 크게 (고정 횟수)
+export MAX_ITERATIONS=999
+./.cursor/ralph-scripts/ralph-loop.sh -y
+
+# 상한 없음 (권장: tmux 안에서)
+./.cursor/ralph-scripts/ralph-loop.sh -y --infinite
+# 동일: ./.cursor/ralph-scripts/ralph-loop.sh -y -n 0
 ```
 
 장시간 루프에서는 **한 이터 = 한 명확한 체크 항목**이 되도록 `Success Criteria`를 잘게 쪼갠다.
+
+### 비용과 “자동”
+
+에이전트 루프는 **이터·모델·맥락 길이**에 비례해 비용(또는 플랜 쿼터)이 든다. **완전 자동(`--infinite`)은 예산 예측이 어렵다** — “자동이지만 한도 있는” 쪽을 기본으로 둔다.
+
+- **이터 상한**: `--infinite` 대신 **`-n 1`~`-n 5`** 정도로 짧게 돌리고, `cron`/`launchd`로 **하루 몇 번만** 재실행하는 방식이 비용 통제에 유리하다.
+- **모델**: 기본값은 Cursor **`auto`**(Cursor가 작업에 맞게 라우팅). 고정 모델은 `ralph-loop.sh -m …` 또는 **`RALPH_MODEL`** 로 덮어쓴다(`agent models` / [CLI parameters](https://cursor.com/docs/cli/reference/parameters) 참고).
+- **범위**: 위의 “한 이터 = 한 체크”를 지키면, 같은 목표에 도달할 때 **총 토큰이 줄어든다**.
+- **중단**: 예산 한도에 가까우면 루프를 끊고(`Ctrl-C`), 다음은 수동으로 우선순위 한 줄만 진행한다.
 
 ## Out of Scope (unless explicitly requested)
 
