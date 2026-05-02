@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Iterations completed: 1 (ingest abuse mitigation)
-- Current status: `POST /api/v1/events`에 본문 바이트 상한·README 운영 가이드 반영 완료
+- Iterations completed: 2 (ingest abuse mitigation; agent/model selection doc)
+- Current status: `docs/agent-model-selection.md`로 에이전트·모델 선택 근거 문서화 완료; 미완료는 결제(토ss)·Postgres 경로·README 핵심 플로·메타 체크박스 유지 규약 등
 
 ## Session History
 
@@ -37,3 +37,7 @@
 
 ### 2026-05-03 01:08:53
 **Session 2 started** (model: auto)
+
+### 2026-05-03 (Iteration 2)
+
+- **`docs/agent-model-selection.md` 추가** — Cursor Agent CLI(`agent`/`cursor-agent`), 기본 모델 `auto`·`RALPH_MODEL`/`-m` 덮어쓰기, `stream-parser.sh`의 추정 토큰 임계(70k/80k)·JSONL·로그 측면을 **레포 스크립트 근거만**으로 요약. `RALPH_TASK.md` 해당 성공 기준 `[x]`, Context 표에 문서 경로 한 줄 추가.
