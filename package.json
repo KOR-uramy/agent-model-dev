@@ -1,0 +1,9 @@
+{
+  "name": "agent-model-dev",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "build": "npm run build -w ralph-workspace-sdk && npm run build -w ralph-log",
+    "dev:ralph-log": "npm run dev -w ralph-log"
+  }
+}

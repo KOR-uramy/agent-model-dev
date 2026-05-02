@@ -504,6 +504,9 @@ run_iteration() {
   
   # Log session start to progress.md
   log_progress "$workspace" "**Session $iteration started** (model: $MODEL)"
+
+  # stream-parser: JSONL events (.ralph/events.jsonl) include this iteration index
+  export RALPH_ITERATION="$iteration"
   
   # Build cursor-agent command
   local cmd="cursor-agent -p --force --output-format stream-json --model $MODEL"

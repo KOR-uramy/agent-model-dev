@@ -21,6 +21,7 @@ set -euo pipefail
 
 WORKSPACE="${1:-.}"
 RALPH_DIR="$WORKSPACE/.ralph"
+EVENTS_JSONL="${RALPH_EVENTS_JSONL:-$RALPH_DIR/events.jsonl}"
 
 # Ensure .ralph directory exists
 mkdir -p "$RALPH_DIR"
@@ -65,6 +66,39 @@ calc_tokens() {
   echo $((total_bytes / 4))
 }
 
+# Structured JSONL for dashboards (e.g. apps/ralph-log). One JSON object per line.
+append_event() {
+  local kind="$1"
+  local detail_json="${2:-null}"
+  local est
+  est=$(calc_tokens)
+  local pct=$(( est * 100 / ROTATE_THRESHOLD ))
+  jq -nc \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg kind "$kind" \
+    --argjson iteration "${RALPH_ITERATION:-0}" \
+    --arg sessionId "${RALPH_SESSION_ID:-}" \
+    --argjson estimatedTokens "$est" \
+    --argjson contextPct "$pct" \
+    --argjson readB "$BYTES_READ" \
+    --argjson writeB "$BYTES_WRITTEN" \
+    --argjson assistC "$ASSISTANT_CHARS" \
+    --argjson shellC "$SHELL_OUTPUT_CHARS" \
+    --argjson rot "$ROTATE_THRESHOLD" \
+    --argjson detail "$detail_json" \
+    '{
+      ts: $ts,
+      kind: $kind,
+      iteration: $iteration,
+      sessionId: $sessionId,
+      estimatedTokens: $estimatedTokens,
+      contextWindowPct: $contextPct,
+      rotateThreshold: $rot,
+      tokenBreakdown: {readBytes:$readB, writeBytes:$writeB, assistantChars:$assistC, shellChars:$shellC},
+      detail: (if ($detail|type) == "null" then null else $detail end)
+    }' >> "$EVENTS_JSONL" 2>/dev/null || true
+}
+
 # Log to activity.log
 log_activity() {
   local message="$1"
@@ -100,6 +134,7 @@ log_token_status() {
   
   local breakdown="[read:$((BYTES_READ/1024))KB write:$((BYTES_WRITTEN/1024))KB assist:$((ASSISTANT_CHARS/1024))KB shell:$((SHELL_OUTPUT_CHARS/1024))KB]"
   echo "[$timestamp] $emoji $status_msg $breakdown" >> "$RALPH_DIR/activity.log"
+  append_event "token_snapshot" "$(jq -nc --argjson t "$tokens" --argjson p "$pct" --arg s "$status_msg" --arg b "$breakdown" '{tokens:$t,contextPct:$p,summary:$s,breakdownLabel:$b}')"
 }
 
 # Check if an error message indicates a retryable API error
@@ -142,6 +177,7 @@ check_gutter() {
   # Check rotation threshold
   if [[ $tokens -ge $ROTATE_THRESHOLD ]]; then
     log_activity "ROTATE: Token threshold reached ($tokens >= $ROTATE_THRESHOLD)"
+    append_event "context_rotate" "$(jq -nc --argjson t "$tokens" '{reason:"threshold",tokens:$t}')"
     echo "ROTATE" 2>/dev/null || true
     return
   fi
@@ -149,6 +185,7 @@ check_gutter() {
   # Check warning threshold (only emit once per session)
   if [[ $tokens -ge $WARN_THRESHOLD ]] && [[ $WARN_SENT -eq 0 ]]; then
     log_activity "WARN: Approaching token limit ($tokens >= $WARN_THRESHOLD)"
+    append_event "context_warn" "$(jq -nc --argjson t "$tokens" '{tokens:$t}')"
     WARN_SENT=1
     echo "WARN" 2>/dev/null || true
   fi
@@ -213,6 +250,7 @@ process_line() {
       if [[ "$subtype" == "init" ]]; then
         local model=$(echo "$line" | jq -r '.model // "unknown"' 2>/dev/null) || model="unknown"
         log_activity "SESSION START: model=$model"
+        append_event "model_init" "$(jq -nc --arg m "$model" '{model:$m}')"
       fi
       ;;
     
@@ -223,10 +261,12 @@ process_line() {
       
       log_error "API ERROR: $error_msg"
       log_activity "❌ API ERROR: $error_msg"
+      append_event "api_error" "$(jq -nc --arg m "$error_msg" '{message:$m}')"
       
       # Check if this is a retryable error (rate limit, network, etc.)
       if is_retryable_api_error "$error_msg"; then
         log_error "⚠️ RETRYABLE: Error may be transient (rate limit/network)"
+        append_event "api_error_defer" "$(jq -nc --arg m "$error_msg" '{message:$m,retryable:true}')"
         echo "DEFER" 2>/dev/null || true
       else
         log_error "🚨 NON-RETRYABLE: Error requires attention"
@@ -244,12 +284,14 @@ process_line() {
         # Check for completion sigil
         if [[ "$text" == *"<ralph>COMPLETE</ralph>"* ]]; then
           log_activity "✅ Agent signaled COMPLETE"
+          append_event "ralph_complete" "null"
           echo "COMPLETE" 2>/dev/null || true
         fi
         
         # Check for gutter sigil
         if [[ "$text" == *"<ralph>GUTTER</ralph>"* ]]; then
           log_activity "🚨 Agent signaled GUTTER (stuck)"
+          append_event "ralph_gutter_sigil" "null"
           echo "GUTTER" 2>/dev/null || true
         fi
       fi
@@ -276,6 +318,7 @@ process_line() {
           
           local kb=$(echo "scale=1; $bytes / 1024" | bc 2>/dev/null || echo "$((bytes / 1024))")
           log_activity "READ $path ($lines lines, ~${kb}KB)"
+          append_event "tool_read" "$(jq -nc --arg path "$path" --argjson lines "$lines" --argjson bytes "$bytes" '{path,lines,bytes}')"
           
         # Handle write tool completion
         elif echo "$line" | jq -e '.tool_call.writeToolCall.result.success' > /dev/null 2>&1; then
@@ -286,6 +329,7 @@ process_line() {
           
           local kb=$(echo "scale=1; $bytes / 1024" | bc 2>/dev/null || echo "$((bytes / 1024))")
           log_activity "WRITE $path ($lines lines, ${kb}KB)"
+          append_event "tool_write" "$(jq -nc --arg path "$path" --argjson lines "$lines" --argjson bytes "$bytes" '{path,lines,bytes}')"
           
           # Track for thrashing detection
           track_file_write "$path"
@@ -310,6 +354,7 @@ process_line() {
             log_activity "SHELL $cmd → exit $exit_code"
             track_shell_failure "$cmd" "$exit_code"
           fi
+          append_event "tool_shell" "$(jq -nc --arg cmd "$cmd" --argjson ec "$exit_code" --argjson oc "$output_chars" '{command:$cmd,exitCode:$ec,outputChars:$oc}')"
         fi
         
         # Check thresholds after each tool call
@@ -321,17 +366,25 @@ process_line() {
       local duration=$(echo "$line" | jq -r '.duration_ms // 0' 2>/dev/null) || duration=0
       local tokens=$(calc_tokens)
       log_activity "SESSION END: ${duration}ms, ~$tokens tokens used"
+      append_event "session_end" "$(jq -nc --argjson ms "$duration" --argjson tok "$tokens" '{durationMs:$ms,estimatedTokensAtEnd:$tok}')"
       ;;
   esac
 }
 
 # Main loop: read JSON lines from stdin
 main() {
+  if [[ -z "${RALPH_SESSION_ID:-}" ]]; then
+    RALPH_SESSION_ID="$(date +%s)-$$"
+  fi
+  export RALPH_SESSION_ID
+
   # Initialize activity log for this session
   echo "" >> "$RALPH_DIR/activity.log"
   echo "═══════════════════════════════════════════════════════════════" >> "$RALPH_DIR/activity.log"
   echo "Ralph Session Started: $(date)" >> "$RALPH_DIR/activity.log"
   echo "═══════════════════════════════════════════════════════════════" >> "$RALPH_DIR/activity.log"
+
+  append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" '{workspace:$ws,sessionId:$sid}')"
   
   # Track last token log time
   local last_token_log=$(date +%s)
