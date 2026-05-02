@@ -5,7 +5,7 @@
 ## Summary
 
 - Iterations completed: 2 (ingest abuse mitigation; agent/model selection doc)
-- Current status: `docs/agent-model-selection.md`로 에이전트·모델 선택 근거 문서화 완료; 미완료는 결제(토ss)·Postgres 경로·README 핵심 플로·메타 체크박스 유지 규약 등
+- Current status: `docs/agent-model-selection.md`로 에이전트·모델 선택 근거 문서화 완료; 미완료는 결제(토스)·Postgres 경로·README 핵심 플로·메타 체크박스 유지 규약 등
 
 ## Session History
 
