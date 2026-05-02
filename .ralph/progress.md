@@ -4,7 +4,7 @@
 
 ## Summary
 
-- Iterations completed: 2 (ingest abuse mitigation; agent/model selection doc)
+- Iterations completed: 3 (ingest abuse; agent/model doc; README 핵심 플로·Postgres 경로)
 - Current status: OpenGraze README에 **핵심 플로(결제 미설정)**·**Postgres 전환** 문서화 완료; 미완료는 결제(토스)·메타 체크박스 유지 규약 등
 
 ## Session History
