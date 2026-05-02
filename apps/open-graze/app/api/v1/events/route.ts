@@ -1,3 +1,4 @@
+import { readJsonBodyLimited } from "@/lib/ingest-body";
 import { prisma } from "@/lib/prisma";
 import { digestToken } from "@/lib/tokens";
 import { NextResponse } from "next/server";
@@ -32,14 +33,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
-  let json: unknown;
-  try {
-    json = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  const bodyRead = await readJsonBodyLimited(req);
+  if (!bodyRead.ok) {
+    return NextResponse.json(
+      { error: bodyRead.error },
+      { status: bodyRead.status },
+    );
   }
 
-  const parsed = bodySchema.safeParse(json);
+  const parsed = bodySchema.safeParse(bodyRead.value);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.flatten().fieldErrors },

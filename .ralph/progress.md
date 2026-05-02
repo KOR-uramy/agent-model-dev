@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Iterations completed: 0
-- Current status: Repository initialized with Ralph tooling
+- Iterations completed: 1 (ingest abuse mitigation)
+- Current status: `POST /api/v1/events`에 본문 바이트 상한·README 운영 가이드 반영 완료
 
 ## Session History
 
@@ -25,3 +25,9 @@
 
 ### 2026-05-03 01:06:25
 **Session 1 started** (model: auto)
+
+### 2026-05-03 (Iteration 1)
+
+- **수집 API 남용 완화** (`RALPH_TASK.md` 해당 기준 `[x]`): `lib/ingest-body.ts`에서 `Content-Length` 선제 검사 + 스트림 누적 바이트 상한(기본 256KiB, `INGEST_MAX_BODY_BYTES`·최대 10MiB) 후 JSON 파싱. 초과 시 413, 파싱 실패 시 400.
+- `apps/open-graze/README.md`에 앱 상한·리버스 프록시 레이트 리밋 권장 문단 추가, `.env.example`에 변수 주석 추가.
+- 루트 `npm run build`: 최초 1회 `.next` 캐시 없이 실패(PageNotFound) → `apps/open-graze/.next` 삭제 후 재빌드 성공(환경 이슈로 기록).
