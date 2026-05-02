@@ -55,3 +55,18 @@ criterion complete and update progress log." → exit 0
 ═══════════════════════════════════════════════════════════════
 Ralph Session Started: Sun May  3 01:08:53 KST 2026
 ═══════════════════════════════════════════════════════════════
+[01:13:04] 🟡 SHELL cd /Users/uram/dev/agent-model-dev && git restore .ralph/activity.log && git add docs/agent-model-selection.md RALPH_TASK.md .ralph/progress.md && git commit --trailer "Co-authored-by: Cursor <cursoragent@cursor.com>" -m "ralph: add agent/model selection rationale doc (docs/agent-model-selection.md)
+
+- Summarize Cursor CLI, default auto model, RALPH_MODEL/-m override from scripts
+- Document stream-parser token estimates (70k/80k) and JSONL observability
+- Mark RALPH_TASK criterion [x]; link doc in Context table; update progress" → exit 0
+[01:13:09] 🟡 SHELL cd /Users/uram/dev/agent-model-dev && git push → exit 0
+[01:13:13] 🟡 READ /Users/uram/dev/agent-model-dev/.ralph/progress.md (44 lines, ~4.2KB)
+[01:13:22] 🟡 SHELL cd /Users/uram/dev/agent-model-dev && git add .ralph/progress.md && git commit --trailer "Co-authored-by: Cursor <cursoragent@cursor.com>" -m "ralph: fix typo in progress summary (토스)" && git push → exit 0
+[01:13:32] 🟡 TOKENS: 50098 / 80000 (62%) [read:191KB write:0KB assist:1KB shell:0KB]
+[01:13:32] 🟡 SESSION END: 272403ms, ~50098 tokens used
+[01:13:33] 🟡 TOKENS: 50098 / 80000 (62%) [read:191KB write:0KB assist:1KB shell:0KB]
+
+═══════════════════════════════════════════════════════════════
+Ralph Session Started: Sun May  3 01:13:36 KST 2026
+═══════════════════════════════════════════════════════════════

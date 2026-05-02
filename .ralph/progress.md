@@ -41,3 +41,9 @@
 ### 2026-05-03 (Iteration 2)
 
 - **`docs/agent-model-selection.md` 추가** — Cursor Agent CLI(`agent`/`cursor-agent`), 기본 모델 `auto`·`RALPH_MODEL`/`-m` 덮어쓰기, `stream-parser.sh`의 추정 토큰 임계(70k/80k)·JSONL·로그 측면을 **레포 스크립트 근거만**으로 요약. `RALPH_TASK.md` 해당 성공 기준 `[x]`, Context 표에 문서 경로 한 줄 추가.
+
+### 2026-05-03 01:13:33
+**Session 2 ended** - Agent finished naturally (4 criteria remaining)
+
+### 2026-05-03 01:13:36
+**Session 3 started** (model: auto)

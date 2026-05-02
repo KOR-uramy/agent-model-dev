@@ -3,124 +3,124 @@
 # DO NOT EDIT - regenerated on task file change
 
 source_file: RALPH_TASK.md
-source_mtime: 1777738077
-generated_at: 2026-05-02T16:08:51Z
+source_mtime: 1777738231
+generated_at: 2026-05-02T16:13:33Z
 
 tasks:
-  - id: "line_42"
-    line_number: 42
+  - id: "line_43"
+    line_number: 43
     status: completed
     parallel_group: 999999
     description: `RALPH_TASK.md`가 **본질 목표(관측·신뢰·재현)** 와 현재 레포 구조를 반영한다.
     indent_level: 0
     raw_marker: -
-  - id: "line_43"
-    line_number: 43
+  - id: "line_44"
+    line_number: 44
     status: pending
     parallel_group: 999999
     description: 완료된 체크는 `[x]`로 유지하고, 새 작업은 `[ ]`로만 추가한다(허위 완료 금지).
-    indent_level: 0
-    raw_marker: -
-  - id: "line_47"
-    line_number: 47
-    status: completed
-    parallel_group: 999999
-    description: 비밀(API 키, OAuth, 토스·Stripe 키, DB URL)은 **저장소에 커밋하지 않는다** (`.env.example`만).
     indent_level: 0
     raw_marker: -
   - id: "line_48"
     line_number: 48
     status: completed
     parallel_group: 999999
-    description: 수집 API(`POST /api/v1/events`)에 **남용 완화** 한 가지 이상(예: 레이트 리밋, body 크기 제한, 또는 문서화된 운영 가이드).
+    description: 비밀(API 키, OAuth, 토스·Stripe 키, DB URL)은 **저장소에 커밋하지 않는다** (`.env.example`만).
     indent_level: 0
     raw_marker: -
-  - id: "line_52"
-    line_number: 52
+  - id: "line_49"
+    line_number: 49
     status: completed
     parallel_group: 999999
-    description: 루트에서 `npm run build`가 **워크스페이스 전부**(sdk, open-graze) 통과한다.
+    description: 수집 API(`POST /api/v1/events`)에 **남용 완화** 한 가지 이상(예: 레이트 리밋, body 크기 제한, 또는 문서화된 운영 가이드).
     indent_level: 0
     raw_marker: -
   - id: "line_53"
     line_number: 53
     status: completed
     parallel_group: 999999
-    description: `open-graze`는 배포용 `next build`(webpack)로 검증한다(Turbopack 전용 `/_not-found` 수집 버그 회피). 개발 시 `GET /api/ralph/events`는 **실행 스모크**(200·JSON)로 확인한다 — 빌드만으로는 Turbopack+CJS 번들 이슈를 잡지 못한다.
+    description: 루트에서 `npm run build`가 **워크스페이스 전부**(sdk, open-graze) 통과한다.
     indent_level: 0
     raw_marker: -
   - id: "line_54"
     line_number: 54
-    status: pending
-    parallel_group: 999999
-    description: 에이전트/모델 **선택 근거**(프로바이더·버전·제약·측정)가 `docs/` 또는 루트 마크다운 **한 파일**에 요약되어 있다(추측만으로 적지 않는다).
-    indent_level: 0
-    raw_marker: -
-  - id: "line_58"
-    line_number: 58
     status: completed
     parallel_group: 999999
-    description: `stream-parser`가 구조화 JSONL을 남기고, SDK가 이를 읽어 대시보드에 합친다(Ralph + 앱 텔레메트리).
+    description: `open-graze`는 배포용 `next build`(webpack)로 검증한다(Turbopack 전용 `/_not-found` 수집 버그 회피). 개발 시 `GET /api/ralph/events`는 **실행 스모크**(200·JSON)로 확인한다 — 빌드만으로는 Turbopack+CJS 번들 이슈를 잡지 못한다.
+    indent_level: 0
+    raw_marker: -
+  - id: "line_55"
+    line_number: 55
+    status: completed
+    parallel_group: 999999
+    description: 에이전트/모델 **선택 근거**(프로바이더·버전·제약·측정)가 `docs/` 또는 루트 마크다운 **한 파일**에 요약되어 있다(추측만으로 적지 않는다).
     indent_level: 0
     raw_marker: -
   - id: "line_59"
     line_number: 59
     status: completed
     parallel_group: 999999
-    description: Git `post-commit` 등 **콜백 경로**로 텔레메트리를 쌓을 수 있다(`openg-graze-git-commit` CLI).
+    description: `stream-parser`가 구조화 JSONL을 남기고, SDK가 이를 읽어 대시보드에 합친다(Ralph + 앱 텔레메트리).
     indent_level: 0
     raw_marker: -
   - id: "line_60"
     line_number: 60
     status: completed
     parallel_group: 999999
+    description: Git `post-commit` 등 **콜백 경로**로 텔레메트리를 쌓을 수 있다(`openg-graze-git-commit` CLI).
+    indent_level: 0
+    raw_marker: -
+  - id: "line_61"
+    line_number: 61
+    status: completed
+    parallel_group: 999999
     description: **한 앱 안 역할** — `/`·`GET /api/ralph/events`는 SQLite `TimelineEvent`(JSONL은 동기화로 적재); `/login`·`/dashboard`·`/api/v1/events` 등은 워크스페이스·수집 테이블(`apps/open-graze/README.md`).
     indent_level: 0
     raw_marker: -
-  - id: "line_64"
-    line_number: 64
+  - id: "line_65"
+    line_number: 65
     status: completed
     parallel_group: 999999
     description: Google 로그인, 워크스페이스, API 키 발급이 동작 가능한 형태로 존재한다.
     indent_level: 0
     raw_marker: -
-  - id: "line_65"
-    line_number: 65
+  - id: "line_66"
+    line_number: 66
     status: pending
     parallel_group: 999999
     description: **결제**는 [토스페이먼츠 LLMs 연동 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide) 및 [llms.txt](https://docs.tosspayments.com/llms.txt)를 따른다(결제위젯 v2·승인 API·웹훅 등). Cursor 연동 시 가이드에 안내된 **토스페이먼츠 MCP** 활용을 우선한다.
-    indent_level: 0
-    raw_marker: -
-  - id: "line_66"
-    line_number: 66
-    status: completed
-    parallel_group: 999999
-    description: 레거시 **Stripe** Checkout/Webhook 스캐폴드는 코드에 남아 있으나, 제품 기준 결제 수단은 아니다(토스 연동 후 정리).
     indent_level: 0
     raw_marker: -
   - id: "line_67"
     line_number: 67
     status: completed
     parallel_group: 999999
-    description: **텔레그램** — (로컬/SDK) `TELEGRAM_BOT_TOKEN`·`TELEGRAM_CHAT_ID`·선택 `TELEGRAM_NOTIFY_COMMITS=1`로 커밋 등 알림 가능. (클라우드) `POST /api/webhooks/telegram` + `TELEGRAM_WEBHOOK_SECRET` + `TELEGRAM_CHAT_WORKSPACE_MAP`으로 채팅 메시지·`/task 본문`을 `IngestedEvent`로 수집해 관측·작업 전달 파이프가 있다.
+    description: 레거시 **Stripe** Checkout/Webhook 스캐폴드는 코드에 남아 있으나, 제품 기준 결제 수단은 아니다(토스 연동 후 정리).
     indent_level: 0
     raw_marker: -
   - id: "line_68"
     line_number: 68
     status: completed
     parallel_group: 999999
-    description: **자기 연동(dogfood)** — 플랫폼을 켠 뒤 대시보드에서 워크스페이스(예: `open-graze-self`)·API 키를 발급하고, **이 레포**에서 `OPENGRAZE_PLATFORM_API_KEY` 등을 두고 `npm run platform:self-test`를 실행하면 `POST /api/v1/events`로 `opengraze.self_test`가 들어가며, 같은 워크스페이스 대시보드 **이벤트** 목록에서 확인할 수 있다.
+    description: **텔레그램** — (로컬/SDK) `TELEGRAM_BOT_TOKEN`·`TELEGRAM_CHAT_ID`·선택 `TELEGRAM_NOTIFY_COMMITS=1`로 커밋 등 알림 가능. (클라우드) `POST /api/webhooks/telegram` + `TELEGRAM_WEBHOOK_SECRET` + `TELEGRAM_CHAT_WORKSPACE_MAP`으로 채팅 메시지·`/task 본문`을 `IngestedEvent`로 수집해 관측·작업 전달 파이프가 있다.
     indent_level: 0
     raw_marker: -
   - id: "line_69"
     line_number: 69
+    status: completed
+    parallel_group: 999999
+    description: **자기 연동(dogfood)** — 플랫폼을 켠 뒤 대시보드에서 워크스페이스(예: `open-graze-self`)·API 키를 발급하고, **이 레포**에서 `OPENGRAZE_PLATFORM_API_KEY` 등을 두고 `npm run platform:self-test`를 실행하면 `POST /api/v1/events`로 `opengraze.self_test`가 들어가며, 같은 워크스페이스 대시보드 **이벤트** 목록에서 확인할 수 있다.
+    indent_level: 0
+    raw_marker: -
+  - id: "line_70"
+    line_number: 70
     status: pending
     parallel_group: 999999
     description: 프로덕션 배포 시 **Postgres** 전환 경로가 문서에 적혀 있다(SQLite 개발 전제 명시).
     indent_level: 0
     raw_marker: -
-  - id: "line_70"
-    line_number: 70
+  - id: "line_71"
+    line_number: 71
     status: pending
     parallel_group: 999999
     description: 결제 미설정이어도 **핵심 플로**(로그인 → 워크스페이스 → 키 → ingest)가 README 한 블록으로 재현된다.
