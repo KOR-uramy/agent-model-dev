@@ -93,8 +93,18 @@ WORKSPACE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -n|--iterations)
-      MAX_ITERATIONS="$2"
-      shift 2
+      # 흔한 실수: -n --infinite → --infinite만 쓰거나 -n 0 을 기대함
+      if [[ "${2:-}" == "--infinite" ]]; then
+        MAX_ITERATIONS="0"
+        shift 2
+      elif [[ "${2:-}" =~ ^[0-9]+$ ]]; then
+        MAX_ITERATIONS="$2"
+        shift 2
+      else
+        echo "❌ -n 다음에는 0 이상의 정수만 옵니다 (예: -n 5, -n 0)." >&2
+        echo "   무제한:  --infinite   또는   -n 0   (실수로 -n --infinite 를 썼다면 그 조합도 허용)" >&2
+        exit 1
+      fi
       ;;
     -m|--model)
       MODEL="$2"
@@ -146,8 +156,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# -n 0 / --infinite → 사실상 무제한 (성공 기준 전부 [x]·GUTTER·Ctrl-C까지)
-if [[ "${MAX_ITERATIONS:-20}" -le 0 ]]; then
+# -n 0 / --infinite / (실수) -n --infinite → 사실상 무제한 (성공 기준 전부 [x]·GUTTER·Ctrl-C까지)
+if [[ "${MAX_ITERATIONS:-20}" =~ ^-?[0-9]+$ ]] && [[ "${MAX_ITERATIONS:-20}" -le 0 ]]; then
   export RALPH_INFINITE_LOOP=1
   MAX_ITERATIONS=2147483647
   echo "♾️  Iteration cap: none (stop when RALPH_TASK criteria all [x], on GUTTER, or Ctrl-C)." >&2
