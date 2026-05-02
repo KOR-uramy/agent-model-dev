@@ -3,8 +3,8 @@
 # DO NOT EDIT - regenerated on task file change
 
 source_file: RALPH_TASK.md
-source_mtime: 1777738231
-generated_at: 2026-05-02T16:13:33Z
+source_mtime: 1777738495
+generated_at: 2026-05-02T16:15:48Z
 
 tasks:
   - id: "line_43"
@@ -114,14 +114,14 @@ tasks:
     raw_marker: -
   - id: "line_70"
     line_number: 70
-    status: pending
+    status: completed
     parallel_group: 999999
     description: 프로덕션 배포 시 **Postgres** 전환 경로가 문서에 적혀 있다(SQLite 개발 전제 명시).
     indent_level: 0
     raw_marker: -
   - id: "line_71"
     line_number: 71
-    status: pending
+    status: completed
     parallel_group: 999999
     description: 결제 미설정이어도 **핵심 플로**(로그인 → 워크스페이스 → 키 → ingest)가 README 한 블록으로 재현된다.
     indent_level: 0
