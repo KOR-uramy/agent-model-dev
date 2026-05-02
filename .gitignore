@@ -1,0 +1,11 @@
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Ralph (Cursor) — ralph-config may contain API keys
+.cursor/ralph-config.json
+.ralph-worktrees/
+
+# OS / editor
+.DS_Store
