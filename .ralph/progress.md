@@ -19,3 +19,6 @@
 - `workspace-platform`을 **`apps/open-graze` 단일 Next 앱으로 통합**(Prisma·Auth·대시보드·수집·웹훅). 루트 `npm run dev` / `npm run build`는 open-graze만 포함.
 - OpenGraze `GET /api/ralph/events` Turbopack 500(`server_1 is not defined`) — SDK `next.ts`를 `Response.json`으로 변경; `open-graze` 프로덕션 빌드는 `next build`(webpack)로 전환(Turbopack `/_not-found` 수집 실패 회피), `app/not-found.tsx` 추가.
 
+
+### 2026-05-03 01:02:04
+**Session 1 started** (model: auto)
