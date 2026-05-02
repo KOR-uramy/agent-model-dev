@@ -1,0 +1,115 @@
+import { createHash } from "crypto";
+import { Prisma } from "@prisma/client";
+import type { RalphEventsApiPayload, WorkspaceFeedEvent } from "ralph-workspace-sdk";
+import {
+  buildRalphEventsApiPayloadFromMerged,
+  loadRalphEventsSnapshot,
+  parseUsdPerMillionEstTokens,
+  resolveEventsJsonlPath,
+  resolveOpengrazeWorkspaceKey,
+  resolveRalphWorkspace,
+  resolveTelemetryJsonlPath,
+} from "ralph-workspace-sdk";
+import { prisma } from "@/lib/prisma";
+
+const pathOpts = {
+  env: process.env,
+  cwd: process.cwd(),
+  defaultWorkspaceSegments: ["..", ".."],
+};
+
+const EMPTY_HINT =
+  "SQLite `TimelineEvent`에 행이 없습니다. `.ralph/*.jsonl` → DB 반영: POST /api/ralph/sync-jsonl (Bearer RALPH_FEED_SYNC_SECRET). 루트 README 참고.";
+
+function timelineWorkspaceKey(): string {
+  return (
+    resolveOpengrazeWorkspaceKey(pathOpts)?.trim() || "default"
+  );
+}
+
+function lineHash(e: WorkspaceFeedEvent): string {
+  return createHash("sha256")
+    .update(
+      `${e.source}\0${e.ts}\0${e.kind}\0${JSON.stringify(e.detail ?? null)}`,
+    )
+    .digest("hex");
+}
+
+export async function loadTimelineFromDb(
+  tail: number,
+): Promise<RalphEventsApiPayload> {
+  const workspaceKey = timelineWorkspaceKey();
+  const workspace = resolveRalphWorkspace(pathOpts);
+  const ralphPath = resolveEventsJsonlPath(pathOpts);
+  const telemetryPath = resolveTelemetryJsonlPath(pathOpts);
+  const usdPerM = parseUsdPerMillionEstTokens(pathOpts);
+  const t = Math.min(5000, Math.max(1, tail));
+
+  const rows = await prisma.timelineEvent.findMany({
+    where: { workspaceKey },
+    orderBy: { ts: "desc" },
+    take: t,
+  });
+
+  const merged: WorkspaceFeedEvent[] = rows
+    .map((r) => {
+      try {
+        return JSON.parse(r.payload) as WorkspaceFeedEvent;
+      } catch {
+        return null;
+      }
+    })
+    .filter((x): x is WorkspaceFeedEvent => x != null)
+    .reverse();
+
+  const empty = merged.length === 0;
+  return buildRalphEventsApiPayloadFromMerged({
+    workspace,
+    eventsPath: ralphPath,
+    telemetryPath,
+    usdPerMillionEstTokens: usdPerM,
+    merged,
+    error: empty ? "TIMELINE_EMPTY" : undefined,
+    hint: empty ? EMPTY_HINT : undefined,
+  });
+}
+
+export async function syncJsonlToTimeline(
+  tail: number,
+): Promise<{ inserted: number; skipped: number }> {
+  const workspaceKey = timelineWorkspaceKey();
+  const snap = await loadRalphEventsSnapshot({
+    ...pathOpts,
+    tail: Math.min(20_000, Math.max(1, tail)),
+  });
+
+  let inserted = 0;
+  let skipped = 0;
+  for (const e of snap.events) {
+    const hash = lineHash(e);
+    const payload = JSON.stringify(e);
+    try {
+      await prisma.timelineEvent.create({
+        data: {
+          workspaceKey,
+          lineHash: hash,
+          source: e.source,
+          ts: e.ts,
+          kind: e.kind,
+          payload,
+        },
+      });
+      inserted += 1;
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        skipped += 1;
+        continue;
+      }
+      throw err;
+    }
+  }
+  return { inserted, skipped };
+}

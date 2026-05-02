@@ -24,10 +24,10 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
   fi
 fi
 
-# Check for cursor-agent CLI
-if ! command -v cursor-agent &> /dev/null; then
-  echo "⚠️  Warning: cursor-agent CLI not found."
-  echo "   Install via: curl https://cursor.com/install -fsS | bash"
+# Check for Cursor Agent CLI (agent | cursor-agent)
+if ! command -v agent &> /dev/null && ! command -v cursor-agent &> /dev/null; then
+  echo "⚠️  Warning: Cursor Agent CLI not found (install: curl https://cursor.com/install -fsS | bash)"
+  echo "   Verify: agent --version   — PATH에 ~/.local/bin 포함 여부를 확인하세요."
   echo ""
 fi
 

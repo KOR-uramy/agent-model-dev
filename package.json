@@ -3,7 +3,11 @@
   "private": true,
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "build": "npm run build -w ralph-workspace-sdk && npm run build -w ralph-log",
-    "dev:ralph-log": "npm run dev -w ralph-log"
+    "build": "npm run build -w ralph-workspace-sdk && npm run build -w open-graze",
+    "kill:3000": "sh scripts/kill-port.sh 3000",
+    "dev": "sh scripts/dev-open-graze.sh",
+    "dev:open-graze": "sh scripts/dev-open-graze.sh",
+    "platform:self-test": "sh -c 'set -a; [ -f .env ] && . ./.env; set +a; exec node scripts/platform-self-test.mjs'",
+    "sync:feed": "npm run sync:feed -w open-graze"
   }
 }

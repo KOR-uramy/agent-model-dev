@@ -66,7 +66,7 @@ calc_tokens() {
   echo $((total_bytes / 4))
 }
 
-# Structured JSONL for dashboards (e.g. apps/ralph-log). One JSON object per line.
+# Structured JSONL for dashboards (e.g. apps/open-graze / OpenGraze). One JSON object per line.
 append_event() {
   local kind="$1"
   local detail_json="${2:-null}"

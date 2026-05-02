@@ -68,6 +68,18 @@ get_ralph_dir() {
   echo "$workspace/.ralph"
 }
 
+# Cursor CLI: 공식 설치 바이너리는 `agent`(문서: cursor.com/docs/cli/installation).
+# 과거 이름 `cursor-agent`도 지원한다.
+ralph_cursor_agent_bin() {
+  if command -v agent &> /dev/null; then
+    echo "agent"
+  elif command -v cursor-agent &> /dev/null; then
+    echo "cursor-agent"
+  else
+    echo ""
+  fi
+}
+
 # Get current iteration from .ralph/.iteration
 get_iteration() {
   local workspace="${1:-.}"
@@ -508,8 +520,16 @@ run_iteration() {
   # stream-parser: JSONL events (.ralph/events.jsonl) include this iteration index
   export RALPH_ITERATION="$iteration"
   
-  # Build cursor-agent command
-  local cmd="cursor-agent -p --force --output-format stream-json --model $MODEL"
+  local agent_bin
+  agent_bin="$(ralph_cursor_agent_bin)"
+  if [[ -z "$agent_bin" ]]; then
+    echo "❌ Cursor Agent CLI not found (need: agent or cursor-agent in PATH)" >&2
+    rm -f "$fifo"
+    return 1
+  fi
+
+  # Build agent command (same flags as legacy cursor-agent)
+  local cmd="$agent_bin -p --force --output-format stream-json --model $MODEL"
   
   if [[ -n "$session_id" ]]; then
     echo "Resuming session: $session_id" >&2
@@ -773,12 +793,15 @@ check_prerequisites() {
     return 1
   fi
   
-  # Check for cursor-agent CLI
-  if ! command -v cursor-agent &> /dev/null; then
-    echo "❌ cursor-agent CLI not found"
+  # Check for Cursor Agent CLI (`agent` or legacy `cursor-agent`)
+  if [[ -z "$(ralph_cursor_agent_bin)" ]]; then
+    echo "❌ Cursor Agent CLI not found (expected: agent or cursor-agent in PATH)"
     echo ""
-    echo "Install via:"
+    echo "Install:"
     echo "  curl https://cursor.com/install -fsS | bash"
+    echo ""
+    echo "Then ensure ~/.local/bin is on PATH (see https://cursor.com/docs/cli/installation) and run:"
+    echo "  agent --version"
     return 1
   fi
   

@@ -17,6 +17,9 @@
     }
   },
   "files": ["dist"],
+  "bin": {
+    "openg-graze-git-commit": "./dist/git-hook.js"
+  },
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc -p tsconfig.json",

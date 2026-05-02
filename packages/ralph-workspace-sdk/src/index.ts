@@ -1,5 +1,9 @@
-export { RALPH_ENV_KEYS } from "./constants";
+export { OPENGRAZE_ENV_KEYS, RALPH_ENV_KEYS } from "./constants";
 export type {
+  ApplicationTelemetryDetail,
+  ApplicationTelemetryRecord,
+  EventSource,
+  OpengrazeEnvKeyName,
   RalphEnv,
   RalphEnvKeyName,
   RalphEvent,
@@ -8,16 +12,34 @@ export type {
   RalphEventsSummary,
   RalphPathsOptions,
   RalphTokenBreakdown,
+  WorkspaceFeedEvent,
   CreateRalphEventsHandlerOptions,
 } from "./types";
 export {
   parseUsdPerMillionEstTokens,
   resolveEventsJsonlPath,
+  resolveOpengrazeWorkspaceKey,
   resolveRalphWorkspace,
+  resolveTelemetryJsonlPath,
 } from "./paths";
 export {
+  buildRalphEventsApiPayloadFromMerged,
   loadRalphEventsSnapshot,
+  normalizeApplicationEvent,
+  normalizeRalphEvent,
+  opengrazeEnvTemplate,
   parseEventsJsonl,
   ralphEnvTemplate,
 } from "./snapshot";
 export type { LoadRalphEventsSnapshotOptions } from "./snapshot";
+export {
+  appendWorkspaceTelemetryEvent,
+  createApplicationLogger,
+} from "./telemetry";
+export type { AppendTelemetryOptions, ApplicationLogger } from "./telemetry";
+export {
+  sendTelegramMessage,
+  sendTelegramToChat,
+  TELEGRAM_ENV_KEYS,
+  telegramEnvHint,
+} from "./telegram";

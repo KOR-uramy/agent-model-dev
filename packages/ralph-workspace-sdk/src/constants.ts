@@ -7,3 +7,10 @@ export const RALPH_ENV_KEYS = {
   EVENTS_JSONL: "RALPH_EVENTS_JSONL",
   USD_PER_MILLION_EST_TOKENS: "RALPH_USD_PER_MILLION_EST_TOKENS",
 } as const;
+
+/** OpenGraze / 앱 작업량 로그 (`stream-parser`와 별도 파일) */
+export const OPENGRAZE_ENV_KEYS = {
+  TELEMETRY_JSONL: "OPENGRAZE_TELEMETRY_JSONL",
+  /** 여러 앱이 같은 파일에 쓸 때 구분용 라벨 */
+  WORKSPACE_KEY: "OPENGRAZE_WORKSPACE_KEY",
+} as const;

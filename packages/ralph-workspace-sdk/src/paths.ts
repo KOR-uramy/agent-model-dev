@@ -1,5 +1,5 @@
 import { join } from "path";
-import { RALPH_ENV_KEYS } from "./constants";
+import { OPENGRAZE_ENV_KEYS, RALPH_ENV_KEYS } from "./constants";
 import type { RalphEnv, RalphPathsOptions } from "./types";
 
 const DEFAULT_WORKSPACE_SEGMENTS = ["..", ".."];
@@ -31,6 +31,22 @@ export function resolveEventsJsonlPath(opts: RalphPathsOptions = {}): string {
   const custom = env[RALPH_ENV_KEYS.EVENTS_JSONL]?.trim();
   if (custom) return custom;
   return join(resolveRalphWorkspace(opts), ".ralph", "events.jsonl");
+}
+
+/** 앱·서버 작업 로그 — `OPENGRAZE_TELEMETRY_JSONL` 또는 `<workspace>/.ralph/workspace-telemetry.jsonl` */
+export function resolveTelemetryJsonlPath(opts: RalphPathsOptions = {}): string {
+  const env = getEnv(opts);
+  const custom = env[OPENGRAZE_ENV_KEYS.TELEMETRY_JSONL]?.trim();
+  if (custom) return custom;
+  return join(resolveRalphWorkspace(opts), ".ralph", "workspace-telemetry.jsonl");
+}
+
+export function resolveOpengrazeWorkspaceKey(
+  opts: RalphPathsOptions = {},
+): string | undefined {
+  const env = getEnv(opts);
+  const v = env[OPENGRAZE_ENV_KEYS.WORKSPACE_KEY]?.trim();
+  return v || undefined;
 }
 
 /** 추정 토큰 100만당 USD (0이면 비용 필드 생략·표시 안 함) */

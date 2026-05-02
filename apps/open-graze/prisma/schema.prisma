@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// —— Auth.js (https://authjs.dev/getting-started/adapters/prisma) ——
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String?
+  email           String?   @unique
+  emailVerified   DateTime?
+  image           String?
+  accounts        Account[]
+  sessions        Session[]
+  memberships     WorkspaceMember[]
+  workspacesOwned Workspace[]         @relation("WorkspaceOwner")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// —— OpenGraze Cloud 플랫폼 ——
+
+model Workspace {
+  id                   String   @id @default(cuid())
+  name                 String
+  slug                 String   @unique
+  ownerId              String
+  owner                User     @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String   @default("inactive")
+  members              WorkspaceMember[]
+  apiKeys              ApiKey[]
+  events               IngestedEvent[]
+  createdAt            DateTime @default(now())
+}
+
+model WorkspaceMember {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String    @default("member")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  prefix      String
+  tokenDigest String    @unique
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model IngestedEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  kind        String
+  payload     String
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+/// Ralph `events.jsonl` + 앱 `workspace-telemetry.jsonl` 동기화 결과(대시보드 `/`·GET /api/ralph/events)
+model TimelineEvent {
+  id            String   @id @default(cuid())
+  /// `OPENGRAZE_WORKSPACE_KEY` 또는 기본 `default`
+  workspaceKey  String   @default("default")
+  /// 중복 동기화 방지(SHA-256 hex)
+  lineHash      String   @unique
+  source        String
+  ts            String
+  kind          String
+  /// `WorkspaceFeedEvent` JSON (추정 USD 포함 가능)
+  payload       String
+  createdAt     DateTime @default(now())
+
+  @@index([workspaceKey, ts])
+}

@@ -10,6 +10,13 @@
 
 set -euo pipefail
 
+# ralph-loop.sh가 먼저 ralph-common.sh를 source하지만, 단독 source 시에도 CLI 이름을 쓸 수 있게 한다.
+_SCRIPT_DIR_PARALLEL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if ! declare -F ralph_cursor_agent_bin &> /dev/null; then
+  # shellcheck source=ralph-common.sh
+  source "$_SCRIPT_DIR_PARALLEL/ralph-common.sh"
+fi
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
@@ -273,12 +280,20 @@ Begin by reading any relevant files, then implement the task."
   mkdir -p "$worktree_dir/.ralph"
   mkdir -p "$worktree_dir/.ralph/parallel/${RUN_ID}"
   
-  # Run cursor-agent
-  echo "[$(date '+%H:%M:%S')] Agent ${display_agent_num} (job ${job_id}, task ${task_id}) starting: $task_desc" >> "$log_file"
-  
+  local agent_bin
+  agent_bin="$(ralph_cursor_agent_bin)"
+  echo "[$(date '+%H:%M:%S')] Agent ${display_agent_num} (job ${job_id}, task ${task_id}) starting: $task_desc (cli: ${agent_bin:-missing})" >> "$log_file"
+
+  if [[ -z "$agent_bin" ]]; then
+    echo "failed" > "$status_file"
+    echo "error|no_agent" > "$output_file"
+    echo "[$(date '+%H:%M:%S')] Agent ${display_agent_num} (job ${job_id}) skipped: no agent in PATH" >> "$log_file"
+    return 0
+  fi
+
   # Headless mode: auto-approve MCP servers to avoid interactive prompts.
   # Also detach stdin to prevent any accidental blocking on input.
-  if cd "$worktree_dir" && cursor-agent -p --approve-mcps --force --output-format stream-json --model "$MODEL" "$prompt" >> "$log_file" 2>&1 < /dev/null; then
+  if cd "$worktree_dir" && "$agent_bin" -p --approve-mcps --force --output-format stream-json --model "$MODEL" "$prompt" >> "$log_file" 2>&1 < /dev/null; then
     echo "done" > "$status_file"
     
     # Check if any commits were made

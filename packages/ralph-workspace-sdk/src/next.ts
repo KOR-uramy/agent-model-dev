@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import type { CreateRalphEventsHandlerOptions } from "./types";
 import { loadRalphEventsSnapshot } from "./snapshot";
 
@@ -34,6 +33,8 @@ export function createRalphEventsGETHandler(
       tail,
     });
 
-    return NextResponse.json(payload);
+    // NextResponse 대신 표준 Response.json — Turbopack이 CJS 번들의
+    // `require("next/server")` 별칭을 깨뜨려 server_1 미정의 런타임 오류가 난 사례 방지.
+    return Response.json(payload);
   };
 }
