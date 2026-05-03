@@ -323,38 +323,60 @@ get_conflicted_files() {
   git -C "$workspace" diff --name-only --diff-filter=U 2>/dev/null || true
 }
 
-# Merge an agent branch into target
-# Returns: "success", "conflict", or "error"
-merge_agent_branch() {
+# One merge attempt. strategy: "" or "theirs" (-X theirs: 충돌 시 머지되는 브랜치 쪽 유지).
+# Echoes: success | conflict | error | checkout_error
+# Optional err_log: append git output for debugging.
+_merge_agent_single_try() {
   local branch="$1"
   local target_branch="$2"
   local workspace="$3"
-  
-  # Checkout target
-  git -C "$workspace" checkout "$target_branch" 2>/dev/null || return 1
-  
-  # Attempt merge
+  local strategy="${4:-}"
+  local err_log="${5:-}"
+
+  if ! git -C "$workspace" checkout "$target_branch" 2>/dev/null; then
+    echo "checkout_error"
+    return 0
+  fi
+
   local git_name git_email
   git_name=$(git -C "$workspace" config user.name 2>/dev/null || true)
   git_email=$(git -C "$workspace" config user.email 2>/dev/null || true)
 
+  local stderr_tmp="${TMPDIR:-/tmp}/ralph-merge-$$-${RANDOM}.err"
   local rc=0
-  if [[ -n "$git_name" ]] && [[ -n "$git_email" ]]; then
-    git -C "$workspace" merge --no-ff -m "Merge $branch into $target_branch" "$branch" >/dev/null 2>&1 || rc=$?
+  if [[ "$strategy" == "theirs" ]]; then
+    if [[ -n "$git_name" ]] && [[ -n "$git_email" ]]; then
+      git -C "$workspace" merge --no-ff -X theirs -m "Merge $branch into $target_branch" "$branch" >"$stderr_tmp" 2>&1 || rc=$?
+    else
+      git -C "$workspace" \
+        -c user.name="ralph-parallel" \
+        -c user.email="ralph-parallel@localhost" \
+        merge --no-ff -X theirs -m "Merge $branch into $target_branch" "$branch" >"$stderr_tmp" 2>&1 || rc=$?
+    fi
   else
-    # Allow merge commits even when user.name/email aren't configured (common in CI)
-    git -C "$workspace" \
-      -c user.name="ralph-parallel" \
-      -c user.email="ralph-parallel@localhost" \
-      merge --no-ff -m "Merge $branch into $target_branch" "$branch" >/dev/null 2>&1 || rc=$?
+    if [[ -n "$git_name" ]] && [[ -n "$git_email" ]]; then
+      git -C "$workspace" merge --no-ff -m "Merge $branch into $target_branch" "$branch" >"$stderr_tmp" 2>&1 || rc=$?
+    else
+      git -C "$workspace" \
+        -c user.name="ralph-parallel" \
+        -c user.email="ralph-parallel@localhost" \
+        merge --no-ff -m "Merge $branch into $target_branch" "$branch" >"$stderr_tmp" 2>&1 || rc=$?
+    fi
   fi
+
+  if [[ -n "$err_log" ]]; then
+    {
+      echo "--- $(date -u '+%Y-%m-%dT%H:%M:%SZ') merge try strategy=${strategy:-default} branch=$branch ---"
+      cat "$stderr_tmp" 2>/dev/null || true
+    } >> "$err_log" 2>/dev/null || true
+  fi
+  rm -f "$stderr_tmp"
 
   if [[ "$rc" -eq 0 ]]; then
     echo "success"
-    return
+    return 0
   fi
 
-  # Merge failed: check for conflicts vs other errors
   local conflicts
   conflicts=$(get_conflicted_files "$workspace")
   if [[ -n "$conflicts" ]]; then
@@ -362,6 +384,51 @@ merge_agent_branch() {
   else
     echo "error"
   fi
+}
+
+# Merge an agent branch into target.
+# 1) 일반 merge 2) 실패 시 abort 후 -X theirs 로 한 번 더 시도(병렬 작업이 같은 파일을 건드릴 때 자동 해소에 가깝게).
+# Optional 4th: append-only stderr log path.
+# Returns stdout: "success", "conflict", or "error"
+merge_agent_branch() {
+  local branch="$1"
+  local target_branch="$2"
+  local workspace="$3"
+  local err_log="${4:-}"
+
+  local r
+  r=$(_merge_agent_single_try "$branch" "$target_branch" "$workspace" "" "$err_log")
+  if [[ "$r" == "success" ]]; then
+    echo "success"
+    return 0
+  fi
+  if [[ "$r" == "checkout_error" ]]; then
+    echo "error"
+    return 0
+  fi
+
+  abort_merge "$workspace"
+
+  echo "  ↳ 재시도: 충돌·잔류 시 에이전트 브랜치 우선(-X theirs)" >&2
+  r=$(_merge_agent_single_try "$branch" "$target_branch" "$workspace" "theirs" "$err_log")
+  if [[ "$r" == "success" ]]; then
+    echo "success"
+    return 0
+  fi
+  if [[ "$r" == "checkout_error" ]]; then
+    echo "error"
+    return 0
+  fi
+
+  # abort 전에 분류(abort 후에는 충돌 파일 목록이 비어 error 로 오인할 수 있음)
+  local final_kind="error"
+  local final_conflicts
+  final_conflicts=$(get_conflicted_files "$workspace")
+  if [[ -n "$final_conflicts" ]]; then
+    final_kind="conflict"
+  fi
+  abort_merge "$workspace"
+  echo "$final_kind"
 }
 
 # Abort an in-progress merge
@@ -414,6 +481,7 @@ merge_completed_branches() {
         ;;
       *)
         echo "❌"
+        abort_merge "$workspace"
         failed+=("$branch")
         ;;
     esac
@@ -845,7 +913,7 @@ run_parallel_tasks() {
 
       printf "  Merging %-55s " "$branch_name..."
       local result
-      result=$(merge_agent_branch "$branch_name" "$merge_target" "$original_dir")
+      result=$(merge_agent_branch "$branch_name" "$merge_target" "$original_dir" "$RUN_DIR/merge-errors.log")
 
       case "$result" in
         "success")
@@ -876,6 +944,11 @@ run_parallel_tasks() {
           ;;
       esac
     done
+
+    if [[ -s "$RUN_DIR/merge-errors.log" ]]; then
+      echo ""
+      echo "📎 merge stderr·재시도 로그: $RUN_DIR/merge-errors.log"
+    fi
 
     # Mark tasks complete only after all merges (avoids dirty working tree breaking subsequent merges).
     # bash 3.2 + set -u: empty "${integrated_task_ids[@]}" errors — only iterate when non-empty.

@@ -167,6 +167,7 @@ export MAX_ITERATIONS=999
 - Cursor CLI(에이전트): https://cursor.com/install — 설치 후 명령은 공식적으로 **`agent`**([CLI 설치](https://cursor.com/docs/cli/installation)). 레포 스크립트는 **`agent` 또는 예전 이름 `cursor-agent`** 중 PATH에 있는 것을 쓴다. `~/.local/bin`을 PATH에 넣고 `agent --version`으로 확인한다.
 - 선택 UI: `brew install gum`
 - 병렬 모드 사용 시 `RALPH_TASK.md`는 **반드시 커밋된 상태**여야 한다(upstream Ralph 제약).
+- **`ralph-parallel.sh` 병합** — `main`에 합칠 때 첫 `merge`가 실패하면 `merge --abort` 후 **`merge -X theirs`로 한 번 재시도**한다(충돌 시 에이전트 브랜치 쪽을 우선). 그래도 실패하면 ❌로 남기며, stderr는 해당 실행의 `.ralph/parallel/<run>/merge-errors.log`에 쌓인다. 동일 파일을 여러 에이전트가 크게 바꾸면 자동 해소가 어렵다 — `<!-- group: N -->`로 태스크를 나누거나 `--max-parallel 1`에 가깝게 줄인다.
 - 결제 구현·질의 시: [LLMs로 결제 연동하기](https://docs.tosspayments.com/guides/v2/get-started/llms-guide), 문서 맥락 [llms.txt](https://docs.tosspayments.com/llms.txt), 필요 시 MCP(가이드 내 Cursor 절)로 v2 스펙을 조회한다.
 - 로컬 서버 스모크 시 **포트 3000 고정**: `npm run dev`(선행 `kill:3000`). 테스트마다 `-p 3020` 등으로 포트를 늘리지 않는다(`scripts/kill-port.sh`).
 - **`ralph-loop.sh` 진행률** — `Progress: A / B`는 `RALPH_TASK.md` 전체에서 **목록 체크박스**(`- [ ]` / `- [x]`, `*`·`1.` 시작 동일)만 센다. B가 0이면 “기준이 없음”으로 곧바로 루프에 안 들어간다. **전부 `[x]`이면 남은 일 0으로 보고 기본은 즉시 종료**(`Task already complete!`)한다. 그래도 에이전트를 돌리려면 **`--force` / `-f`** 또는 **`FORCE_RALPH_TASK_GUARD=1`** 로 조기 종료를 건너뛴다. `--max-parallel 4` 등 **병렬 옵션은 미완 `[ ]`가 있을 때만** `run_parallel_tasks`가 실행된다; 완료 상태에서 병렬 줄만 보이고 바로 끝나는 것은 정상이다.
