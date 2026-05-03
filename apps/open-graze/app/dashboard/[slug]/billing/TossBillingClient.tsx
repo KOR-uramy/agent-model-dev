@@ -141,7 +141,7 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
       </p>
       {chargeAmountKrw !== null && !loading ? (
         <p className="mt-3 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          이번 청구 금액: {chargeAmountKrw.toLocaleString("ko-KR")}원
+          이번 결제 금액: {chargeAmountKrw.toLocaleString("ko-KR")}원
         </p>
       ) : null}
 
