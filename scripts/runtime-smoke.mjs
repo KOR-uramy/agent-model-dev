@@ -74,13 +74,20 @@ const now = Date.now();
 const fromIso = new Date(now - 7 * 86400000).toISOString();
 const toIso = new Date(now).toISOString();
 const rangePath = `/api/ralph/events/range?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}&limit=100`;
-const rangePayload = await getJson(rangePath, "GET /api/ralph/events/range");
+const rangePayload = await getJson(
+  rangePath,
+  "GET /api/ralph/events/range",
+);
 if (
   !Array.isArray(rangePayload.events) ||
   typeof rangePayload.truncated !== "boolean" ||
-  typeof rangePayload.returnedCount !== "number"
+  typeof rangePayload.returnedCount !== "number" ||
+  rangePayload.returnedCount !== rangePayload.events.length
 ) {
-  console.error("ralph/events/range 페이로드 형식 오류:", Object.keys(rangePayload));
+  console.error(
+    "ralph/events/range: events·truncated·returnedCount 형식 오류:",
+    Object.keys(rangePayload),
+  );
   process.exit(1);
 }
 console.log("  ✓ ralph/events/range (7d window)");
