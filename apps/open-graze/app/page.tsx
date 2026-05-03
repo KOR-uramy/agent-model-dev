@@ -3,10 +3,12 @@
 import { AppChrome } from "@/app/components/app-chrome";
 import { disclosureSummary, roleBadgeClass, tableHeaderRow } from "@/lib/ui-tokens";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AGENT_ROLE_KEYS,
   eventDetailRole,
+  parseRoleQueryParam,
   type AgentRoleKey,
   type RalphEventsApiPayload,
   type WorkspaceFeedEvent,
@@ -108,16 +110,64 @@ function shortenPath(p: string, max = 42): string {
   return `…${p.slice(-(max - 1))}`;
 }
 
-export default function Home() {
+export default function HomePage() {
+  return (
+    <Suspense fallback={<HomeLoadingFallback />}>
+      <Home />
+    </Suspense>
+  );
+}
+
+function HomeLoadingFallback() {
+  return (
+    <AppChrome active="home">
+      <main className="mx-auto max-w-xl px-5 pb-24 pt-14 sm:max-w-lg sm:pt-20">
+        <p className="text-center text-sm text-muted">불러오는 중…</p>
+      </main>
+    </AppChrome>
+  );
+}
+
+function Home() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const roleFilter = useMemo(
+    () => parseRoleQueryParam(searchParams.get("role")),
+    [searchParams],
+  );
+
+  /** `role` 키는 있으나 API와 동일 규칙으로 인정되지 않는 값이면 주소에서 제거한다. */
+  useEffect(() => {
+    const raw = searchParams.get("role");
+    if (raw === null) return;
+    if (parseRoleQueryParam(raw) !== null) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("role");
+    const q = next.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  const setRoleQuery = useCallback(
+    (role: AgentRoleKey | null) => {
+      const next = new URLSearchParams(searchParams.toString());
+      if (role == null) next.delete("role");
+      else next.set("role", role);
+      const q = next.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timelineRole, setTimelineRole] = useState<AgentRoleKey | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const qs = new URLSearchParams({ tail: "1200" });
-      if (timelineRole) qs.set("role", timelineRole);
+      if (roleFilter) qs.set("role", roleFilter);
       const r = await fetch(`/api/ralph/events?${qs.toString()}`);
       const j = (await r.json()) as ApiPayload;
       setData(j);
@@ -126,7 +176,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [timelineRole]);
+  }, [roleFilter]);
 
   useEffect(() => {
     void load();
@@ -415,10 +465,10 @@ export default function Home() {
               <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">역할 필터</span>
               <select
                 className="min-w-[10.5rem] rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
-                value={timelineRole ?? ""}
+                value={roleFilter ?? ""}
                 onChange={(ev) => {
                   const v = ev.target.value;
-                  setTimelineRole(v === "" ? null : (v as AgentRoleKey));
+                  setRoleQuery(v === "" ? null : (v as AgentRoleKey));
                 }}
                 aria-label="타임라인 역할 필터"
               >
