@@ -59,7 +59,16 @@ function RegisterInner() {
       <AuthCard>
         <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">계정 만들기</h1>
         <p className="mt-2 text-sm text-muted">
-          워크스페이스·수집 API를 쓰려면 이메일로 가입한 뒤 대시보드로 이동합니다.
+          이메일만으로 시작하고, 바로 <strong className="font-medium text-foreground">워크스페이스·수집 API 키</strong>를 발급할 수 있습니다. 수집 페이로드는{" "}
+          <Link
+            href="/llms.txt"
+            className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            /llms.txt
+          </Link>{" "}
+          계약을 따릅니다.
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">

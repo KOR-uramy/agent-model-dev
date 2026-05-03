@@ -167,7 +167,7 @@ export default function Home() {
           >
             OpenGraze
           </Link>
-          <nav className="flex items-center gap-5 text-sm text-foreground">
+          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm text-foreground sm:gap-x-5">
             <Link
               href="/llms.txt"
               className="underline-offset-4 hover:text-foreground hover:underline"
@@ -175,9 +175,6 @@ export default function Home() {
               rel="noopener noreferrer"
             >
               연동 요약
-            </Link>
-            <Link href="/dashboard" className="underline-offset-4 hover:text-foreground hover:underline">
-              대시보드
             </Link>
             {SHOW_LOGIN_LINKS ? (
               <>
@@ -189,6 +186,9 @@ export default function Home() {
                 </Link>
               </>
             ) : null}
+            <Link href="/dashboard" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+              대시보드
+            </Link>
           </nav>
         </div>
       </header>
@@ -208,6 +208,21 @@ export default function Home() {
           <h1 className="font-display text-[2.75rem] font-semibold leading-[1.05] tracking-tight text-foreground sm:text-5xl">
             OpenGraze
           </h1>
+
+          <p className="mt-3 max-w-[30rem] text-pretty text-sm leading-snug text-muted sm:text-[0.95rem]">
+            제품 APM과 챗 로그를 따로 보지 않고,{" "}
+            <strong className="font-medium text-foreground">역할·추정 비용·제품 이벤트</strong>를 한 타임라인에서 재현합니다.
+            외부 연동 계약은{" "}
+            <Link
+              href="/llms.txt"
+              className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              /llms.txt
+            </Link>
+            로 고정해 두었습니다.
+          </p>
 
           <p className="mt-4 max-w-[26rem] text-pretty text-base font-medium leading-snug text-muted">
             {data?.workspace
@@ -232,29 +247,42 @@ export default function Home() {
             반복되는 에이전트 실행과 실제 서비스 동작을 같은 줄에서 추적하고, 워크스페이스에서 수집과 결제까지 이어집니다.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/dashboard"
-              className="rounded-full bg-cta px-8 py-3 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
-            >
-              지금 대시보드 열기
-            </Link>
+          <p className="mt-8 flex flex-wrap items-center justify-center gap-2 text-[11px] text-muted">
+            <span className="rounded-full border border-neutral-200 px-2.5 py-0.5 dark:border-neutral-700">몇 초마다 자동 갱신</span>
+            <span className="rounded-full border border-neutral-200 px-2.5 py-0.5 dark:border-neutral-700">역할 배지·토큰·$ 추정</span>
+            <span className="rounded-full border border-neutral-200 px-2.5 py-0.5 dark:border-neutral-700">공개 수집 스키마</span>
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             {SHOW_LOGIN_LINKS ? (
               <>
                 <Link
                   href="/register"
+                  className="rounded-full bg-cta px-8 py-3 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
+                >
+                  무료로 시작하기
+                </Link>
+                <Link
+                  href="/dashboard"
                   className="rounded-full border border-neutral-300 px-8 py-3 text-sm font-semibold text-foreground transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
                 >
-                  회원가입
+                  대시보드 열기
                 </Link>
                 <Link
                   href="/login"
                   className="rounded-full border border-neutral-300 px-8 py-3 text-sm font-semibold text-foreground transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
                 >
-                  로그인
+                  이미 계정이 있어요
                 </Link>
               </>
-            ) : null}
+            ) : (
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-cta px-8 py-3 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
+              >
+                대시보드 열기
+              </Link>
+            )}
             <Link
               href="/llms.txt"
               className="rounded-full border border-dashed border-neutral-400 px-6 py-3 text-sm font-semibold text-muted transition hover:border-neutral-500 hover:text-foreground dark:border-neutral-600 dark:hover:border-neutral-500"

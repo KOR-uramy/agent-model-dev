@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "OpenGraze — 에이전트·제품 관측",
   description:
-    "다중 에이전트 실행을 역할별로 타임라인에 남기고, 워크스페이스·수집 API로 제품 이벤트까지 한 화면에서 재현합니다.",
+    "에이전트 루프를 역할·추정 비용과 함께 남기고, 제품 텔레메트리까지 한 타임라인에서 재현합니다. 워크스페이스·수집 API·공개 계약(/llms.txt)으로 운영 팀과 바로 공유하세요.",
 };
 
 export default function RootLayout({
