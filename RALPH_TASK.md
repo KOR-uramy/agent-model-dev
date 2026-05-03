@@ -131,6 +131,14 @@
 - [x] **API·UI — 세션 스코프** — `GET /api/ralph/events`에 **`sessionId=<string>`** 단일 필터(해당 세션 행만)가 있으며, `/`에서 세션 식별자를 입력하거나 목록에서 고르면 위 API와 동일하게 **한 세션만** 시간순 스캔할 수 있다.
 - [x] **운영 가시화 — 수집 한도 신호** — `POST /api/v1/events`(또는 동일 레이트 정책 경로)가 한도 초과 시 **`Retry-After` 헤더** 또는 **JSON 오류 본문**에 재시도 가능 시각·기계 판독 가능한 코드를 포함하고, README에 **curl 한 줄**로 그 응답을 확인하는 절차가 있다.
 
+**성장 루프 확장 (Ralph 사이클 3 · 2026-05-03)** — `?role=`까지 맞춘 뒤 **세션·보내기 URL**이 아직 한 덩어리로 공유되지 않고, `range`는 기간만큼 잘라줄 뿐 **같은 필터 언어**가 아니다. *(본질: 운영자가 링크·스크립트만으로 “누가·어느 세션·어느 채널·어느 구간”인지 동일 뷰·동일 파일로 재현·감사할 수 있어야 한다.)*
+
+- **동종(참고)** — [Grafana](https://grafana.com)(대시보드 **변수·공유 URL**로 동일 대시보드 상태 복원), [Datadog Log Explorer](https://www.datadoghq.com/product/log-management)(**facet 조합**으로 채널·세션 유사 축을 한 쿼리에 묶음). 우리는 SQLite 타임라인이라 **주소줄에 `sessionId`·보내기 API에 동일 쿼리 축**을 맞추는 편이 유리하다.
+
+- [ ] **URL·재현 — `sessionId` 쿼리 동기화** — `/`의 세션 입력·선택 상태가 **`?sessionId=`** 와 **양방향** 동기화되고(빈 문자열은 키 제거), `?role=` 과 **동시에** 붙여도 충돌 없이 API와 같은 의미로 동작한다. `apps/open-graze/README.md`에 **`?role=` + `?sessionId=` 를 모두 고정한 복사 가능한 예시 URL 한 줄**이 있다.
+- [ ] **API·감사 — `range`에 `role`·`sessionId`** — `GET /api/ralph/events/range`가 `from`·`to` 외에 선택 쿼리 **`role`**, **`sessionId`(정확 일치)** 를 지원하고, `GET /api/ralph/events`와 **동일한 허용값·400 규칙**을 적용한다. README에 **필터를 넣은 `curl` 한 줄**과 파라미터 의미 표(최소: `from`·`to`·`role`·`sessionId`·상한)가 있다.
+- [ ] **운영 — range 상한·잘림 신호** — `events/range` 응답이 행 상한에 도달하면 **JSON 최상위**에 기계 판독 가능한 필드(예: `truncated: true`, `returnedCount`)를 포함하거나 **413** 등으로 거절하는 규칙을 **한 가지로 고정**하고, README에 그 응답을 확인하는 **절차 한 줄**이 있다.
+
 ## 24시간 연속 루프 (Ralph 운영 규약)
 
 목표는 “한 번에 다 끝내기”가 아니라 **같은 본질 축에 대한 반복**이다. 매 **에이전트 이터**는 현재 **역할**(기획·디자인·구현·테스트 중 하나; 루프가 순서대로 부여)에 맞게 아래를 **순서대로** 끝낸다. 직전 이터가 남긴 커밋·`.ralph/progress.md`를 먼저 **감시 요약**한다.
