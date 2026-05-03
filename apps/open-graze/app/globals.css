@@ -12,6 +12,10 @@
   --accent-hover: #333333;
   --ring: #0000000f;
   --list-border: #ebebeb;
+  /* 서브 표면·콜아웃(타임라인 헤더, 연동 안내 등) */
+  --surface-subtle: #fafafa;
+  --danger: #dc2626;
+  --danger-muted: #fecaca;
 }
 
 @theme inline {
@@ -24,6 +28,9 @@
   --color-cta: var(--cta);
   --color-cta-hover: var(--cta-hover);
   --color-ring: var(--ring);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-danger: var(--danger);
+  --color-danger-muted: var(--danger-muted);
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-source-serif), ui-serif, Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -45,6 +52,9 @@
     --accent-hover: #e5e5e5;
     --ring: #ffffff14;
     --list-border: #262626;
+    --surface-subtle: #141414;
+    --danger: #f87171;
+    --danger-muted: #450a0a;
   }
 }
 

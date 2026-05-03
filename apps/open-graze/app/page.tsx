@@ -167,24 +167,24 @@ export default function Home() {
           >
             OpenGraze
           </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm sm:gap-x-5">
+          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm text-muted">
             <Link
               href="/llms.txt"
-              className="text-muted underline-offset-4 hover:text-foreground hover:underline"
+              className="underline-offset-4 hover:text-foreground hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >
               연동 요약
             </Link>
-            <Link href="/dashboard" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+            <Link href="/dashboard" className="underline-offset-4 hover:text-foreground hover:underline">
               대시보드
             </Link>
             {SHOW_LOGIN_LINKS ? (
               <>
-                <Link href="/login" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+                <Link href="/login" className="underline-offset-4 hover:text-foreground hover:underline">
                   로그인
                 </Link>
-                <Link href="/register" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+                <Link href="/register" className="underline-offset-4 hover:text-foreground hover:underline">
                   가입
                 </Link>
               </>
