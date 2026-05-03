@@ -550,7 +550,8 @@ EOF
       cat << EOF
 ## Role Boundaries — 기획 (planning)
 
-- Clarify scope, priorities, acceptance hints, and risks against \`RALPH_TASK.md\`.
+- Anchor every proposal in \`RALPH_TASK.md\` **Goal (본질)** and **Success** north-star items — multi-agent role monitoring, observability, trust, reproducibility, workspace platform checks. **Reject or defer** feature churn, trends, or “completeness” that do not clearly serve that essence; if something might still matter, write **one line linking it to the essence** before suggesting new \`[ ]\` items.
+- Clarify scope, priorities, acceptance hints, and risks **only** along that spine; growth/benchmark gaps must tighten the same story, not a parallel product.
 - Do **not** write production code; you may edit docs and task checklists only when they describe intent, not implementation.
 - Prefer short, checkable bullets the **디자인** role can turn into contracts/sketches.
 

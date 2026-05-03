@@ -12,13 +12,15 @@
 2. **대외·SaaS(동일 앱)** — **Workspace Platform**(워크스페이스 플랫폼)과 **OpenGraze**는 **같은 앱**이다(과거 문맥의 `workspace-platform` 통합본). npm·디렉터리 워크스페이스 이름만 **`open-graze`**이며 코드는 전부 `apps/open-graze` 한 Next 앱에 있다. 그 안에서 **회원가입·DB 이메일·비밀번호 로그인**(Credentials·JWT), 워크스페이스, **워크스페이스 단위 작업(제목·설명·상태) 등록·현황 모니터링**, API 토큰, 수집·웹훅, (설정 시) **토스페이먼츠 v2** 결제·구독 경로가 있다. (Stripe 스캐폴드는 토스 전환 전 임시·참고용.)
 3. **반복** — `ralph-loop.sh`는 기본 **역할 파이프**(기획→디자인→구현→테스트)로 이터를 돌린다. 각 이터는 직전 역할의 산출물(git·`.ralph/progress.md`)을 **감시**한 뒤 본 역할만 수행한다. 한 사이클 끝에는 루트 `npm run build` 등 검증·커밋·기준 `[x]`·`.ralph/progress.md` 요약이 이어진다. 단일 프롬프트만 쓰려면 `RALPH_ROLE_MODE=mono`를 본다.
 
+**기획 원칙** — **기획(planning)** 은 위 **본질**(다중 에이전트·역할별 모니터링, 관측·신뢰·재현, 워크스페이스 플랫폼의 측정 가능한 Success)에서 출발한다. 유행·기능 나열·“완성도”를 위한 확장은 **본질에 직접 닿을 때만** 다루고, 닿지 않으면 **거절하거나 `RALPH_TASK.md`에 `[ ]`로 남길 가치**가 있는지 먼저 적는다. 동종 비교·성장 루프도 **같은 본질을 강화하는 갭**에 한정한다.
+
 별도 앱 저장소(예: `llm_agent`) 변경은 **그 저장소에서 명시적으로 요청된 범위**에만 한정한다.
 
 ## Context
 
 | 영역 | 위치 |
 |------|------|
-| Ralph 스크립트 | `.cursor/ralph-scripts/` — `ralph-loop.sh` 기본 **4역할 순환**(기획·디자인·구현·테스트) + 직전 단계 감시; `RALPH_ROLE_MODE=mono`로 비활성화 |
+| Ralph 스크립트 | `.cursor/ralph-scripts/` — `ralph-loop.sh` 기본 **4역할 순환**(기획·디자인·구현·테스트) + 직전 단계 감시; **기획은 Goal 본질·기획 원칙 우선**. 순환 끄기: `RALPH_ROLE_MODE=mono` |
 | OpenGraze / Workspace Platform | **동일 앱** — `apps/open-graze`(패키지名 `open-graze`). 별도 `workspace-platform` 앱은 없음. **타임라인·역할·수집 규약의 문서 단일 근거는 이 앱의 README·코드**로 둔다(제품 스코프 밖 패키지명은 요구사항 문장에 쓰지 않음). |
 | 자기 연동 테스트 | 루트 `npm run platform:self-test` — `scripts/platform-self-test.mjs`, 루트 `.env.example`의 `OPENGRAZE_PLATFORM_*` |
 | 결제 연동 규범 | 토스페이먼츠 v2 — [LLMs로 결제 연동하기](https://docs.tosspayments.com/guides/v2/get-started/llms-guide), AI/에이전트용 문서 인덱스 [llms.txt](https://docs.tosspayments.com/llms.txt) |
@@ -37,6 +39,7 @@
 - **인증** — Google OAuth 대신 **DB 이메일·비밀번호(Credentials·JWT)**. 로컬 시드 계정·`POST /api/auth/register` **회원가입**으로 신규 계정.
 - **앱 정체** — **OpenGraze = Workspace Platform** 동일 앱; 코드 경로는 **`apps/open-graze`**(패키지名 `open-graze`)뿐, 별도 `workspace-platform` 앱 없음.
 - **Ralph 루프 역할** — 이터마다 **기획 → 디자인 → 구현 → 테스트** 순환(`RALPH_ROLE_MODE=cycle` 기본). 각 이터는 **직전 역할 산출물을 감시**한 뒤 본 역할만 수행(`ralph-common.sh` 프롬프트). 단일 프롬프트만 쓸 때는 `RALPH_ROLE_MODE=mono`.
+- **기획** — Goal **본질**·Success **북극성**에 맞춰 범위·우선순위·수용 힌트를 세운다. 본질과 무관한 기능·유행안은 **차단**하거나, 정말 필요하면 **본질과의 연결 한 줄**을 적은 뒤에만 `RALPH_TASK.md`에 `[ ]` 후보로 올린다.
 - **플랫폼 작업 추적** — 워크스페이스 안 **`WorkspaceTask`**(제목·설명·`status`: backlog \| todo \| in_progress \| blocked \| done)로 **등록·상태 변경·대시보드에서 현황** 확인. 시드: 워크스페이스 slug 기본 `opengraze-monitoring`, 샘플 작업 제목 **「회원가입·작업 등록·상태 모니터링 (시드 테스트)」** 등.
 - **역할 메타(타임라인)** — JSON `detail` 객체에 선택 **`role`**(문서상 `detail.role`), 값은 `planning` \| `design` \| `implementation` \| `test`; `/` 타임라인·`stream-parser` `session_start`와 정합.
 - **`ralph-loop.sh` 표시** — 시작 시 `RALPH_TASK.md` **앞 55줄** 요약. `Progress`는 파일 안 **목록 체크박스**만 집계. **`--max-parallel` / `--parallel`** 은 **미완 `[ ]`가 있을 때만** `ralph-parallel.sh` 경로로 에이전트를 띄움; 전부 `[x]`면 병렬 옵션이 켜져 보여도 **즉시 종료**하는 것이 맞다.
@@ -116,7 +119,7 @@
 
 목표는 “한 번에 다 끝내기”가 아니라 **같은 본질 축에 대한 반복**이다. 매 **에이전트 이터**는 현재 **역할**(기획·디자인·구현·테스트 중 하나; 루프가 순서대로 부여)에 맞게 아래를 **순서대로** 끝낸다. 직전 이터가 남긴 커밋·`.ralph/progress.md`를 먼저 **감시 요약**한다.
 
-1. **읽기** — `RALPH_TASK.md`(미완 `[ ]` 중 우선순위 1개), `.ralph/guardrails.md`, `.ralph/progress.md`, `.ralph/errors.log`.
+1. **읽기** — `RALPH_TASK.md`(미완 `[ ]` 중 우선순위 1개; **기획** 이터면 Goal **본질**·**기획 원칙**에 어긋나지 않는지 먼저 본다), `.ralph/guardrails.md`, `.ralph/progress.md`, `.ralph/errors.log`.
 2. **하기** — 그 한 항목(또는 쪼갠 하위 한 덩어리)만 **현재 역할 범위 안에서** 구현·수정한다. 범위 밖 리팩터 금지.
 3. **검증** — 루트 `npm run build` **+** 이번 변경에 해당하는 **실행 검증**(루트 `README.md` 스모크: `npm run dev`는 **3000 포트만** — 열려 있으면 `kill` 후 기동, OpenGraze API `curl`, `npm run platform:self-test` 등). 임의 포트로 서버를 여러 개 띄우지 않는다.
 4. **기록** — **`git commit`**(스코프 단위로 자주), `.ralph/progress.md`에 “무엇을 왜 했는지” 한 단락, 해당 기준이 끝났으면 `RALPH_TASK.md`에서 `[x]`.
