@@ -119,9 +119,9 @@
 
 - **동종(참고)** — [Langfuse](https://langfuse.com)(에이전트/LLM **세션·태그·필터**로 트레이스 드릴다운), [Linear](https://linear.app)(워크스페이스 **이슈 보드·필터·키보드**로 상태 스캔). 우리는 Ralph JSONL→SQLite·`/` 타임라인 중심이라 **서버 쿼리 필터·UI 동기화·보내기**가 상대적으로 얇다.
 
-- [ ] **API — 역할 필터** — `GET /api/ralph/events`가 쿼리 `role=planning|design|implementation|test` 중 하나일 때 해당 `detail.role`만 반환(또는 동일 의미의 단일 필터 파라미터)하고, `apps/open-graze/README.md`에 **검증용 `curl` 한 줄**(필터 유·무 응답 건수 비교 가능)이 있다.
-- [ ] **UI — 역할 필터 연동** — `/` 타임라인이 위 API와 동일한 `role` 값으로 연동(셀렉트·토글 등)되고, 선택 시 테이블이 갱신되어 **한 역할만** 시간순 스캔할 수 있다.
-- [ ] **재현·감사 — 기간보내기** — 동기화된 Ralph/SQLite 타임라인을 `from`·`to`(ISO 8601) 범위로 **JSON 배열**을 반환하는 `GET` 라우트 또는 루트 스크립트 1개가 있고, README에 **포함 필드 표**(최소: 시각, 유형, `detail.role`, `sessionId` 또는 동등 식별자)가 있어 운영자가 동일 피드를 파일로 재현·공유할 수 있다.
+- [x] **API — 역할 필터** — `GET /api/ralph/events`가 쿼리 `role=planning|design|implementation|test` 중 하나일 때 해당 `detail.role`만 반환(또는 동일 의미의 단일 필터 파라미터)하고, `apps/open-graze/README.md`에 **검증용 `curl` 한 줄**(필터 유·무 응답 건수 비교 가능)이 있다.
+- [x] **UI — 역할 필터 연동** — `/` 타임라인이 위 API와 동일한 `role` 값으로 연동(셀렉트·토글 등)되고, 선택 시 테이블이 갱신되어 **한 역할만** 시간순 스캔할 수 있다.
+- [x] **재현·감사 — 기간보내기** — 동기화된 Ralph/SQLite 타임라인을 `from`·`to`(ISO 8601) 범위로 **JSON 배열**을 반환하는 `GET` 라우트 또는 루트 스크립트 1개가 있고, README에 **포함 필드 표**(최소: 시각, 유형, `detail.role`, `sessionId` 또는 동등 식별자)가 있어 운영자가 동일 피드를 파일로 재현·공유할 수 있다.
 
 ## 24시간 연속 루프 (Ralph 운영 규약)
 
