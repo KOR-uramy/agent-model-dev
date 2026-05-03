@@ -4,6 +4,13 @@ export type RalphEnv = Record<string, string | undefined>;
 
 export type EventSource = "ralph" | "application";
 
+/** 타임라인 `detail` 객체의 `role` 값 — `RALPH_TASK.md` 역할별 모니터링 규약과 동일 집합 */
+export type AgentRoleKey =
+  | "planning"
+  | "design"
+  | "implementation"
+  | "test";
+
 /**
  * 대시보드 한 줄 — Ralph `events.jsonl` + 앱 `workspace-telemetry.jsonl` 병합 결과.
  * Ralph 행은 `source: 'ralph'`로 정규화됩니다.
@@ -28,6 +35,8 @@ export type ApplicationTelemetryDetail = {
   workId?: string;
   title?: string;
   phase?: "start" | "end" | "checkpoint" | "metric";
+  /** 논리 경로 `detail.role` — JSON 키는 `role`. 생략 시 소비 UI는 무배지(`—`). `RALPH_TASK.md` 규약 */
+  role?: AgentRoleKey;
   /** 작업 구간 소요 시간(ms) — 주로 `application_work_completed` */
   durationMs?: number;
   /** 작업량(건수·바이트 등) */

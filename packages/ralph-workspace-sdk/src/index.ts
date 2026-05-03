@@ -1,5 +1,6 @@
 export { OPENGRAZE_ENV_KEYS, RALPH_ENV_KEYS } from "./constants";
 export type {
+  AgentRoleKey,
   ApplicationTelemetryDetail,
   ApplicationTelemetryRecord,
   EventSource,
