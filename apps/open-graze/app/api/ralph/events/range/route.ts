@@ -1,0 +1,31 @@
+import {
+  TIMELINE_RANGE_MAX_ROWS,
+  loadTimelineEventsInRange,
+  parseTimelineRangeParams,
+} from "@/lib/timeline-feed";
+import { NextResponse } from "next/server";
+
+/**
+ * 동기화된 Ralph/SQLite 타임라인을 `from`·`to`(ISO 8601)로 잘라 **JSON 배열**만 반환합니다.
+ * 파일로 저장·공유: `curl -sS "…" -o audit-timeline.json`
+ */
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const parsed = parseTimelineRangeParams(
+    searchParams.get("from"),
+    searchParams.get("to"),
+  );
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.message }, { status: 400 });
+  }
+  const limitRaw = parseInt(searchParams.get("limit") ?? "10000", 10);
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, limitRaw))
+    : TIMELINE_RANGE_MAX_ROWS;
+  const events = await loadTimelineEventsInRange(
+    parsed.fromIso,
+    parsed.toIso,
+    limit,
+  );
+  return NextResponse.json(events);
+}
