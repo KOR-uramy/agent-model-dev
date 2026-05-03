@@ -10,8 +10,8 @@
 ```
 http://localhost:3000/?role=planning&sessionId=ralph-session-example
 ```
-- **`/register`**, **`/login`**, **`/dashboard`** — 회원가입(`POST /api/auth/register`), 이메일·비밀번호 로그인(Credentials + DB), 워크스페이스, **작업 현황**(`WorkspaceTask` — 대시보드는 **조회만**; 생성·상태 변경은 `POST`/`PATCH` **`/api/workspaces/[slug]/tasks`** 등 API), API 키, 수집 이벤트
-- **`POST /api/v1/events`** — Bearer API 키로 클라우드 수집
+- **`/register`**, **`/login`**, **`/dashboard`** — 회원가입(`POST /api/auth/register`), 이메일·비밀번호 로그인(Credentials + DB), 워크스페이스, **작업 현황**(위: `WorkspaceTask` 표는 **조회만**·Task API로만 갱신; 아래 같은 블록에 **수집 활동 요약** — `POST /api/v1/events`로 들어온 `IngestedEvent`를 표로 보여 주며 약 60초마다 자동 새로고침·수동 **다시 불러오기**), API 키, 하단 **최근 수집 활동** JSON
+- **`POST /api/v1/events`** — Bearer API 키로 클라우드 수집(타 앱·CI에서는 **`ralph-workspace-sdk`** 의 `createOpenGrazeIngestClient` 등으로 동일 계약 재사용 — 패키지 README「OpenGraze 플랫폼에 붙이기」절)
 - **웹훅** — `/api/webhooks/toss`(토스 v2), `/api/webhooks/stripe`(레거시), `/api/webhooks/telegram`
 
 ### 수집 API 남용 완화
@@ -21,7 +21,7 @@ http://localhost:3000/?role=planning&sessionId=ralph-session-example
 
 ### 워크스페이스 작업 API (`WorkspaceTask`)
 
-`/dashboard/{slug}` 화면은 **조회만** 한다. 제목·설명·상태를 바꾸려면 **로그인 세션**(대시보드와 동일 출처)으로 아래를 호출하면 된다(연동 스크립트·백오피스·자동화 등).
+`/dashboard/{slug}` 화면은 **조회만** 한다(공식 작업 표). 같은 섹션의 **수집 활동 요약**은 수집 API로 쌓인 이벤트를 읽기 전용으로 보여 주며, `npm run platform:self-test` 등으로 줄이 추가된다. 제목·설명·상태를 **공식 작업**으로 바꾸려면 **로그인 세션**(대시보드와 동일 출처)으로 아래를 호출하면 된다(연동 스크립트·백오피스·자동화 등).
 
 - `GET /api/workspaces/{slug}/tasks` — 목록
 - `POST /api/workspaces/{slug}/tasks` — 본문 `{"title":"…","description?":"…","status?":"todo"}` (`status` 생략 시 `todo`; 허용값: `backlog` \| `todo` \| `in_progress` \| `blocked` \| `done`)

@@ -22,6 +22,7 @@
 |------|------|
 | Ralph 스크립트 | `.cursor/ralph-scripts/` — `ralph-loop.sh` 기본 **4역할 순환**(기획·디자인·구현·테스트) + 직전 단계 감시; **기획은 Goal 본질·기획 원칙 우선**. 순환 끄기: `RALPH_ROLE_MODE=mono` |
 | OpenGraze / Workspace Platform | **동일 앱** — `apps/open-graze`(패키지名 `open-graze`). 별도 `workspace-platform` 앱은 없음. **타임라인·역할·수집 규약의 문서 단일 근거는 이 앱의 README·코드**로 둔다(제품 스코프 밖 패키지명은 요구사항 문장에 쓰지 않음). |
+| SDK — 플랫폼 수집 라이브러리 | `packages/ralph-workspace-sdk` — **`createOpenGrazeIngestClient`**(`POST /api/v1/events`·`GET /api/v1/meta/limits`), **`summarizeIngestPayload`**, **`openGrazePlatformEnvSnippet`**. 다른 앱은 동일 패키지로 붙이고, 선택 서브패스 **`ralph-workspace-sdk/platform`**(동일 API, 번들 분리용). |
 | 자기 연동 테스트 | 루트 `npm run platform:self-test` — `scripts/platform-self-test.mjs`, 루트 `.env.example`의 `OPENGRAZE_PLATFORM_*` · LLM/연동 장문 **`docs/opengraze-llms-guide.md`**, 짧은 인덱스 **`/llms.txt`** |
 | 런타임 스모크(HTTP) | 루트 `npm run runtime:smoke` — `scripts/runtime-smoke.mjs`; 앱 기동 후 공개·타임라인 API·`llms.txt` 형상 검증(`RUNTIME_SMOKE_BASE_URL` 선택) |
 | 결제 연동 규범 | 토스페이먼츠 v2 — [LLMs로 결제 연동하기](https://docs.tosspayments.com/guides/v2/get-started/llms-guide), AI/에이전트용 문서 인덱스 [llms.txt](https://docs.tosspayments.com/llms.txt) |
@@ -41,7 +42,8 @@
 - **앱 정체** — **OpenGraze = Workspace Platform** 동일 앱; 코드 경로는 **`apps/open-graze`**(패키지名 `open-graze`)뿐, 별도 `workspace-platform` 앱 없음.
 - **Ralph 루프 역할** — 이터마다 **기획 → 디자인 → 구현 → 테스트** 순환(`RALPH_ROLE_MODE=cycle` 기본). 각 이터는 **직전 역할 산출물을 감시**한 뒤 본 역할만 수행(`ralph-common.sh` 프롬프트). 단일 프롬프트만 쓸 때는 `RALPH_ROLE_MODE=mono`.
 - **기획** — Goal **본질**·Success **북극성**에 맞춰 범위·우선순위·수용 힌트를 세운다. 본질과 무관한 기능·유행안은 **차단**하거나, 정말 필요하면 **본질과의 연결 한 줄**을 적은 뒤에만 `RALPH_TASK.md`에 `[ ]` 후보로 올린다.
-- **플랫폼 작업 추적** — 워크스페이스 안 **`WorkspaceTask`**(제목·설명·`status`: backlog \| todo \| in_progress \| blocked \| done). **생성·상태 변경은 API**(`POST/PATCH …/api/workspaces/[slug]/tasks` 등, 멤버 세션)로 하고, **대시보드 `/dashboard/[slug]`는 표시만** 한다. 시드: 워크스페이스 slug 기본 `opengraze-monitoring`, 샘플 작업 1건(제목·설명은 시드 스크립트 기본값) 등.
+- **플랫폼 작업 추적** — 워크스페이스 안 **`WorkspaceTask`**(제목·설명·`status`: backlog \| todo \| in_progress \| blocked \| done). **생성·상태 변경은 API**(`POST/PATCH …/api/workspaces/[slug]/tasks` 등, 멤버 세션)로 하고, **대시보드 `/dashboard/[slug]`는 표시만** 한다. 같은 화면 **작업 현황** 블록에는 공식 Task 표 외에 **`POST /api/v1/events` 수집 줄 요약**(시각·kind·data 요약)을 함께 두어, self-test·연동으로 들어온 활동이 위에서부터 이어져 보이게 한다(자동 새로고침은 레이트 한도를 고려해 완만하게). 시드: 워크스페이스 slug 기본 `opengraze-monitoring`, 샘플 작업 1건(제목·설명은 시드 스크립트 기본값) 등.
+- **SDK로 타 앱 연동** — OpenGraze(호스팅)에 붙이는 **수집·한도 조회**는 `ralph-workspace-sdk`의 **`createOpenGrazeIngestClient`** 등으로 재사용한다. OpenGraze UI에서도 동일 SDK의 **`summarizeIngestPayload`** 로 수집 요약 규칙을 한곳에 둔다(다른 레포·마이크로서비스가 같은 규칙으로 대시보드를 맞출 수 있음).
 - **역할 메타(타임라인)** — JSON `detail` 객체에 선택 **`role`**(문서상 `detail.role`), 값은 `planning` \| `design` \| `implementation` \| `test`; `/` 타임라인·`stream-parser` `session_start`와 정합.
 - **`ralph-loop.sh` 표시** — 시작 시 `RALPH_TASK.md` **앞 55줄** 요약. `Progress`는 파일 안 **목록 체크박스**만 집계. **`--parallel` / `--max-parallel`** 은 **미완 `[ ]`가 있을 때** `ralph-parallel.sh`로 에이전트를 띄운다. **한 배치 후 전부 `[x]`**이면: **무한(`--infinite` / `-n 0`)이 아닐 때는 종료**가 맞고, **`--infinite`와 함께 쓰면** 성장 루프로 **기획(planning) 1회**를 돌려 새 `- [ ]`를 추가한 뒤 **병렬을 다시** 돈다.
 - **체크가 가득 찬 뒤** — Success 목록이 **모두 `[x]`**가 되면, 그 세션(또는 다음 이터 시작 전)에 **동종 앱 대비 갭 검토**를 하고 아래 **「성장·동종 비교」** 축에서 **새 `[ ]`를 최소 1개 이상** 추가한 뒤에만 “스프린트 종료”로 본다. 빈 완료 상태로 루프를 멈추지 않는다.
@@ -97,7 +99,8 @@
 ### 제품 (OpenGraze 내 SaaS·수집)
 
 - [x] **회원가입**(공개 `/register` + `POST /api/auth/register`)으로 이메일·비밀번호 계정을 만들 수 있다(중복 이메일 거절, 비밀번호 bcrypt).
-- [x] **워크스페이스 작업 현황** — `WorkspaceTask`(제목·설명·`status`: backlog·todo·in_progress·blocked·done)를 **API**로 생성·갱신·조회할 수 있고, 워크스페이스 **대시보드는 조회 전용**으로 한눈에 본다(폼으로 수동 등록하지 않음). 로컬 시드는 테스트 워크스페이스에 **샘플 작업 1건**을 넣는다.
+- [x] **워크스페이스 작업 현황** — `WorkspaceTask`(제목·설명·`status`: backlog·todo·in_progress·blocked·done)를 **API**로 생성·갱신·조회할 수 있고, 워크스페이스 **대시보드는 조회 전용**으로 한눈에 본다(폼으로 수동 등록하지 않음). `/dashboard/[slug]` **작업 현황** 섹션에는 공식 Task 표와 함께 **수집 이벤트 요약 표**(동일 `GET …/events` 데이터)를 두어 `platform:self-test` 등으로 쌓인 줄이 상단에서도 보이게 한다. 로컬 시드는 테스트 워크스페이스에 **샘플 작업 1건**을 넣는다.
+- [x] **플랫폼 수집 SDK** — `ralph-workspace-sdk`에 **`createOpenGrazeIngestClient`**·**`summarizeIngestPayload`**·**`openGrazePlatformEnvSnippet`**(및 exports **`ralph-workspace-sdk/platform`**)로 타 레포·서비스가 동일 수집·meta/limits 계약에 붙을 수 있다. OpenGraze 대시보드는 수집 요약에 SDK의 `summarizeIngestPayload`를 사용한다.
 - [x] 이메일·비밀번호(DB) 로그인, 워크스페이스, API 키 발급이 동작 가능한 형태로 존재한다.
 - [x] **결제**는 [토스페이먼츠 LLMs 연동 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide) 및 [llms.txt](https://docs.tosspayments.com/llms.txt)를 따른다(결제위젯 v2·승인 API·웹훅 등). Cursor 연동 시 가이드에 안내된 **토스페이먼츠 MCP** 활용을 우선한다.
 - [x] 레거시 **Stripe** Checkout/Webhook 스캐폴드는 코드에 남아 있으나, 제품 기준 결제 수단은 아니다(토스 연동 후 정리).

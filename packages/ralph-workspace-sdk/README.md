@@ -66,6 +66,44 @@ chmod +x .git/hooks/post-commit
 
 `sendTelegramMessage` / `sendTelegramToChat`를 코드에서 직접 써도 됩니다. 채팅→수집 파이프는 OpenGraze 앱의 `POST /api/webhooks/telegram`과 `apps/open-graze/README.md`를 참고하세요.
 
+## OpenGraze 플랫폼에 붙이기(수집 HTTP — 다른 앱·서버)
+
+호스팅된 OpenGraze(또는 로컬 `npm run dev`)에 **`OPENGRAZE_PLATFORM_URL`** + **`OPENGRAZE_PLATFORM_API_KEY`**만 있으면, 별도 레포의 Next·Node·Bun·Edge에서도 동일 계약으로 이벤트를 넣을 수 있다. **순수 `fetch`**만 쓰므로 브라우저 클라이언트에서도 사용 가능하다(단, **API 키는 서버에만** 두는 것을 권장).
+
+```ts
+import {
+  createOpenGrazeIngestClient,
+  openGrazePlatformEnvSnippet,
+  summarizeIngestPayload,
+} from "ralph-workspace-sdk";
+// 번들에서 메인 엔트리와 분리하고 싶으면: import { createOpenGrazeIngestClient } from "ralph-workspace-sdk/platform";
+
+const client = createOpenGrazeIngestClient({
+  baseUrl: process.env.OPENGRAZE_PLATFORM_URL ?? "http://localhost:3000",
+  apiKey: process.env.OPENGRAZE_PLATFORM_API_KEY!,
+});
+
+await client.postEventOrThrow({
+  kind: "my_app.job_done",
+  data: { jobId: "42", ok: true },
+});
+
+const limits = await client.getMetaLimits();
+console.log("한도 스냅샷", limits);
+
+// 대시보드와 동일한 data 한 줄 요약(표·로그용)
+console.log(summarizeIngestPayload({ message: "배치 완료" }));
+
+// .env 복붙용
+console.log(openGrazePlatformEnvSnippet("https://app.example.com", "og_live_…"));
+```
+
+- `postEvent` — 원시 `Response`(레이트 헤더·본문 직접 처리).
+- `postEventOrThrow` — 비정상이면 `Error` throw.
+- `getMetaLimits` — `GET /api/v1/meta/limits` JSON(인증 불필요).
+
+OpenGraze 앱 대시보드의 **수집 활동 요약** 열도 위 **`summarizeIngestPayload`** 와 동일 구현을 쓴다.
+
 ## 다른 저장소(새 워크스페이스)에 붙이기
 
 ### 1) 환경 변수 (Ralph 쪽과 이름 통일)

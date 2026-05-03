@@ -48,3 +48,13 @@ export {
   TELEGRAM_ENV_KEYS,
   telegramEnvHint,
 } from "./telegram";
+export {
+  createOpenGrazeIngestClient,
+  openGrazePlatformEnvSnippet,
+  summarizeIngestPayload,
+} from "./platform-ingest";
+export type {
+  OpenGrazeIngestClient,
+  OpenGrazeIngestClientOptions,
+  OpenGrazeIngestEventBody,
+} from "./platform-ingest";

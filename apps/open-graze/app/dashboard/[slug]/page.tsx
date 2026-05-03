@@ -18,6 +18,7 @@ import {
   WORKSPACE_TASK_STATUS_LABEL,
   isWorkspaceTaskStatus,
 } from "@/lib/workspace-task-status";
+import { summarizeIngestPayload } from "ralph-workspace-sdk";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -108,12 +109,20 @@ export default function WorkspaceDetailPage() {
     void load();
   }, [load]);
 
+  /** 대시보드에 머무는 동안 수집·작업 목록을 주기적으로 다시 읽어 “계속 기록”이 보이게 함(과도한 폴링 방지: 60초·탭이 보일 때만). */
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void load();
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [load]);
+
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setCopyHint(null);
     setNewToken(null);
-    setCopyHint(null);
     const r = await fetch(`/api/workspaces/${slug}/api-keys`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -211,18 +220,35 @@ export default function WorkspaceDetailPage() {
         ) : null}
 
         <section className={`mt-10 ${surfaceCard}`}>
-          <h2 className={sectionEyebrow}>작업 현황</h2>
-          <p className={proseMutedSm}>
-            API로 반영된 제목·설명·상태를 표시합니다(이 화면에서는 편집하지 않음).{" "}
-            <strong className="text-foreground">코드만 고친다고 여기가 자동으로 채워지지는 않습니다</strong> — DB에 들어간
-            작업만 보입니다. 넣는 방법은 이 앱 <code className={codeInline}>README.md</code>의 워크스페이스 Task API 또는 로컬{" "}
-            <code className={codeInline}>npm run db:seed -w open-graze</code> 입니다.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className={sectionEyebrow}>작업 현황</h2>
+              <p className={proseMutedSm}>
+                위 표는 <strong className="text-foreground">WorkspaceTask</strong> —{" "}
+                <code className={codeInline}>POST/PATCH …/tasks</code> API로만 바뀌는 공식 작업입니다(이 화면에서는 편집하지 않음).
+                아래 <strong className="text-foreground">수집 활동 요약</strong>은 같은 워크스페이스로{" "}
+                <code className={codeInline}>POST /api/v1/events</code>로 들어온 기록을 시간순으로 보여 줍니다. 로컬에서{" "}
+                <code className={codeInline}>npm run platform:self-test</code> 등을 돌리면 여기 줄이 쌓입니다. 시드 작업만
+                쓰려면 이 앱 <code className={codeInline}>README.md</code>의 Task API 또는{" "}
+                <code className={codeInline}>npm run db:seed -w open-graze</code> 입니다.
+              </p>
+            </div>
+            <button
+              type="button"
+              className={`${btnSecondary} shrink-0 px-3 py-2 text-sm`}
+              onClick={() => void load()}
+            >
+              다시 불러오기
+            </button>
+          </div>
           {tasksLoadErr ? (
             <p className={`mt-2 ${textErrorXs}`}>{tasksLoadErr}</p>
           ) : null}
           <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--list-border)]">
             <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+              <caption className="border-b border-[var(--list-border)] bg-neutral-50/80 px-3 py-2 text-left text-xs font-semibold text-foreground dark:bg-neutral-900/50">
+                공식 작업(WorkspaceTask)
+              </caption>
               <thead className={tableHeaderRow}>
                 <tr>
                   <th className="px-3 py-3 font-medium">제목</th>
@@ -246,7 +272,45 @@ export default function WorkspaceDetailPage() {
             </table>
             {tasks.length === 0 ? (
               <p className="px-4 py-8 text-center text-xs text-muted">
-                아직 표시할 작업이 없습니다. API로 작업을 넣거나, 로컬 시드·연동 스크립트를 실행해 보세요.
+                아직 표시할 공식 작업이 없습니다. Task API로 넣거나 로컬 시드를 실행해 보세요.
+              </p>
+            ) : null}
+          </div>
+
+          <h3 className="mt-8 text-sm font-semibold tracking-tight text-foreground">수집 활동 요약</h3>
+          <p className="mt-1 text-xs text-muted">
+            아래 목록은 이 페이지가 이미 불러온 <code className={codeInline}>GET …/events</code>와 동일 데이터입니다. 전체 JSON은
+            하단 <strong className="text-foreground">최근 수집 활동</strong> 블록을 보세요. 탭이 열려 있으면 약 60초마다 자동으로
+            다시 불러옵니다(레이트 한도가 켜져 있으면 간격을 늘리거나 수동 버튼만 쓰세요).
+          </p>
+          {eventsLoadErr ? (
+            <p className={`mt-2 ${textErrorXs}`}>{eventsLoadErr}</p>
+          ) : null}
+          <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--list-border)]">
+            <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
+              <thead className={tableHeaderRow}>
+                <tr>
+                  <th className="px-3 py-3 font-medium">시각</th>
+                  <th className="px-3 py-3 font-medium">kind</th>
+                  <th className="px-3 py-3 font-medium">요약(data)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--list-border)]">
+                {events.map((ev) => (
+                  <tr key={ev.id} className="transition hover:bg-neutral-50/60 dark:hover:bg-neutral-900/30">
+                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted">
+                      {new Date(ev.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2.5 font-mono text-xs text-foreground">{ev.kind}</td>
+                    <td className="max-w-[24rem] px-3 py-2.5 text-xs text-muted">{summarizeIngestPayload(ev.data)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {events.length === 0 && !eventsLoadErr ? (
+              <p className="px-4 py-8 text-center text-xs text-muted">
+                수집 이벤트가 없습니다. API 키를 발급한 뒤 <code className={codeInline}>POST /api/v1/events</code>로 한 번
+                보내거나, 루트에서 <code className={codeInline}>npm run platform:self-test</code> 를 실행해 보세요.
               </p>
             ) : null}
           </div>

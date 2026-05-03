@@ -2,7 +2,7 @@
   "name": "ralph-workspace-sdk",
   "version": "0.1.0",
   "private": true,
-  "description": "Ralph 루프 events.jsonl 읽기·요약·Next.js API 핸들러 — 새 워크스페이스에서 env만 맞추면 연동",
+  "description": "Ralph events.jsonl·텔레메트리·OpenGraze 수집 HTTP(createOpenGrazeIngestClient)·Next API 핸들러 — 타 앱에서 플랫폼에 붙일 때 재사용",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,6 +14,10 @@
     "./next": {
       "types": "./dist/next.d.ts",
       "default": "./dist/next.js"
+    },
+    "./platform": {
+      "types": "./dist/platform-ingest.d.ts",
+      "default": "./dist/platform-ingest.js"
     }
   },
   "files": ["dist"],
