@@ -135,3 +135,9 @@
 4. 성공 기준 **`[x]`** — **규약**은 문서·타입 반영 후 **테스트** 역할이 빌드·스모크로 확인하고 체크; **소비 UI**는 구현 후 동일.
 
 **다음 인계** — **구현**: 위 1~2를 코드로 반영하고, 필요 시 배지 스타일만 조정. **테스트**: `npm run build` + `GET /api/ralph/events` 스모크, 수동으로 `/`에서 배지·`—` 확인 후 `RALPH_TASK.md` 두 체크박스 처리.
+
+### 2026-05-03 10:41:44
+**Session 2 ended** - Agent finished naturally (2 criteria remaining)
+
+### 2026-05-03 10:41:46
+**Session 3 started** — 역할: 구현 (`implementation`) · model: auto
