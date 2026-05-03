@@ -1,5 +1,7 @@
 "use client";
 
+import { AppChrome } from "@/app/components/app-chrome";
+import { disclosureSummary, roleBadgeClass, tableHeaderRow } from "@/lib/ui-tokens";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type {
@@ -19,21 +21,6 @@ const ROLE_LABEL_KO: Record<AgentRoleKey, string> = {
   implementation: "구현",
   test: "테스트",
 };
-
-function roleBadgeClass(role: AgentRoleKey): string {
-  const base =
-    "inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ring-1";
-  switch (role) {
-    case "planning":
-      return `${base} bg-slate-100 text-slate-800 ring-slate-200 dark:bg-slate-900/50 dark:text-slate-200 dark:ring-slate-700`;
-    case "design":
-      return `${base} bg-violet-100 text-violet-900 ring-violet-200 dark:bg-violet-950/50 dark:text-violet-100 dark:ring-violet-800`;
-    case "implementation":
-      return `${base} bg-emerald-100 text-emerald-900 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-100 dark:ring-emerald-800`;
-    case "test":
-      return `${base} bg-amber-100 text-amber-950 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-800`;
-  }
-}
 
 function parseDetailRole(d: Record<string, unknown> | null): AgentRoleKey | null {
   if (!d || typeof d !== "object") return null;
@@ -158,41 +145,7 @@ export default function Home() {
       : "아직 표시된 활동이 없어요";
 
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased">
-      <header className="sticky top-0 z-20 border-b border-[var(--list-border)] bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link
-            href="/"
-            className="font-display text-lg font-semibold tracking-tight text-foreground"
-          >
-            OpenGraze
-          </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm text-foreground sm:gap-x-5">
-            <Link
-              href="/llms.txt"
-              className="underline-offset-4 hover:text-foreground hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              연동 요약
-            </Link>
-            {SHOW_LOGIN_LINKS ? (
-              <>
-                <Link href="/login" className="underline-offset-4 hover:text-foreground hover:underline">
-                  로그인
-                </Link>
-                <Link href="/register" className="underline-offset-4 hover:text-foreground hover:underline">
-                  가입
-                </Link>
-              </>
-            ) : null}
-            <Link href="/dashboard" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
-              대시보드
-            </Link>
-          </nav>
-        </div>
-      </header>
-
+    <AppChrome active="home">
       <main className="mx-auto max-w-xl px-5 pb-24 pt-14 sm:max-w-lg sm:pt-20">
         {/* Hero — Indie-style narrow column, serif name + sans metric */}
         <div className="flex flex-col items-center text-center">
@@ -351,7 +304,7 @@ export default function Home() {
         </ul>
 
         <details className="mx-auto mt-10 text-center text-sm text-muted">
-          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <summary className={disclosureSummary}>
             <span className="underline decoration-neutral-300 underline-offset-[6px] dark:decoration-neutral-600">
               이 화면은 무엇을 보여 주나요?
             </span>
@@ -389,7 +342,9 @@ export default function Home() {
         ) : null}
 
         <details className="mx-auto mt-12">
-          <summary className="cursor-pointer list-none text-center text-sm font-medium text-muted [&::-webkit-details-marker]:hidden">
+          <summary
+            className={`${disclosureSummary} text-center text-sm font-medium text-muted`}
+          >
             <span className="underline decoration-neutral-300 underline-offset-[6px] dark:decoration-neutral-600">
               요약 지표 보기
             </span>
@@ -426,14 +381,14 @@ export default function Home() {
           {loading ? <span className="ml-3 text-xs text-muted">불러오는 중…</span> : null}
         </div>
 
-        <div className="mx-auto mt-14 max-w-4xl overflow-hidden rounded-xl border border-[var(--list-border)] bg-card">
+        <div className="mx-auto mt-14 max-w-4xl overflow-hidden rounded-[var(--radius-lg)] border border-[var(--list-border)] bg-card shadow-[var(--shadow-card)]">
           <div className="border-b border-[var(--list-border)] px-5 py-4">
             <h2 className="font-display text-lg font-semibold text-foreground">활동 타임라인</h2>
             <p className="mt-1 text-xs text-muted">시간은 UTC · 에이전트와 제품 출처를 구분합니다</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-left text-sm">
-              <thead className="border-b border-[var(--list-border)] bg-neutral-50/80 text-[11px] font-medium uppercase tracking-wide text-muted dark:bg-neutral-900/50">
+              <thead className={tableHeaderRow}>
                 <tr>
                   <th className="px-3 py-3">시각</th>
                   <th className="px-3 py-3">채널</th>
@@ -512,7 +467,7 @@ export default function Home() {
           <p className="mt-8 text-neutral-400 dark:text-neutral-600">OpenGraze · 관측 허브</p>
         </footer>
       </main>
-    </div>
+    </AppChrome>
   );
 }
 

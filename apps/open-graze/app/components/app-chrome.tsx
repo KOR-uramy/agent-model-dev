@@ -22,8 +22,8 @@ export function AppChrome({
 }) {
   return (
     <div className="min-h-screen bg-background text-foreground antialiased">
-      <header className="sticky top-0 z-20 border-b border-[var(--list-border)] bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="sticky top-0 z-20 h-[var(--header-height)] border-b border-[var(--list-border)] bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex h-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link
             href="/"
             className="font-display text-lg font-semibold tracking-tight text-foreground"
@@ -64,8 +64,10 @@ export function AppChrome({
  */
 export function AuthCard({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-md flex-col justify-center px-4 py-10 sm:px-6">
-      <div className="rounded-2xl border border-[var(--list-border)] bg-card p-8 shadow-sm">{children}</div>
+    <main className="mx-auto flex min-h-[calc(100vh-var(--header-height))] max-w-md flex-col justify-center px-4 py-10 sm:px-6">
+      <div className="rounded-[var(--radius-xl)] border border-[var(--list-border)] bg-card p-8 shadow-[var(--shadow-card)]">
+        {children}
+      </div>
     </main>
   );
 }

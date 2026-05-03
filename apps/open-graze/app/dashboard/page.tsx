@@ -1,7 +1,7 @@
 "use client";
 
 import { AppChrome, AppMain } from "@/app/components/app-chrome";
-import { codeInline, inputField, linkSubtleTight, proseBodyMuted } from "@/lib/ui-tokens";
+import { btnPrimarySm, inputField, surfaceCard, textErrorXs } from "@/lib/ui-tokens";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -89,10 +89,7 @@ export default function DashboardIndexPage() {
           참고하세요.
         </p>
 
-        <form
-          onSubmit={create}
-          className="mt-8 space-y-4 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm"
-        >
+        <form onSubmit={create} className={`mt-8 space-y-4 ${surfaceCard}`}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">새 워크스페이스</h2>
           <input
             className={inputField}
@@ -108,11 +105,8 @@ export default function DashboardIndexPage() {
             onChange={(e) => setSlug(e.target.value)}
             required
           />
-          {err ? <p className="text-xs text-red-600 dark:text-red-400">{err}</p> : null}
-          <button
-            type="submit"
-            className="rounded-lg bg-cta px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
-          >
+          {err ? <p className={textErrorXs}>{err}</p> : null}
+          <button type="submit" className={btnPrimarySm}>
             워크스페이스 만들고 계속
           </button>
         </form>
@@ -132,7 +126,6 @@ export default function DashboardIndexPage() {
             </li>
           ))}
         </ul>
-        </div>
       </AppMain>
     </AppChrome>
   );

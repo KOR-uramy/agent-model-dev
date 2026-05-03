@@ -16,6 +16,14 @@
   --surface-subtle: #fafafa;
   --danger: #dc2626;
   --danger-muted: #fecaca;
+  /* 레이아웃·리듬(브랜드 토큰 — Tailwind arbitrary 대신 의미 단위) */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-pill: 9999px;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04);
+  --header-height: 3.5rem;
 }
 
 @theme inline {
@@ -55,6 +63,7 @@
     --surface-subtle: #141414;
     --danger: #f87171;
     --danger-muted: #450a0a;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35);
   }
 }
 
