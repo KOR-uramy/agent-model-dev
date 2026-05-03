@@ -419,10 +419,12 @@ merge_completed_branches() {
     esac
   done
   
-  # Delete merged branches
-  for branch in "${merged[@]}"; do
-    delete_local_branch "$branch" "$workspace"
-  done
+  # Delete merged branches (bash 3.2 + set -u: empty "${merged[@]}" is unbound — guard length)
+  if ((${#merged[@]} > 0)); then
+    for branch in "${merged[@]}"; do
+      delete_local_branch "$branch" "$workspace"
+    done
+  fi
   
   echo ""
   if [[ ${#merged[@]} -gt 0 ]]; then
@@ -873,10 +875,13 @@ run_parallel_tasks() {
       esac
     done
 
-    # Mark tasks complete only after all merges (avoids dirty working tree breaking subsequent merges)
-    for task_id in "${integrated_task_ids[@]}"; do
-      mark_task_complete "$workspace" "$task_id"
-    done
+    # Mark tasks complete only after all merges (avoids dirty working tree breaking subsequent merges).
+    # bash 3.2 + set -u: empty "${integrated_task_ids[@]}" errors — only iterate when non-empty.
+    if ((${#integrated_task_ids[@]} > 0)); then
+      for task_id in "${integrated_task_ids[@]}"; do
+        mark_task_complete "$workspace" "$task_id"
+      done
+    fi
 
     # Commit task checkbox updates (only RALPH_TASK.md) so integration PR includes completion state
     if [[ ${#integrated_task_ids[@]} -gt 0 ]]; then
