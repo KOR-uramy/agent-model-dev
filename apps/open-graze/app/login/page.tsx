@@ -1,7 +1,7 @@
 "use client";
 
 import { AppChrome, AuthCard } from "@/app/components/app-chrome";
-import { btnPrimary, formLabel, inputField, textError } from "@/lib/ui-tokens";
+import { inputField } from "@/lib/ui-tokens";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";

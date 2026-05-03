@@ -122,7 +122,7 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
       >
         워크스페이스로
       </Link>
-      <h1 className="mt-4 text-2xl font-semibold">구독 결제 (토스)</h1>
+      <h1 className="mt-4 text-2xl font-semibold">구독 · 결제 (토스)</h1>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
         워크스페이스 단위 <strong className="text-zinc-800 dark:text-zinc-200">구독(단건)</strong> 결제입니다. 월
         자동 과금이 아니라, 한 번 승인되면 구독 상태가 활성으로 바뀝니다(앱 README·환경 변수{" "}

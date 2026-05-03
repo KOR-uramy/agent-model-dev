@@ -49,17 +49,9 @@ export default function WorkspaceDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
+  const [billingSuccess, setBillingSuccess] = useState(false);
   const [copyHint, setCopyHint] = useState<string | null>(null);
-  const [publicOrigin, setPublicOrigin] = useState("");
-
-  useEffect(() => {
-    setPublicOrigin(typeof window !== "undefined" ? window.location.origin : "");
-  }, []);
-
-  useEffect(() => {
-    setCopyHint(null);
-  }, [newToken]);
-
+  const [publicOrigin, setPublicOrigin] = useState("http://localhost:3000");
   const load = useCallback(async () => {
     setEventsLoadErr(null);
     setTasksLoadErr(null);
@@ -110,14 +102,54 @@ export default function WorkspaceDetailPage() {
   }, [load]);
 
   useEffect(() => {
-    setPublicOrigin(typeof window !== "undefined" ? window.location.origin : "");
+    if (typeof window !== "undefined") {
+      setPublicOrigin(`${window.location.protocol}//${window.location.host}`);
+    }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("billing") !== "success") return;
+    setBillingSuccess(true);
+    void router.replace(`/dashboard/${slug}`, { scroll: false });
+  }, [router, slug]);
+
+  async function copyNewTokenOnly() {
+    if (!newToken) return;
+    setCopyHint(null);
+    try {
+      await navigator.clipboard.writeText(newToken);
+      setCopyHint("전체 키를 클립보드에 복사했습니다.");
+    } catch {
+      setCopyHint("복사에 실패했습니다. 키를 직접 선택해 복사해 주세요.");
+    }
+  }
+
+  async function copyOpenGrazeEnvSnippet() {
+    if (!newToken) return;
+    setCopyHint(null);
+    const origin =
+      typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.host}`
+        : "http://localhost:3000";
+    const snippet = `OPENGRAZE_PLATFORM_URL="${origin}"
+OPENGRAZE_PLATFORM_API_KEY="${newToken}"
+# OPENGRAZE_WORKSPACE_SLUG="${slug}"`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopyHint("루트 .env.example 스타일 스니펫을 복사했습니다. 워크스페이스 slug 주석은 필요 시 해제하세요.");
+    } catch {
+      setCopyHint("복사에 실패했습니다.");
+    }
+  }
 
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setCopyHint(null);
     setNewToken(null);
+    setCopyHint(null);
     const r = await fetch(`/api/workspaces/${slug}/api-keys`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -194,6 +226,17 @@ export default function WorkspaceDetailPage() {
             </button>
           </div>
         </div>
+
+        {billingSuccess ? (
+          <p
+            className="mt-6 rounded-xl border border-emerald-200/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100"
+            role="status"
+          >
+            토스 결제가 서버에서 승인되었습니다. 이 워크스페이스는{" "}
+            <strong className="font-medium">구독 활성</strong>로 표시됩니다(목록·상단 상태). 월 자동 과금은 없고, 한 번
+            승인된 단건 결제입니다 — 자세한 설명은 앱 README「토스페이먼츠 v2 구독(단건) 결제」를 참고하세요.
+          </p>
+        ) : null}
 
         {err ? (
           <p className="mt-6 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-xs text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
