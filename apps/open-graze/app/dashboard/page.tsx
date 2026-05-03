@@ -12,6 +12,12 @@ type Ws = {
   subscriptionStatus: string;
 };
 
+function subscriptionStatusLabel(raw: string): string {
+  if (raw === "active") return "구독 활성";
+  if (raw === "inactive") return "구독 비활성";
+  return raw;
+}
+
 export default function DashboardIndexPage() {
   const router = useRouter();
   const [list, setList] = useState<Ws[] | null>(null);
@@ -99,7 +105,7 @@ export default function DashboardIndexPage() {
             >
               <span className="font-medium">{w.name}</span>
               <span className="text-zinc-500">
-                {w.slug} · {w.subscriptionStatus}
+                {w.slug} · {subscriptionStatusLabel(w.subscriptionStatus)}
               </span>
             </Link>
           </li>

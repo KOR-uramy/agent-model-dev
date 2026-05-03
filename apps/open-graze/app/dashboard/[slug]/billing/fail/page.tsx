@@ -22,12 +22,14 @@ function FailInner() {
           </>
         ) : null}
       </p>
-      <Link
-        href={`/dashboard/${slug}/billing`}
-        className="mt-8 inline-block text-sm underline"
-      >
-        다시 시도
-      </Link>
+      <div className="mt-8 flex flex-wrap gap-6 text-sm">
+        <Link href={`/dashboard/${slug}/billing`} className="underline">
+          다시 시도
+        </Link>
+        <Link href={`/dashboard/${slug}`} className="text-zinc-600 underline dark:text-zinc-400">
+          워크스페이스로
+        </Link>
+      </div>
     </div>
   );
 }
