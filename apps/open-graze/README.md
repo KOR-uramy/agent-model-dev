@@ -95,6 +95,12 @@ npm run sync:feed -w open-graze
 
 또는 `curl -X POST -H "Authorization: Bearer …" http://localhost:3000/api/ralph/sync-jsonl` — 본문 `{"tail":8000}` 선택.
 
+`GET /api/ralph/events`는 선택 쿼리 **`role`**(`planning` \| `design` \| `implementation` \| `test`)로 **`detail.role`이 같은 이벤트만** 최근 `tail`건까지 반환합니다. 그 외 값은 **400**입니다. 아래 한 줄로 필터 유·무 응답의 **`events` 배열 길이**를 바로 비교할 수 있습니다(개발 서버·DB에 타임라인이 있을 때).
+
+```bash
+printf 'all=%s role=planning=%s\n' "$(curl -sS 'http://localhost:3000/api/ralph/events?tail=800' | node -p "JSON.parse(require('fs').readFileSync(0,'utf-8')).events.length")" "$(curl -sS 'http://localhost:3000/api/ralph/events?tail=800&role=planning' | node -p "JSON.parse(require('fs').readFileSync(0,'utf-8')).events.length")"
+```
+
 Ralph 루프·`appendWorkspaceTelemetryEvent`는 **여전히 JSONL에 기록**합니다. 대시보드에 반영하려면 루프/작업 후 위 동기화를 주기적으로 실행하거나(또는 나중에 훅으로 자동화) 하면 됩니다.
 
 ## 환경 변수 요약

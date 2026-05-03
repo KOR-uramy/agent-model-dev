@@ -1,6 +1,10 @@
 import { createHash } from "crypto";
 import { Prisma } from "@prisma/client";
-import type { RalphEventsApiPayload, WorkspaceFeedEvent } from "ralph-workspace-sdk";
+import type {
+  AgentRoleKey,
+  RalphEventsApiPayload,
+  WorkspaceFeedEvent,
+} from "ralph-workspace-sdk";
 import {
   buildRalphEventsApiPayloadFromMerged,
   loadRalphEventsSnapshot,
@@ -35,8 +39,20 @@ function lineHash(e: WorkspaceFeedEvent): string {
     .digest("hex");
 }
 
+type TimelineEventRow = {
+  id: string;
+  workspaceKey: string;
+  lineHash: string;
+  source: string;
+  ts: string;
+  kind: string;
+  payload: string;
+  createdAt: Date;
+};
+
 export async function loadTimelineFromDb(
   tail: number,
+  opts?: { role?: AgentRoleKey },
 ): Promise<RalphEventsApiPayload> {
   const workspaceKey = timelineWorkspaceKey();
   const workspace = resolveRalphWorkspace(pathOpts);
@@ -44,12 +60,31 @@ export async function loadTimelineFromDb(
   const telemetryPath = resolveTelemetryJsonlPath(pathOpts);
   const usdPerM = parseUsdPerMillionEstTokens(pathOpts);
   const t = Math.min(5000, Math.max(1, tail));
+  const role = opts?.role;
 
-  const rows = await prisma.timelineEvent.findMany({
-    where: { workspaceKey },
-    orderBy: { ts: "desc" },
-    take: t,
-  });
+  const rows: TimelineEventRow[] =
+    role == null
+      ? await prisma.timelineEvent.findMany({
+          where: { workspaceKey },
+          orderBy: { ts: "desc" },
+          take: t,
+        })
+      : await prisma.$queryRaw<TimelineEventRow[]>(Prisma.sql`
+          SELECT
+            "id",
+            "workspaceKey",
+            "lineHash",
+            "source",
+            "ts",
+            "kind",
+            "payload",
+            "createdAt"
+          FROM "TimelineEvent"
+          WHERE "workspaceKey" = ${workspaceKey}
+            AND json_extract("payload", '$.detail.role') = ${role}
+          ORDER BY "ts" DESC
+          LIMIT ${t}
+        `);
 
   const merged: WorkspaceFeedEvent[] = rows
     .map((r) => {
@@ -63,14 +98,15 @@ export async function loadTimelineFromDb(
     .reverse();
 
   const empty = merged.length === 0;
+  const showTimelineEmpty = empty && role == null;
   return buildRalphEventsApiPayloadFromMerged({
     workspace,
     eventsPath: ralphPath,
     telemetryPath,
     usdPerMillionEstTokens: usdPerM,
     merged,
-    error: empty ? "TIMELINE_EMPTY" : undefined,
-    hint: empty ? EMPTY_HINT : undefined,
+    error: showTimelineEmpty ? "TIMELINE_EMPTY" : undefined,
+    hint: showTimelineEmpty ? EMPTY_HINT : undefined,
   });
 }
 
