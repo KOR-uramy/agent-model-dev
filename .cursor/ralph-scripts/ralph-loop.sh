@@ -77,6 +77,8 @@ Examples:
   
 Environment:
   RALPH_MODEL            Override default model (same as -m; default in repo: auto)
+  RALPH_ROLE_MODE        cycle (기본): 이터마다 기획→디자인→구현→테스트 순환, 직전 역할 산출물 감시
+                         mono: 역할 구분 없이 기존 단일 프롬프트
 
 For interactive setup with a beautiful UI, use ralph-setup.sh instead.
 EOF

@@ -387,19 +387,65 @@ refresh_task_cache() {
 }
 
 # =============================================================================
+# ROLE PIPELINE (기획 → 디자인 → 구현 → 테스트, 순환)
+# =============================================================================
+# RALPH_ROLE_MODE=cycle (기본): iteration마다 역할이 바뀌고, 직전 역할 산출물을 감시한다.
+# RALPH_ROLE_MODE=mono: 역할 구분 없이 기존 단일 프롬프트만 사용.
+
+# 1-based iteration → role key
+ralph_role_for_iteration() {
+  local i="${1:-1}"
+  local r=$(( (i - 1) % 4 ))
+  case $r in
+    0) echo "planning" ;;
+    1) echo "design" ;;
+    2) echo "implementation" ;;
+    3) echo "test" ;;
+  esac
+}
+
+ralph_role_label_ko() {
+  case "$1" in
+    planning) echo "기획" ;;
+    design) echo "디자인" ;;
+    implementation) echo "구현" ;;
+    test) echo "테스트" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+# 직전 iteration의 역할 (감시 대상). iteration 1이면 빈 문자열.
+ralph_prior_role_for_iteration() {
+  local i="${1:-1}"
+  if [[ "$i" -le 1 ]]; then
+    echo ""
+    return
+  fi
+  ralph_role_for_iteration "$((i - 1))"
+}
+
+ralph_prior_role_label_ko() {
+  local k="$1"
+  [[ -z "$k" ]] && echo "" && return
+  ralph_role_label_ko "$k"
+}
+
+# =============================================================================
 # PROMPT BUILDING
 # =============================================================================
 
-# Build the Ralph prompt for an iteration
-build_prompt() {
-  local workspace="$1"
-  local iteration="$2"
-  
+# Shared instructions (after role header / supervision)
+# Args: iteration, progress_role_key (optional; for progress.md convention in cycle mode)
+_build_prompt_shared_body() {
+  local iteration="$1"
+  local progress_role="${2:-}"
+  local progress_rule
+  if [[ -n "$progress_role" ]]; then
+    progress_rule="4. Update \`.ralph/progress.md\` — start the entry with a line: \`**역할: (한글 라벨) ($progress_role)\**\` then summary, supervision notes, and next handoff."
+  else
+    progress_rule="4. Update \`.ralph/progress.md\` with what you accomplished and what's next for the following iteration."
+  fi
   cat << EOF
-# Ralph Iteration $iteration
-
-You are an autonomous development agent using the Ralph methodology.
-
 ## FIRST: Read State Files
 
 Before doing anything:
@@ -434,12 +480,10 @@ If you get rotated, the next agent picks up from your last commit. Your commits 
 
 ## Task Execution
 
-1. Work on the next unchecked criterion in RALPH_TASK.md (look for \`[ ]\`)
-2. Run tests after changes (check RALPH_TASK.md for test_command)
-3. **Mark completed criteria**: Edit RALPH_TASK.md and change \`[ ]\` to \`[x]\`
-   - Example: \`- [ ] Implement parser\` becomes \`- [x] Implement parser\`
-   - This is how progress is tracked - YOU MUST update the file
-4. Update \`.ralph/progress.md\` with what you accomplished
+1. Work on the next unchecked criterion in RALPH_TASK.md (look for \`[ ]\`) **that fits your current role** (see Role Boundaries above). If none fit, document blockers in \`.ralph/progress.md\` and output handoff notes for the next role.
+2. Run tests after changes when your role is **test** or when you touch executable code (**implementation**).
+3. **Mark completed criteria**: Edit RALPH_TASK.md and change \`[ ]\` to \`[x]\` only when your role owns verification (**test** role for code-facing criteria, or when the criterion is purely planning/docs and **planning** agrees).
+$progress_rule
 5. When ALL criteria show \`[x]\`: output \`<ralph>COMPLETE</ralph>\`
 6. If stuck 3+ times on same issue: output \`<ralph>GUTTER</ralph>\`
 
@@ -469,6 +513,104 @@ Begin by reading the state files.
 EOF
 }
 
+# Build the Ralph prompt for an iteration
+# Args: workspace, iteration, role_key (optional; empty = mono)
+build_prompt() {
+  local workspace="$1"
+  local iteration="$2"
+  local role_key="${3:-}"
+
+  if [[ -z "$role_key" ]]; then
+    cat << EOF
+# Ralph Iteration $iteration
+
+You are an autonomous development agent using the Ralph methodology.
+
+EOF
+    _build_prompt_shared_body "$iteration" ""
+    return
+  fi
+
+  local role_ko prior_key prior_ko phase_idx cycle_num
+  role_ko=$(ralph_role_label_ko "$role_key")
+  prior_key=$(ralph_prior_role_for_iteration "$iteration")
+  prior_ko=$(ralph_prior_role_label_ko "$prior_key")
+  phase_idx=$(( (iteration - 1) % 4 + 1 ))
+  cycle_num=$(( (iteration - 1) / 4 + 1 ))
+
+  cat << EOF
+# Ralph Iteration $iteration — 역할: **$role_ko** (\`$role_key\`) · 사이클 $cycle_num · 단계 $phase_idx/4
+
+You are one stage in a **four-role pipeline**: 기획(planning) → 디자인(design) → 구현(implementation) → 테스트(test), then repeat. The next agent run will be the next role; you must make handoff easy.
+
+EOF
+
+  case "$role_key" in
+    planning)
+      cat << EOF
+## Role Boundaries — 기획 (planning)
+
+- Clarify scope, priorities, acceptance hints, and risks against \`RALPH_TASK.md\`.
+- Do **not** write production code; you may edit docs and task checklists only when they describe intent, not implementation.
+- Prefer short, checkable bullets the **디자인** role can turn into contracts/sketches.
+
+EOF
+      ;;
+    design)
+      cat << EOF
+## Role Boundaries — 디자인 (design)
+
+- Turn planning output into concrete UX/API/data contracts, file touch list, or pseudocode **where it helps implementation**.
+- Do **not** land large production patches unless trivial; leave heavy coding to **구현**.
+- Call out ambiguities and send corrections back via \`.ralph/progress.md\` if planning was insufficient.
+
+EOF
+      ;;
+    implementation)
+      cat << EOF
+## Role Boundaries — 구현 (implementation)
+
+- Implement according to \`RALPH_TASK.md\`, guardrails, and the latest **디자인** notes in \`.ralph/progress.md\` / git.
+- Prefer small commits with messages prefixed or tagged so **테스트** can trace intent.
+- Do **not** declare criteria \`[x]\` without leaving verifiable steps for the test role.
+
+EOF
+      ;;
+    test)
+      cat << EOF
+## Role Boundaries — 테스트 (test)
+
+- Run the repo’s documented checks (e.g. \`npm run build\`, tests in \`RALPH_TASK.md\`).
+- Report pass/fail with evidence; fix only what is necessary for green builds or file minimal issues for **구현**/**디자인**.
+- You **own** flipping checkboxes to \`[x]\` when verification matches the criterion.
+
+EOF
+      ;;
+  esac
+
+  if [[ -z "$prior_key" ]]; then
+    cat << EOF
+## Supervision (감시) — 첫 단계
+
+There is no prior role output in this run yet. Base your plan strictly on \`RALPH_TASK.md\`, \`.ralph/guardrails.md\`, and git history.
+
+EOF
+  else
+    cat << EOF
+## Supervision (감시) — 직전 단계: **$prior_ko** (\`$prior_key\`)
+
+Before doing your role’s work:
+
+1. Read **\`.ralph/progress.md\`** from the bottom up — find the latest entry for \`$prior_key\` / **$prior_ko**.
+2. Inspect **git** (\`git log -5 --oneline\`, \`git status\`, \`git diff\` as needed) for what that role actually changed.
+3. Write a short **감시 요약** in \`.ralph/progress.md\`: what you verified, gaps, and whether the handoff is **승인** or **반려(보완 필요)**. If 반려, list concrete actions; do not silently redo the prior role’s entire work unless critical.
+
+EOF
+  fi
+
+  _build_prompt_shared_body "$iteration" "$role_key"
+}
+
 # =============================================================================
 # SPINNER
 # =============================================================================
@@ -496,8 +638,17 @@ run_iteration() {
   local iteration="$2"
   local session_id="${3:-}"
   local script_dir="${4:-$(dirname "${BASH_SOURCE[0]}")}"
-  
-  local prompt=$(build_prompt "$workspace" "$iteration")
+
+  local role_key=""
+  if [[ "${RALPH_ROLE_MODE:-cycle}" != "mono" ]]; then
+    role_key=$(ralph_role_for_iteration "$iteration")
+    export RALPH_ROLE="$role_key"
+  else
+    unset RALPH_ROLE 2>/dev/null || true
+  fi
+
+  local prompt
+  prompt=$(build_prompt "$workspace" "$iteration" "$role_key")
   local fifo="$workspace/.ralph/.parser_fifo"
   
   # Create named pipe for parser signals
@@ -507,16 +658,29 @@ run_iteration() {
   # Use stderr for display (stdout is captured for signal)
   echo "" >&2
   echo "═══════════════════════════════════════════════════════════════════" >&2
-  echo "🐛 Ralph Iteration $iteration" >&2
+  if [[ -n "$role_key" ]]; then
+    local _rk _cyc _ph
+    _rk=$(ralph_role_label_ko "$role_key")
+    _cyc=$(( (iteration - 1) / 4 + 1 ))
+    _ph=$(( (iteration - 1) % 4 + 1 ))
+    echo "🐛 Ralph Iteration $iteration — 역할: $_rk ($role_key) · 사이클 $_cyc · 단계 $_ph/4" >&2
+  else
+    echo "🐛 Ralph Iteration $iteration (RALPH_ROLE_MODE=mono)" >&2
+  fi
   echo "═══════════════════════════════════════════════════════════════════" >&2
   echo "" >&2
   echo "Workspace: $workspace" >&2
   echo "Model:     $MODEL" >&2
+  echo "Role mode: ${RALPH_ROLE_MODE:-cycle}" >&2
   echo "Monitor:   tail -f $workspace/.ralph/activity.log" >&2
   echo "" >&2
-  
+
   # Log session start to progress.md
-  log_progress "$workspace" "**Session $iteration started** (model: $MODEL)"
+  if [[ -n "$role_key" ]]; then
+    log_progress "$workspace" "**Session $iteration started** — 역할: $(ralph_role_label_ko "$role_key") (\`$role_key\`) · model: $MODEL"
+  else
+    log_progress "$workspace" "**Session $iteration started** (model: $MODEL, mono role mode)"
+  fi
 
   # stream-parser: JSONL events (.ralph/events.jsonl) include this iteration index
   export RALPH_ITERATION="$iteration"

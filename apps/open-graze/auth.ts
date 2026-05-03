@@ -1,62 +1,48 @@
-import type { DefaultSession } from "next-auth";
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import type { User as NextAuthUser } from "next-auth";
+import authConfig from "./auth.config";
 import { prisma } from "@/lib/prisma";
 
-let authSecretFallbackWarned = false;
-
-const AUTH_SECRET_FALLBACK =
-  "open-graze-missing-AUTH_SECRET-placeholder-min-32-chars!";
-
 /**
- * Auth.js는 `secret` 필수. 미설정 시 폴백으로 빌드·`/api/auth/session` 500을 막는다.
- * 배포 전에는 반드시 `AUTH_SECRET`을 넣을 것(폴백은 세션 위조에 취약).
+ * DB 비밀번호(Credentials) + JWT 세션.
+ * Google OAuth를 다시 쓰려면 `PrismaAdapter` + `Google` provider를 추가하고
+ * `session.strategy`를 요구사항에 맞게 조정한다.
  */
-function resolveAuthSecret(): string {
-  const s =
-    process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
-  if (s) return s;
-  if (!authSecretFallbackWarned) {
-    authSecretFallbackWarned = true;
-    if (process.env.NODE_ENV === "production") {
-      console.error(
-        "[open-graze] CRITICAL: AUTH_SECRET 미설정 — 임시 시크릿 사용 중. 즉시 환경 변수를 설정하세요.",
-      );
-    } else {
-      console.warn(
-        "[open-graze] AUTH_SECRET 없음 — 개발용 임시 시크릿. apps/open-graze/.env 에 설정하세요.",
-      );
-    }
-  }
-  return AUTH_SECRET_FALLBACK;
-}
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  secret: resolveAuthSecret(),
-  trustHost: true,
-  session: { strategy: "database" },
-  pages: {
-    signIn: "/login",
-  },
+  ...authConfig,
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID ?? "",
-      clientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
-      allowDangerousEmailAccountLinking: true,
+    Credentials({
+      id: "credentials",
+      name: "이메일",
+      credentials: {
+        email: { label: "이메일" },
+        password: { label: "비밀번호", type: "password" },
+      },
+      async authorize(credentials) {
+        const emailRaw = credentials?.email;
+        const passwordRaw = credentials?.password;
+        if (typeof emailRaw !== "string" || typeof passwordRaw !== "string") {
+          return null;
+        }
+        const email = emailRaw.trim();
+        if (!email || !passwordRaw) return null;
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user?.passwordHash) return null;
+
+        const ok = await bcrypt.compare(passwordRaw, user.passwordHash);
+        if (!ok) return null;
+
+        const u: NextAuthUser = {
+          id: user.id,
+          email: user.email ?? undefined,
+          name: user.name ?? undefined,
+          image: user.image ?? undefined,
+        };
+        return u;
+      },
     }),
   ],
-  callbacks: {
-    async session({ session, user }) {
-      if (session.user) session.user.id = user.id;
-      return session;
-    },
-  },
 });
-
-declare module "next-auth" {
-  interface Session {
-    user: DefaultSession["user"] & { id: string };
-  }
-}

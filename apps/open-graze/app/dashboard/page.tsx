@@ -54,7 +54,7 @@ export default function DashboardIndexPage() {
 
   if (list === null) {
     return (
-      <div className="p-8 text-sm text-zinc-500">워크스페이스 불러오는 중…</div>
+      <div className="p-8 text-sm text-zinc-500">워크스페이스 목록을 불러오는 중입니다…</div>
     );
   }
 
@@ -62,21 +62,21 @@ export default function DashboardIndexPage() {
     <div className="mx-auto max-w-2xl px-6 py-10">
       <h1 className="text-2xl font-semibold">워크스페이스</h1>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        팀 단위로 API 키·수집 이벤트·결제를 묶습니다.
+        프로젝트나 팀마다 공간을 나누고, 수집 API·구독·멤버를 함께 관리합니다.
       </p>
 
       <form onSubmit={create} className="mt-8 space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-        <h2 className="text-sm font-medium">새 워크스페이스</h2>
+        <h2 className="text-sm font-medium">새 워크스페이스 만들기</h2>
         <input
           className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-          placeholder="이름 (예: Acme)"
+          placeholder="표시 이름 · 예: 프로덕션 모니터링"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
         <input
           className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-          placeholder="slug (예: acme-prod) 소문자·숫자·하이픈"
+          placeholder="주소에 쓰는 ID · 소문자, 숫자, 하이픈만 · 예: acme-prod"
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           required

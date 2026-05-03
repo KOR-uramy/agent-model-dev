@@ -2,12 +2,13 @@
 
 ## Goal (본질)
 
-**개발·에이전트 작업이 “어디서 무엇이 얼마나 일어났는지”**를 한곳에서 재현·검토할 수 있게 만든다.  
-추상적인 “플랫폼 완성”이 아니라, 아래 **측정 가능한 상태**에 계속 가까워지는 것이 목표다.
+**앱의 목적은 다중 에이전트 작업 모니터링이다.** Ralph 루프 안에서 역할을 **기획(planning)·디자인(design)·구현(implementation)·테스트(test)** 로 나누고, 각 작업 단위가 남기는 로그·텔레메트리에는 **역할을 식별할 수 있는 헤더(메타)** 가 붙도록 규약·UI·스크립트를 맞춘다. 운영자는 한 화면에서 **어느 역할이 무엇을 했는지**를 시간순으로 재구성·검토할 수 있어야 한다.
 
-1. **로컬·Ralph** — 루프는 여전히 `events.jsonl`·`workspace-telemetry.jsonl`에 쓰고, OpenGraze **`/`** 대시보드·`GET /api/ralph/events`는 **SQLite `TimelineEvent`**만 읽는다(동기화: `POST /api/ralph/sync-jsonl` 또는 `npm run sync:feed -w open-graze`).
-2. **대외·SaaS(동일 앱)** — `apps/open-graze` 한 앱에서 Google 계정, 워크스페이스, API 토큰, 수집·웹훅, (설정 시) **토스페이먼츠 v2** 결제·구독 경로가 있다. (Stripe 스캐폴드는 토스 전환 전 임시·참고용.)
-3. **반복** — 구현 → 루트 `npm run build` 검증 → 커밋 → 기준 `[x]` → `.ralph/progress.md` 요약이 **한 사이클**로 끝난다.
+그 위에서 **개발·에이전트 작업이 “어디서 무엇이 얼마나 일어났는지”**를 한곳에서 재현할 수 있게 한다. 추상적인 “플랫폼 완성”이 아니라, 아래 **측정 가능한 상태**에 계속 가까워지는 것이 목표다.
+
+1. **로컬·Ralph** — 루프는 `events.jsonl`·`workspace-telemetry.jsonl`에 쓰고, OpenGraze **`/`** 대시보드·`GET /api/ralph/events`는 **SQLite `TimelineEvent`**만 읽는다(동기화: `POST /api/ralph/sync-jsonl` 또는 `npm run sync:feed -w open-graze`). **역할 메타**는 이 파이프(JSONL → 동기화 → 타임라인·API)를 따라 끊기지 않게 전달하는 것을 목표로 한다.
+2. **대외·SaaS(동일 앱)** — `apps/open-graze` 한 앱에서 **DB 이메일·비밀번호 로그인**(Credentials·JWT), 워크스페이스, API 토큰, 수집·웹훅, (설정 시) **토스페이먼츠 v2** 결제·구독 경로가 있다. (Stripe 스캐폴드는 토스 전환 전 임시·참고용.)
+3. **반복** — `ralph-loop.sh`는 기본 **역할 파이프**(기획→디자인→구현→테스트)로 이터를 돌린다. 각 이터는 직전 역할의 산출물(git·`.ralph/progress.md`)을 **감시**한 뒤 본 역할만 수행한다. 한 사이클 끝에는 루트 `npm run build` 등 검증·커밋·기준 `[x]`·`.ralph/progress.md` 요약이 이어진다. 단일 프롬프트만 쓰려면 `RALPH_ROLE_MODE=mono`를 본다.
 
 별도 앱 저장소(예: `llm_agent`) 변경은 **그 저장소에서 명시적으로 요청된 범위**에만 한정한다.
 
@@ -15,13 +16,14 @@
 
 | 영역 | 위치 |
 |------|------|
-| Ralph 스크립트 | `.cursor/ralph-scripts/` |
+| Ralph 스크립트 | `.cursor/ralph-scripts/` — `ralph-loop.sh` 기본 **4역할 순환**(기획·디자인·구현·테스트) + 직전 단계 감시; `RALPH_ROLE_MODE=mono`로 비활성화 |
 | OpenGraze (로컬 뷰 + 워크스페이스·수집) | `apps/open-graze` — 단일 Next 앱 |
 | 연동 SDK | `packages/ralph-workspace-sdk` |
 | 자기 연동 테스트 | 루트 `npm run platform:self-test` — `scripts/platform-self-test.mjs`, 루트 `.env.example`의 `OPENGRAZE_PLATFORM_*` |
 | 결제 연동 규범 | 토스페이먼츠 v2 — [LLMs로 결제 연동하기](https://docs.tosspayments.com/guides/v2/get-started/llms-guide), AI/에이전트용 문서 인덱스 [llms.txt](https://docs.tosspayments.com/llms.txt) |
 | 루프 상태 | `.ralph/progress.md`, `.ralph/guardrails.md`, `.ralph/errors.log` |
 | 에이전트·모델 선택 근거 | `docs/agent-model-selection.md` |
+| 역할별 모니터링 규약(목표) | 이벤트·텔레메트리 `detail` 등에 **역할 키**를 두고 UI에서 헤더로 노출 — 아래 Success의 `[ ]` 항목 |
 
 연속 작업은 `ralph-loop.sh`(또는 `ralph-setup.sh`) + `cursor-agent`. **기준은 항상 이 파일**이며, 코드가 앞서가면 **먼저 여기를 고친 뒤** 구현한다.
 
@@ -40,7 +42,7 @@
 
 ### 메타 (스프린트 유지)
 
-- [x] `RALPH_TASK.md`가 **본질 목표(관측·신뢰·재현)** 와 현재 레포 구조를 반영한다.
+- [x] `RALPH_TASK.md`가 **본질 목표(다중 에이전트·역할별 모니터링, 관측·신뢰·재현)** 와 현재 레포 구조를 반영한다.
 - [x] 완료된 체크는 `[x]`로 유지하고, 새 작업은 `[ ]`로만 추가한다(허위 완료 금지).
 
 ### 신뢰·보안 (본질)
@@ -60,9 +62,17 @@
 - [x] Git `post-commit` 등 **콜백 경로**로 텔레메트리를 쌓을 수 있다(`openg-graze-git-commit` CLI).
 - [x] **한 앱 안 역할** — `/`·`GET /api/ralph/events`는 SQLite `TimelineEvent`(JSONL은 동기화로 적재); `/login`·`/dashboard`·`/api/v1/events` 등은 워크스페이스·수집 테이블(`apps/open-graze/README.md`).
 
+### 역할별 다중 에이전트 모니터링 (제품 북극성 — 구현은 단계적으로)
+
+역할 집합(1차): **기획 · 디자인 · 구현 · 테스트**. 저장 시 권장 키: `planning` | `design` | `implementation` | `test`(UI 표기는 한글 가능). 확장 시 이 문서와 SDK 타입을 함께 갱신한다.
+
+- [ ] **규약** — `packages/ralph-workspace-sdk`·`apps/open-graze` 문서에, 타임라인·ingest에 쓸 **역할 필드 위치·형식**(예: `detail.role` 또는 동등)이 한 줄로 고정되어 있다.
+- [x] **생산 경로(루프)** — `ralph-loop`/`ralph-once`가 이터마다 역할을 순환하고, `stream-parser`의 `session_start` 이벤트 `detail.role`에 `planning` \| `design` \| `implementation` \| `test`가 기록된다(`RALPH_ROLE_MODE=mono`일 때는 생략).
+- [ ] **소비 UI** — OpenGraze **`/`** 타임라인(및 관련 API 응답)에서 역할이 **헤더·배지 등으로 구분**되어, 같은 시간축에서 역할별 스캔이 가능하다.
+
 ### 제품 (OpenGraze 내 SaaS·수집)
 
-- [x] Google 로그인, 워크스페이스, API 키 발급이 동작 가능한 형태로 존재한다.
+- [x] 이메일·비밀번호(DB) 로그인, 워크스페이스, API 키 발급이 동작 가능한 형태로 존재한다.
 - [x] **결제**는 [토스페이먼츠 LLMs 연동 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide) 및 [llms.txt](https://docs.tosspayments.com/llms.txt)를 따른다(결제위젯 v2·승인 API·웹훅 등). Cursor 연동 시 가이드에 안내된 **토스페이먼츠 MCP** 활용을 우선한다.
 - [x] 레거시 **Stripe** Checkout/Webhook 스캐폴드는 코드에 남아 있으나, 제품 기준 결제 수단은 아니다(토스 연동 후 정리).
 - [x] **텔레그램** — (로컬/SDK) `TELEGRAM_BOT_TOKEN`·`TELEGRAM_CHAT_ID`·선택 `TELEGRAM_NOTIFY_COMMITS=1`로 커밋 등 알림 가능. (클라우드) `POST /api/webhooks/telegram` + `TELEGRAM_WEBHOOK_SECRET` + `TELEGRAM_CHAT_WORKSPACE_MAP`으로 채팅 메시지·`/task 본문`을 `IngestedEvent`로 수집해 관측·작업 전달 파이프가 있다.
@@ -72,10 +82,10 @@
 
 ## 24시간 연속 루프 (Ralph 운영 규약)
 
-목표는 “한 번에 다 끝내기”가 아니라 **같은 본질 축에 대한 반복**이다. 매 이터레이션은 아래를 **순서대로** 끝낸다.
+목표는 “한 번에 다 끝내기”가 아니라 **같은 본질 축에 대한 반복**이다. 매 **에이전트 이터**는 현재 **역할**(기획·디자인·구현·테스트 중 하나; 루프가 순서대로 부여)에 맞게 아래를 **순서대로** 끝낸다. 직전 이터가 남긴 커밋·`.ralph/progress.md`를 먼저 **감시 요약**한다.
 
 1. **읽기** — `RALPH_TASK.md`(미완 `[ ]` 중 우선순위 1개), `.ralph/guardrails.md`, `.ralph/progress.md`, `.ralph/errors.log`.
-2. **하기** — 그 한 항목(또는 쪼갠 하위 한 덩어리)만 구현·수정한다. 범위 밖 리팩터 금지.
+2. **하기** — 그 한 항목(또는 쪼갠 하위 한 덩어리)만 **현재 역할 범위 안에서** 구현·수정한다. 범위 밖 리팩터 금지.
 3. **검증** — 루트 `npm run build` **+** 이번 변경에 해당하는 **실행 검증**(루트 `README.md` 스모크: `npm run dev`는 **3000 포트만** — 열려 있으면 `kill` 후 기동, OpenGraze API `curl`, `npm run platform:self-test` 등). 임의 포트로 서버를 여러 개 띄우지 않는다.
 4. **기록** — **`git commit`**(스코프 단위로 자주), `.ralph/progress.md`에 “무엇을 왜 했는지” 한 단락, 해당 기준이 끝났으면 `RALPH_TASK.md`에서 `[x]`.
 5. **검토** — 남은 `[ ]` 중 다음에 가장 본질에 가까운 것을 고른다(가짜 바쁨: 문서만 양산하지 않기).
@@ -113,6 +123,8 @@ export MAX_ITERATIONS=999
 
 ## Notes for the Agent
 
+- **제품 목적**은 다중 에이전트 **역할별** 작업 모니터링이다. 텔레메트리·이벤트를 추가할 때 역할 메타를 빼먹지 말 것(`RALPH_TASK.md`의 규약 확정 후 일관 적용).
+- **`ralph-loop.sh`**: 기본 `RALPH_ROLE_MODE=cycle`이면 이터마다 기획→디자인→구현→테스트가 순환하고, 프롬프트가 직전 역할 산출물 감시를 요구한다. 예전 단일 동작은 `RALPH_ROLE_MODE=mono`.
 - Ralph upstream 개요·맥락 회전·git: [ralph-wiggum-cursor](https://github.com/agrimsingh/ralph-wiggum-cursor). 채팅만으로 작업을 끝내지 말고, **커밋 + 빌드 + 스모크**까지 한 사이클로 묶는다.
 - Cursor CLI(에이전트): https://cursor.com/install — 설치 후 명령은 공식적으로 **`agent`**([CLI 설치](https://cursor.com/docs/cli/installation)). 레포 스크립트는 **`agent` 또는 예전 이름 `cursor-agent`** 중 PATH에 있는 것을 쓴다. `~/.local/bin`을 PATH에 넣고 `agent --version`으로 확인한다.
 - 선택 UI: `brew install gum`

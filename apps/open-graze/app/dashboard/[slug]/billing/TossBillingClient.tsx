@@ -53,7 +53,7 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
       const j = (await res.json()) as PrepareOk & { error?: string };
       if (!res.ok) {
         if (!cancelled) {
-          setErr(j.error ?? "준비 실패");
+          setErr(j.error ?? "결제 화면을 준비하지 못했습니다.");
           setLoading(false);
         }
         return;
@@ -80,7 +80,7 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
         });
       } catch (e) {
         if (!cancelled) {
-          setErr(e instanceof Error ? e.message : "위젯 초기화 실패");
+          setErr(e instanceof Error ? e.message : "결제 창을 불러오지 못했습니다.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -106,7 +106,7 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
         failUrl: `${baseUrl}/dashboard/${slug}/billing/fail`,
       });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "결제 요청 실패");
+      setErr(e instanceof Error ? e.message : "결제를 진행하지 못했습니다.");
     }
   }
 
@@ -116,7 +116,7 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
         href={`/dashboard/${slug}`}
         className="text-xs text-zinc-500 hover:underline"
       >
-        ← 워크스페이스
+        워크스페이스로
       </Link>
       <h1 className="mt-4 text-2xl font-semibold">구독 결제 (토스)</h1>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">

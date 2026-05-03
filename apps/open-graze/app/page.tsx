@@ -6,27 +6,30 @@ import type { RalphEventsApiPayload, WorkspaceFeedEvent } from "ralph-workspace-
 
 type ApiPayload = RalphEventsApiPayload;
 
+/** 이메일 로그인을 숨기려면 `false`로 둔다. */
+const SHOW_LOGIN_LINKS = true;
+
 const KIND_LABEL: Record<string, string> = {
   session_start: "세션 시작",
-  model_init: "모델",
-  tool_read: "파일 읽기",
-  tool_write: "파일 쓰기",
-  tool_shell: "쉘",
+  model_init: "모델 초기화",
+  tool_read: "파일 조회",
+  tool_write: "파일 저장",
+  tool_shell: "명령 실행",
   token_snapshot: "토큰 스냅샷",
   session_end: "세션 종료",
-  api_error: "API 오류",
-  api_error_defer: "API 오류(재시도)",
-  context_warn: "컨텍스트 경고",
-  context_rotate: "컨텍스트 로테이션",
-  ralph_complete: "Ralph 완료",
-  ralph_gutter_sigil: "Ralph Gutter",
-  application_work_started: "앱 작업 시작",
-  application_work_completed: "앱 작업 완료",
-  application_work_checkpoint: "앱 체크포인트",
-  application_metric: "앱 지표",
-  git_commit: "Git 커밋",
-  telegram_message: "텔레그램 메시지",
-  telegram_task: "텔레그램 /task",
+  api_error: "모델 오류",
+  api_error_defer: "모델 오류(재시도)",
+  context_warn: "컨텍스트 부족 경고",
+  context_rotate: "컨텍스트 전환",
+  ralph_complete: "에이전트 라운드 완료",
+  ralph_gutter_sigil: "내부 마커",
+  application_work_started: "제품 작업 시작",
+  application_work_completed: "제품 작업 완료",
+  application_work_checkpoint: "제품 체크포인트",
+  application_metric: "제품 지표",
+  git_commit: "커밋 기록",
+  telegram_message: "텔레그램 알림",
+  telegram_task: "텔레그램 작업",
 };
 
 function fmtUsd(n: number | undefined): string {
@@ -108,255 +111,223 @@ export default function Home() {
   const timelineEmpty = data?.error === "TIMELINE_EMPTY";
   const headlineMetric =
     s?.rowCount != null && s.rowCount > 0
-      ? `${s.rowCount.toLocaleString()} events live`
-      : "타임라인 준비됨 · 동기화 대기";
+      ? `표시 중인 활동 ${s.rowCount.toLocaleString()}건`
+      : "아직 표시된 활동이 없어요";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-ring">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4">
-          <span className="text-sm font-semibold tracking-wide text-muted">
+    <div className="min-h-screen bg-background text-foreground antialiased">
+      <header className="border-b border-neutral-200 dark:border-neutral-800">
+        <div className="mx-auto flex max-w-xl items-center justify-between px-5 py-5 sm:max-w-lg">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
             OpenGraze
           </span>
-          <nav className="flex items-center gap-2 text-sm">
-            <Link
-              href="/login"
-              className="rounded-full border border-ring px-4 py-2 text-foreground/90 transition hover:bg-card"
-            >
-              로그인
-            </Link>
-            <Link
-              href="/dashboard"
-              className="rounded-full bg-accent px-4 py-2 font-medium text-white shadow-sm transition hover:bg-accent-hover"
-            >
-              워크스페이스
+          <nav className="flex items-center gap-5 text-sm text-foreground">
+            {SHOW_LOGIN_LINKS ? (
+              <Link href="/login" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+                로그인
+              </Link>
+            ) : null}
+            <Link href="/dashboard" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+              대시보드
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-5 pb-20 pt-12 sm:pt-16">
+      <main className="mx-auto max-w-xl px-5 pb-24 pt-14 sm:max-w-lg sm:pt-20">
+        {/* Hero — Indie-style narrow column, serif name + sans metric */}
         <div className="flex flex-col items-center text-center">
           <div
-            className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#3d5a4a] via-[#2c4a6e] to-[#c45c3e] text-3xl font-display font-semibold text-white shadow-lg ring-4 ring-white/30 dark:ring-black/20"
+            className="mb-8 h-[5.5rem] w-[5.5rem] overflow-hidden rounded-full bg-neutral-200 ring-1 ring-neutral-300 dark:bg-neutral-800 dark:ring-neutral-700"
             aria-hidden
           >
-            OG
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-600 font-display text-2xl font-medium text-white dark:from-neutral-200 dark:to-neutral-400 dark:text-neutral-900">
+              OG
+            </div>
           </div>
-          <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+
+          <h1 className="font-display text-[2.75rem] font-semibold leading-[1.05] tracking-tight text-foreground sm:text-5xl">
             OpenGraze
           </h1>
-          <p className="mt-3 max-w-md text-base text-muted">
-            {data?.workspace
-              ? shortenPath(data.workspace, 48)
-              : "Ralph · 앱 텔레메트리를 한 화면에"}
+
+          <p className="mt-4 text-base font-medium text-muted">
+            {data?.workspace ? shortenPath(data.workspace, 44) : "에이전트 · 제품 활동을 한눈에"}
           </p>
-          <p className="mt-4 font-display text-2xl font-medium text-foreground sm:text-3xl">
+
+          <p className="mt-6 text-3xl font-semibold tracking-tight text-foreground sm:text-[2rem]">
             {headlineMetric}
           </p>
+
           {s?.peakEstimatedUsd != null && Number.isFinite(s.peakEstimatedUsd) ? (
-            <p className="mt-1 text-sm text-muted">
-              피크 추정 비용{" "}
-              <span className="font-medium text-foreground">
-                {fmtUsd(s.peakEstimatedUsd)}
-              </span>
+            <p className="mt-2 text-sm text-muted">
+              구간 기준 최대 추정 비용{" "}
+              <span className="font-medium text-foreground">{fmtUsd(s.peakEstimatedUsd)}</span>
             </p>
-          ) : null}
-          <p className="mx-auto mt-6 max-w-lg text-pretty text-lg italic leading-relaxed text-foreground/85">
-            에이전트 루프와 앱 작업을 같은 타임라인에서 보고, 워크스페이스로
-            수집·결제까지 묶습니다.
+          ) : (
+            <p className="mt-2 text-sm text-muted">몇 초마다 자동으로 새로고침됩니다</p>
+          )}
+
+          <p className="mx-auto mt-8 max-w-[22rem] text-pretty text-[1.05rem] italic leading-relaxed text-neutral-600 dark:text-neutral-400">
+            반복되는 에이전트 실행과 실제 서비스 동작을 같은 줄에서 추적하고, 워크스페이스에서 수집과 결제까지 이어집니다.
           </p>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/dashboard"
+              className="rounded-full bg-cta px-8 py-3 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
+            >
+              대시보드 열기
+            </Link>
+            {SHOW_LOGIN_LINKS ? (
+              <Link
+                href="/login"
+                className="rounded-full border border-neutral-300 px-8 py-3 text-sm font-semibold text-foreground transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+              >
+                로그인
+              </Link>
+            ) : null}
+          </div>
         </div>
 
-        <ul className="mx-auto mt-12 max-w-lg divide-y divide-ring rounded-2xl border border-ring bg-card px-1 shadow-sm dark:shadow-none">
+        {/* Product-style rows — logo tile + title + right rail */}
+        <ul className="mx-auto mt-16 space-y-0 border-y border-[var(--list-border)]">
           <PlatformRow
-            title="라이브 타임라인"
-            meta="SQLite · GET /api/ralph/events"
-            hint={`${s?.rowCount ?? 0}행 · 4초 갱신`}
+            emoji="📡"
+            title="실시간 활동 피드"
+            meta="에이전트 루프와 연결된 제품에서 올라온 이벤트를 이 화면에 모읍니다."
+            rail={`${s?.rowCount ?? 0}건`}
           />
           <PlatformRow
-            title="JSONL → DB"
-            meta="POST /api/ralph/sync-jsonl"
-            hint="Bearer RALPH_FEED_SYNC_SECRET"
+            emoji="📥"
+            title="로컬 로그 반영"
+            meta="데스크톱·CI에 남은 로그를 서비스 타임라인으로 가져올 때 사용합니다."
+            rail="연동"
           />
           <PlatformRow
-            title="팀 & API"
-            meta="/dashboard"
-            hint="Google 로그인 · API 키 · 수집"
+            emoji="👥"
+            title="워크스페이스 · 수집 API"
+            meta="계정으로 들어가 키를 발급하고 수집 기록을 확인합니다."
+            rail="이동"
             href="/dashboard"
           />
         </ul>
 
-        <details className="mx-auto mt-8 max-w-lg text-left text-sm text-muted">
-          <summary className="cursor-pointer list-none text-center font-medium text-foreground/80 [&::-webkit-details-marker]:hidden">
-            <span className="underline decoration-ring underline-offset-4">
-              데이터 출처 안내
+        <details className="mx-auto mt-10 text-center text-sm text-muted">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            <span className="underline decoration-neutral-300 underline-offset-[6px] dark:decoration-neutral-600">
+              이 화면은 무엇을 보여 주나요?
             </span>
           </summary>
-          <ul className="mt-4 space-y-2 rounded-xl border border-ring bg-card/80 p-4 text-left text-muted dark:bg-card/50">
-            <li>
-              이 화면은 <code className="text-foreground/80">TimelineEvent</code>{" "}
-              테이블만 표시합니다. 비어 있으면{" "}
-              <code className="text-foreground/80">sync-jsonl</code>로{" "}
-              <code className="text-foreground/80">.ralph/*.jsonl</code>을 넣으세요.
-            </li>
-            <li>
-              <strong className="text-foreground/90">/dashboard</strong>는 별도
-              SQLite(워크스페이스·수집 이벤트)입니다.
-            </li>
-          </ul>
+          <div className="mt-4 rounded-xl border border-[var(--list-border)] bg-card p-4 text-left text-sm leading-relaxed text-muted">
+            <p>
+              지금 보시는 목록은 OpenGraze에 저장된{" "}
+              <strong className="text-foreground">활동 타임라인</strong>입니다. 아직 비어 있다면 로컬 환경에서 쌓인 로그가 서비스로 아직 들어오지 않은 상태일 수 있습니다.
+            </p>
+            <p className="mt-3">
+              <strong className="text-foreground">대시보드</strong>에서는 워크스페이스별 API 키와 외부에서 보낸 수집
+              이벤트를 따로 다룹니다.
+            </p>
+          </div>
         </details>
 
         {data?.error && events.length === 0 ? (
           <div
             className={
               timelineEmpty
-                ? "mx-auto mt-8 max-w-lg rounded-2xl border border-ring bg-card px-5 py-4 text-left text-sm text-muted shadow-sm"
-                : "mx-auto mt-8 max-w-lg rounded-2xl border border-amber-900/40 bg-amber-50 px-5 py-4 text-left text-sm text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-100"
+                ? "mx-auto mt-8 rounded-xl border border-[var(--list-border)] bg-card px-5 py-4 text-left text-sm text-muted"
+                : "mx-auto mt-8 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-left text-sm text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100"
             }
           >
-            <p
-              className={
-                timelineEmpty
-                  ? "font-semibold text-foreground"
-                  : "font-semibold text-amber-950 dark:text-amber-50"
-              }
-            >
+            <p className={timelineEmpty ? "font-semibold text-foreground" : "font-semibold"}>
               {timelineEmpty
-                ? "타임라인이 비어 있습니다"
-                : "데이터를 불러오지 못했습니다"}
+                ? "표시할 활동이 아직 없어요"
+                : "화면을 불러오지 못했습니다"}
             </p>
-            {!timelineEmpty ? (
-              <p className="mt-1 text-amber-900/90 dark:text-amber-200/90">
-                {data.error}
-              </p>
+            {!timelineEmpty && data.error ? (
+              <p className="mt-1 text-xs opacity-80">코드: {data.error}</p>
             ) : null}
-            {data.hint ? (
-              <p
-                className={
-                  timelineEmpty ? "mt-2 text-xs leading-relaxed" : "mt-2 text-xs"
-                }
-              >
-                {data.hint}
-              </p>
-            ) : null}
+            {data.hint ? <p className="mt-2 text-sm leading-relaxed opacity-90">{data.hint}</p> : null}
           </div>
         ) : null}
 
-        <div className="mx-auto mt-10 grid max-w-3xl gap-3 sm:grid-cols-2">
-          <Stat
-            label="피크 추정 토큰"
-            value={
-              s?.peakEstimatedTokens != null
-                ? s.peakEstimatedTokens.toLocaleString()
-                : "—"
-            }
-          />
-          <Stat label="피크 추정 비용" value={fmtUsd(s?.peakEstimatedUsd)} />
-          <Stat
-            label="앱 이벤트"
-            value={String(s?.applicationEventCount ?? 0)}
-            sub="application_*"
-          />
-          <Stat
-            label="누적 작업 시간"
-            value={
-              s?.totalApplicationDurationMs != null
-                ? `${s.totalApplicationDurationMs.toLocaleString()} ms`
-                : "—"
-            }
-          />
-          <Stat
-            label="누적 작업량"
-            value={
-              s?.totalApplicationUnits != null
-                ? s.totalApplicationUnits.toLocaleString()
-                : "—"
-            }
-            sub="units"
-          />
-          <Stat label="표시 행" value={String(s?.rowCount ?? 0)} sub="타임라인" />
-        </div>
+        <details className="mx-auto mt-12">
+          <summary className="cursor-pointer list-none text-center text-sm font-medium text-muted [&::-webkit-details-marker]:hidden">
+            <span className="underline decoration-neutral-300 underline-offset-[6px] dark:decoration-neutral-600">
+              요약 지표 보기
+            </span>
+          </summary>
+          <div className="mx-auto mt-4 grid max-w-3xl gap-2 sm:grid-cols-2">
+            <Stat label="추정 토큰 (피크)" value={s?.peakEstimatedTokens != null ? s.peakEstimatedTokens.toLocaleString() : "—"} />
+            <Stat label="추정 비용 (피크)" value={fmtUsd(s?.peakEstimatedUsd)} />
+            <Stat label="제품 이벤트 수" value={String(s?.applicationEventCount ?? 0)} sub="앱·서비스에서 보고된 건수" />
+            <Stat
+              label="누적 처리 시간"
+              value={
+                s?.totalApplicationDurationMs != null
+                  ? `${s.totalApplicationDurationMs.toLocaleString()} ms`
+                  : "—"
+              }
+            />
+            <Stat
+              label="누적 처리량"
+              value={s?.totalApplicationUnits != null ? s.totalApplicationUnits.toLocaleString() : "—"}
+              sub="보고된 단위 합계"
+            />
+            <Stat label="표시 중인 행" value={String(s?.rowCount ?? 0)} sub="현재 타임라인" />
+          </div>
+        </details>
 
-        <div className="mx-auto mt-8 flex max-w-lg justify-center">
+        <div className="mx-auto mt-8 flex justify-center">
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded-full border border-ring px-5 py-2 text-sm font-medium text-foreground transition hover:bg-card"
+            className="text-sm text-muted underline-offset-4 hover:text-foreground hover:underline"
           >
-            지금 새로고침
+            새로 고침
           </button>
-          {loading ? (
-            <span className="ml-3 self-center text-xs text-muted">불러오는 중…</span>
-          ) : null}
+          {loading ? <span className="ml-3 text-xs text-muted">불러오는 중…</span> : null}
         </div>
 
-        <div className="mx-auto mt-10 overflow-hidden rounded-2xl border border-ring bg-card shadow-md dark:shadow-none">
-          <div className="border-b border-ring bg-card px-4 py-3">
-            <h2 className="font-display text-lg font-semibold text-foreground">
-              이벤트 스트림
-            </h2>
-            <p className="mt-0.5 text-xs text-muted">
-              UTC 시각 · Ralph / 앱 출처
-            </p>
+        <div className="mx-auto mt-14 max-w-4xl overflow-hidden rounded-xl border border-[var(--list-border)] bg-card">
+          <div className="border-b border-[var(--list-border)] px-5 py-4">
+            <h2 className="font-display text-lg font-semibold text-foreground">활동 타임라인</h2>
+            <p className="mt-1 text-xs text-muted">시간은 UTC · 에이전트와 제품 출처를 구분합니다</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[880px] text-left text-sm">
-              <thead className="border-b border-ring bg-background/60 text-xs font-medium uppercase tracking-wider text-muted">
+              <thead className="border-b border-[var(--list-border)] bg-neutral-50/80 text-[11px] font-medium uppercase tracking-wide text-muted dark:bg-neutral-900/50">
                 <tr>
-                  <th className="px-3 py-2.5">시각</th>
-                  <th className="px-3 py-2.5">출처</th>
-                  <th className="px-3 py-2.5">반복</th>
-                  <th className="px-3 py-2.5">종류</th>
-                  <th className="px-3 py-2.5">작업 시간</th>
-                  <th className="px-3 py-2.5">작업량</th>
-                  <th className="px-3 py-2.5">토큰</th>
-                  <th className="px-3 py-2.5">$</th>
-                  <th className="px-3 py-2.5">CTX</th>
-                  <th className="px-3 py-2.5">요약</th>
+                  <th className="px-3 py-3">시각</th>
+                  <th className="px-3 py-3">채널</th>
+                  <th className="px-3 py-3">반복</th>
+                  <th className="px-3 py-3">유형</th>
+                  <th className="px-3 py-3">소요</th>
+                  <th className="px-3 py-3">처리량</th>
+                  <th className="px-3 py-3">추정 토큰</th>
+                  <th className="px-3 py-3">추정 $</th>
+                  <th className="px-3 py-3">컨텍스트</th>
+                  <th className="px-3 py-3">메모</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ring">
+              <tbody className="divide-y divide-[var(--list-border)]">
                 {[...events].reverse().map((e, i) => (
-                  <tr
-                    key={`${e.ts}-${e.source}-${e.kind}-${i}`}
-                    className="transition hover:bg-background/80"
-                  >
-                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted">
-                      {e.ts}
+                  <tr key={`${e.ts}-${e.source}-${e.kind}-${i}`} className="transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40">
+                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted">{e.ts}</td>
+                    <td className="px-3 py-2.5">{e.source === "ralph" ? "에이전트" : "제품"}</td>
+                    <td className="px-3 py-2.5 text-muted">{e.source === "ralph" ? (e.iteration ?? "—") : "—"}</td>
+                    <td className="px-3 py-2.5">{KIND_LABEL[e.kind] ?? e.kind}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted">{durationCell(e)}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-xs text-muted">{volumeCell(e)}</td>
+                    <td className="px-3 py-2.5 font-mono text-sm">
+                      {e.source === "ralph" ? (e.estimatedTokens ?? 0).toLocaleString() : "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-foreground/90">
-                      {e.source === "ralph" ? "Ralph" : "앱"}
-                    </td>
-                    <td className="px-3 py-2.5 text-muted">
-                      {e.source === "ralph" ? (e.iteration ?? "—") : "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-foreground">
-                      {KIND_LABEL[e.kind] ?? e.kind}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted">
-                      {durationCell(e)}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-xs text-muted">
-                      {volumeCell(e)}
-                    </td>
-                    <td className="px-3 py-2.5 font-mono text-foreground/90">
-                      {e.source === "ralph"
-                        ? (e.estimatedTokens ?? 0).toLocaleString()
-                        : "—"}
-                    </td>
-                    <td className="px-3 py-2.5 font-mono text-muted">
+                    <td className="px-3 py-2.5 font-mono text-xs text-muted">
                       {e.source === "ralph" ? fmtUsd(e.estimatedUsd) : "—"}
                     </td>
                     <td className="px-3 py-2.5 text-muted">
-                      {e.source === "ralph" && e.contextWindowPct != null
-                        ? `${e.contextWindowPct}%`
-                        : "—"}
+                      {e.source === "ralph" && e.contextWindowPct != null ? `${e.contextWindowPct}%` : "—"}
                     </td>
-                    <td
-                      className="max-w-[14rem] truncate px-3 py-2.5 text-muted"
-                      title={JSON.stringify(e.detail ?? {})}
-                    >
+                    <td className="max-w-[14rem] truncate px-3 py-2.5 text-muted" title={JSON.stringify(e.detail ?? {})}>
                       {detailPreview(e.detail)}
                     </td>
                   </tr>
@@ -364,28 +335,21 @@ export default function Home() {
               </tbody>
             </table>
             {events.length === 0 && !loading ? (
-              <p className="px-6 py-12 text-center text-sm text-muted">
-                이벤트가 없습니다. Ralph는{" "}
-                <code className="rounded bg-background px-1 text-foreground/80">
-                  .ralph/events.jsonl
-                </code>
-                , 앱은 SDK 로거로 텔레메트리에 남깁니다.
+              <p className="px-6 py-14 text-center text-sm leading-relaxed text-muted">
+                아직 기록이 없습니다. 에이전트나 연결된 제품에서 활동이 전달되면 여기에 나타납니다.
               </p>
             ) : null}
           </div>
         </div>
 
-        <footer className="mx-auto mt-12 max-w-lg border-t border-ring pt-8 text-center text-xs leading-relaxed text-muted">
+        <footer className="mx-auto mt-16 max-w-lg border-t border-[var(--list-border)] pt-10 text-center text-[11px] leading-relaxed text-muted">
           <p className="break-all">
-            Ralph: {data?.eventsPath ? shortenPath(data.eventsPath, 56) : "—"}
+            에이전트 로그 연결: {data?.eventsPath ? shortenPath(data.eventsPath, 52) : "—"}
           </p>
           <p className="mt-1 break-all">
-            텔레메트리:{" "}
-            {data?.telemetryPath ? shortenPath(data.telemetryPath, 56) : "—"}
+            제품 텔레메트리 연결: {data?.telemetryPath ? shortenPath(data.telemetryPath, 52) : "—"}
           </p>
-          <p className="mt-6 text-[11px] opacity-70">
-            OpenGraze · agent-model-dev 워크스페이스 SDK
-          </p>
+          <p className="mt-8 text-neutral-400 dark:text-neutral-600">OpenGraze · 관측 허브</p>
         </footer>
       </main>
     </div>
@@ -393,61 +357,53 @@ export default function Home() {
 }
 
 function PlatformRow({
+  emoji,
   title,
   meta,
-  hint,
+  rail,
   href,
 }: {
+  emoji: string;
   title: string;
   meta: string;
-  hint: string;
+  rail: string;
   href?: string;
 }) {
-  const inner = (
+  const rowInner = (
     <>
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background text-lg shadow-inner ring-1 ring-ring">
-        {href ? "→" : "·"}
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl dark:bg-neutral-900">
+        <span aria-hidden>{emoji}</span>
       </div>
       <div className="min-w-0 flex-1 text-left">
-        <div className="font-medium text-foreground">{title}</div>
-        <div className="text-xs text-muted">{meta}</div>
-        <div className="mt-0.5 text-[11px] text-muted/90">{hint}</div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <span className="font-semibold text-foreground">{title}</span>
+          <span className="text-sm tabular-nums text-muted">{rail}</span>
+        </div>
+        <p className="mt-1 text-sm leading-snug text-muted">{meta}</p>
       </div>
     </>
   );
 
   const cls =
-    "flex items-start gap-4 px-4 py-4 transition hover:bg-background/60";
+    "flex items-start gap-4 border-b border-[var(--list-border)] px-1 py-6 transition last:border-b-0 hover:bg-neutral-50/60 dark:hover:bg-neutral-900/30";
 
   if (href) {
     return (
       <li>
         <Link href={href} className={`${cls} block`}>
-          {inner}
+          {rowInner}
         </Link>
       </li>
     );
   }
-  return <li className={cls}>{inner}</li>;
+  return <li className={cls}>{rowInner}</li>;
 }
 
-function Stat({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-}) {
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl border border-ring bg-card px-4 py-3 shadow-sm dark:shadow-none">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-        {label}
-      </div>
-      <div className="mt-1 text-lg font-semibold tracking-tight text-foreground">
-        {value}
-      </div>
+    <div className="rounded-lg border border-[var(--list-border)] bg-background px-4 py-3">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</div>
+      <div className="mt-1 text-base font-semibold tabular-nums text-foreground">{value}</div>
       {sub ? <div className="mt-0.5 text-xs text-muted">{sub}</div> : null}
     </div>
   );

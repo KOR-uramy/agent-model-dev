@@ -19,7 +19,7 @@ const pathOpts = {
 };
 
 const EMPTY_HINT =
-  "SQLite `TimelineEvent`에 행이 없습니다. `.ralph/*.jsonl` → DB 반영: POST /api/ralph/sync-jsonl (Bearer RALPH_FEED_SYNC_SECRET). 루트 README 참고.";
+  "아직 이 화면에 올라온 활동 기록이 없습니다. 로컬 에이전트·앱에서 쌓인 로그가 동기화되면 여기에 표시됩니다. 연동 설정은 운영 문서를 참고하세요.";
 
 function timelineWorkspaceKey(): string {
   return (

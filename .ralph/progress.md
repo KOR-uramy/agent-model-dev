@@ -64,3 +64,6 @@
 
 - **토스페이먼츠 v2** (`RALPH_TASK.md` 결제·메타 기준 `[x]`): `@tosspayments/tosspayments-sdk` 결제위젯(주문서형), `POST /api/billing/toss/prepare`·`confirm`, 리다이렉트 성공 페이지에서 승인 API 호출, `POST /api/webhooks/toss` + `tosspayments-webhook-signature` HMAC 검증([웹훅 이벤트](https://docs.tosspayments.com/reference/using-api/webhook-events)). Prisma `TossCheckoutOrder`·`Workspace.tossLastPaymentKey`, 마이그레이션 `20260503120000_toss_checkout`.
 - 대시보드 워크스페이스 상세 **구독 (토스)** → `/dashboard/[slug]/billing`. `.env.example`·`apps/open-graze/README.md`에 웹훅 URL·금액 변수 안내.
+
+### 2026-05-03 01:22:24
+**Session 4 ended** - ✅ TASK COMPLETE

@@ -384,7 +384,11 @@ main() {
   echo "Ralph Session Started: $(date)" >> "$RALPH_DIR/activity.log"
   echo "═══════════════════════════════════════════════════════════════" >> "$RALPH_DIR/activity.log"
 
-  append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" '{workspace:$ws,sessionId:$sid}')"
+  if [[ -n "${RALPH_ROLE:-}" ]]; then
+    append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" --arg role "$RALPH_ROLE" '{workspace:$ws,sessionId:$sid,role:$role}')"
+  else
+    append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" '{workspace:$ws,sessionId:$sid}')"
+  fi
   
   # Track last token log time
   local last_token_log=$(date +%s)

@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "OpenGraze",
   description:
-    "Ralph·앱 텔레메트리 통합 뷰 · 워크스페이스 · Google 로그인 · API 수집",
+    "에이전트와 제품의 활동을 한곳에서 보는 관측 허브 · 워크스페이스 · 수집 API",
 };
 
 export default function RootLayout({

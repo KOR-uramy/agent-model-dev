@@ -3,8 +3,8 @@
 # DO NOT EDIT - regenerated on task file change
 
 source_file: RALPH_TASK.md
-source_mtime: 1777738495
-generated_at: 2026-05-02T16:15:48Z
+source_mtime: 1777738858
+generated_at: 2026-05-02T16:22:23Z
 
 tasks:
   - id: "line_43"
@@ -16,7 +16,7 @@ tasks:
     raw_marker: -
   - id: "line_44"
     line_number: 44
-    status: pending
+    status: completed
     parallel_group: 999999
     description: 완료된 체크는 `[x]`로 유지하고, 새 작업은 `[ ]`로만 추가한다(허위 완료 금지).
     indent_level: 0
@@ -86,7 +86,7 @@ tasks:
     raw_marker: -
   - id: "line_66"
     line_number: 66
-    status: pending
+    status: completed
     parallel_group: 999999
     description: **결제**는 [토스페이먼츠 LLMs 연동 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide) 및 [llms.txt](https://docs.tosspayments.com/llms.txt)를 따른다(결제위젯 v2·승인 API·웹훅 등). Cursor 연동 시 가이드에 안내된 **토스페이먼츠 MCP** 활용을 우선한다.
     indent_level: 0
