@@ -138,8 +138,8 @@
 - **동종(참고)** — [Grafana](https://grafana.com)(대시보드 **변수·공유 URL**로 동일 대시보드 상태 복원), [Datadog Log Explorer](https://www.datadoghq.com/product/log-management)(**facet 조합**으로 채널·세션 유사 축을 한 쿼리에 묶음). 우리는 SQLite 타임라인이라 **주소줄에 `sessionId`·보내기 API에 동일 쿼리 축**을 맞추는 편이 유리하다.
 
 - [x] **URL·재현 — `sessionId` 쿼리 동기화** — `/`의 세션 입력·선택 상태가 **`?sessionId=`** 와 **양방향** 동기화되고(빈 문자열은 키 제거), `?role=` 과 **동시에** 붙여도 충돌 없이 API와 같은 의미로 동작한다. `apps/open-graze/README.md`에 **`?role=` + `?sessionId=` 를 모두 고정한 복사 가능한 예시 URL 한 줄**이 있다.
-- [ ] **API·감사 — `range`에 `role`·`sessionId`** — `GET /api/ralph/events/range`가 `from`·`to` 외에 선택 쿼리 **`role`**, **`sessionId`(정확 일치)** 를 지원하고, `GET /api/ralph/events`와 **동일한 허용값·400 규칙**을 적용한다. README에 **필터를 넣은 `curl` 한 줄**과 파라미터 의미 표(최소: `from`·`to`·`role`·`sessionId`·상한)가 있다.
-- [ ] **운영 — range 상한·잘림 신호** — `events/range` 응답이 행 상한에 도달하면 **JSON 최상위**에 기계 판독 가능한 필드(예: `truncated: true`, `returnedCount`)를 포함하거나 **413** 등으로 거절하는 규칙을 **한 가지로 고정**하고, README에 그 응답을 확인하는 **절차 한 줄**이 있다.
+- [x] **API·감사 — `range`에 `role`·`sessionId`** — `GET /api/ralph/events/range`가 `from`·`to` 외에 선택 쿼리 **`role`**, **`sessionId`(정확 일치)** 를 지원하고, `GET /api/ralph/events`와 **동일한 허용값·400 규칙**을 적용한다. README에 **필터를 넣은 `curl` 한 줄**과 파라미터 의미 표(최소: `from`·`to`·`role`·`sessionId`·상한)가 있다.
+- [x] **운영 — range 상한·잘림 신호** — `events/range` 응답이 행 상한에 도달하면 **JSON 최상위**에 기계 판독 가능한 필드(예: `truncated: true`, `returnedCount`)를 포함하거나 **413** 등으로 거절하는 규칙을 **한 가지로 고정**하고, README에 그 응답을 확인하는 **절차 한 줄**이 있다.
 
 ## 24시간 연속 루프 (Ralph 운영 규약)
 
