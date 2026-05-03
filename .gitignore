@@ -6,12 +6,13 @@
 # Ralph (Cursor) — ralph-config may contain API keys
 .cursor/ralph-config.json
 .ralph-worktrees/
+# 로컬 런타임·병렬 산출물(점 있는 폴더). Signs 는 docs/ralph-guardrails.md
+.ralph/
+# 루트에만: 무점 이름 ralph/ (도구·실험용). 앱 라우트 `.../api/ralph` 와는 별개(슬래시 경로가 다름)
+/ralph/
 
 # OS / editor
 .DS_Store
 
 # npm workspaces (루트에서 hoisting)
 node_modules/
-
-# Ralph 런타임 상태 전부(진행·캐시·로그·병렬 산출물 — 레포에 올리지 않음). 가이드·Signs 는 docs/ralph-guardrails.md
-.ralph/
