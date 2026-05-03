@@ -23,6 +23,8 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [payReady, setPayReady] = useState(false);
+  /** prepare 성공 시 금액(KRW) — README·`TOSS_SUBSCRIPTION_AMOUNT_KRW`와 동일 출처 */
+  const [chargeAmountKrw, setChargeAmountKrw] = useState<number | null>(null);
   const prepRef = useRef<PrepareOk | null>(null);
   const widgetsRef = useRef<TossPaymentsWidgets | null>(null);
   const paymentMethodWidgetRef = useRef<WidgetPaymentMethodWidget | null>(null);
@@ -43,6 +45,7 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
       setErr(null);
       setLoading(true);
       setPayReady(false);
+      setChargeAmountKrw(null);
       await teardown();
 
       const res = await fetch("/api/billing/toss/prepare", {
@@ -59,6 +62,7 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
         return;
       }
       prepRef.current = j;
+      if (!cancelled) setChargeAmountKrw(j.amount);
 
       try {
         const toss = await loadTossPayments(j.clientKey);
@@ -120,6 +124,11 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
       </Link>
       <h1 className="mt-4 text-2xl font-semibold">구독 결제 (토스)</h1>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+        워크스페이스 단위 <strong className="text-zinc-800 dark:text-zinc-200">구독(단건)</strong> 결제입니다. 월
+        자동 과금이 아니라, 한 번 승인되면 구독 상태가 활성으로 바뀝니다(앱 README·환경 변수{" "}
+        <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-900">TOSS_SUBSCRIPTION_AMOUNT_KRW</code>).
+      </p>
+      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
         결제위젯 v2 · 승인은 성공 리다이렉트 후 서버에서 처리합니다.{" "}
         <a
           className="underline"
@@ -130,6 +139,11 @@ export function TossBillingClient({ baseUrl }: { baseUrl: string }) {
           토스 LLMs 가이드
         </a>
       </p>
+      {chargeAmountKrw !== null && !loading ? (
+        <p className="mt-3 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          이번 청구 금액: {chargeAmountKrw.toLocaleString("ko-KR")}원
+        </p>
+      ) : null}
 
       {err ? (
         <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
