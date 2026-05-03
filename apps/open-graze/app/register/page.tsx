@@ -1,7 +1,7 @@
 "use client";
 
 import { AppChrome, AuthCard } from "@/app/components/app-chrome";
-import { inputField } from "@/lib/ui-tokens";
+import { btnPrimaryBlock, inputField, pageLead, pageTitle } from "@/lib/ui-tokens";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -44,7 +44,7 @@ function RegisterInner() {
         callbackUrl: cb,
       });
       if (res?.error) {
-        setErr("가입은 완료되었으나 자동 로그인에 실패했습니다. 로그인 화면에서 다시 시도해 주세요.");
+        router.replace("/login?registered=1");
         return;
       }
       router.push(cb);
@@ -57,8 +57,8 @@ function RegisterInner() {
   return (
     <AppChrome active="register">
       <AuthCard>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">계정 만들기</h1>
-        <p className="mt-2 text-sm text-muted">
+        <h1 className={pageTitle}>계정 만들기</h1>
+        <p className={pageLead}>
           이메일만으로 시작하고, 바로 <strong className="font-medium text-foreground">워크스페이스·수집 API 키</strong>를 발급할 수 있습니다. 수집 페이로드는{" "}
           <Link
             href="/llms.txt"
@@ -132,11 +132,7 @@ function RegisterInner() {
             />
           </div>
           {err ? <p className="text-sm text-red-600 dark:text-red-400">{err}</p> : null}
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-lg bg-cta py-3 text-sm font-semibold text-white transition hover:bg-cta-hover disabled:opacity-60 dark:text-neutral-900"
-          >
+          <button type="submit" disabled={pending} className={btnPrimaryBlock}>
             {pending ? "처리 중…" : "가입하고 계속"}
           </button>
         </form>

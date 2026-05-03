@@ -193,9 +193,9 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-xl px-5 pb-24 pt-14 sm:max-w-lg sm:pt-20">
+      <main className="mx-auto max-w-5xl px-5 pb-24 pt-14 sm:px-6 sm:pt-20">
         {/* Hero — Indie-style narrow column, serif name + sans metric */}
-        <div className="flex flex-col items-center text-center">
+        <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <div
             className="mb-8 h-[5.5rem] w-[5.5rem] overflow-hidden rounded-full bg-neutral-200 ring-1 ring-neutral-300 dark:bg-neutral-800 dark:ring-neutral-700"
             aria-hidden

@@ -2,6 +2,29 @@
  * 앱 셸 전반에서 쓰는 Tailwind 클래스 문자열.
  * 색·테두리는 globals.css 의미 토큰(--list-border, text-muted 등)과 맞춘다.
  */
+
+/** 랜딩·앱 공통 페이지 제목(세리프 디스플레이) */
+export const pageTitle =
+  "font-display text-2xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]";
+
+export const pageLead =
+  "mt-2 text-sm leading-relaxed text-muted";
+
+export const cardPanel =
+  "rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm";
+
+export const btnPrimary =
+  "inline-flex items-center justify-center rounded-lg bg-cta px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cta-hover disabled:opacity-60 dark:text-neutral-900";
+
+export const btnPrimaryBlock =
+  `${btnPrimary} w-full py-3`;
+
+export const btnSecondary =
+  "inline-flex items-center justify-center rounded-lg border border-[var(--list-border)] bg-card px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40";
+
+export const listRowCard =
+  "flex flex-col gap-1 rounded-xl border border-[var(--list-border)] px-4 py-3 text-sm transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4";
+
 export const sectionEyebrow =
   "text-xs font-semibold uppercase tracking-wider text-muted";
 
