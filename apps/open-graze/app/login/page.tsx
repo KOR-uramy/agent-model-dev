@@ -1,6 +1,7 @@
 "use client";
 
-import { AppChrome } from "@/app/components/app-chrome";
+import { AppChrome, AuthCard } from "@/app/components/app-chrome";
+import { inputField } from "@/lib/ui-tokens";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +11,7 @@ function LoginInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const cb = sp.get("callbackUrl") ?? "/dashboard";
+  const registered = sp.get("registered") === "1";
   const [email, setEmail] = useState("dev@opengraze.local");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);

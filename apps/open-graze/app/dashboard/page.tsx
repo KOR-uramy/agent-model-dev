@@ -1,7 +1,7 @@
 "use client";
 
 import { AppChrome, AppMain } from "@/app/components/app-chrome";
-import { codeInline, inputField, linkSubtleTight, proseBodyMuted } from "@/lib/ui-tokens";
+import { inputField } from "@/lib/ui-tokens";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -132,7 +132,6 @@ export default function DashboardIndexPage() {
             </li>
           ))}
         </ul>
-        </div>
       </AppMain>
     </AppChrome>
   );
