@@ -1,8 +1,11 @@
 import {
+  RALPH_EVENTS_ROLE_QUERY_ERROR,
   TIMELINE_RANGE_MAX_ROWS,
   loadTimelineEventsInRange,
+  parseSessionIdQueryParam,
   parseTimelineRangeParams,
 } from "@/lib/timeline-feed";
+import { parseRoleQueryParam } from "ralph-workspace-sdk";
 import { NextResponse } from "next/server";
 
 /**
@@ -18,6 +21,19 @@ export async function GET(req: Request) {
   if (!parsed.ok) {
     return NextResponse.json({ error: parsed.message }, { status: 400 });
   }
+  const roleRaw = searchParams.get("role");
+  if (
+    roleRaw !== null &&
+    roleRaw.trim() !== "" &&
+    parseRoleQueryParam(roleRaw) === null
+  ) {
+    return NextResponse.json(
+      { error: RALPH_EVENTS_ROLE_QUERY_ERROR },
+      { status: 400 },
+    );
+  }
+  const role = parseRoleQueryParam(roleRaw);
+  const sessionId = parseSessionIdQueryParam(searchParams.get("sessionId"));
   const limitRaw = parseInt(searchParams.get("limit") ?? "10000", 10);
   const limit = Number.isFinite(limitRaw)
     ? Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, limitRaw))
@@ -26,6 +42,7 @@ export async function GET(req: Request) {
     parsed.fromIso,
     parsed.toIso,
     limit,
+    { role, sessionId },
   );
   return NextResponse.json(events);
 }

@@ -35,6 +35,16 @@ const SESSION_FILTER_EMPTY_HINT =
 /** `GET /api/ralph/events/range` 한 번에 돌려줄 최대 행 수 */
 export const TIMELINE_RANGE_MAX_ROWS = 10_000;
 
+/** `GET /api/ralph/events`·`GET /api/ralph/events/range` 공통 — 비어 있지 않은 `role`이 네 가지가 아닐 때 */
+export const RALPH_EVENTS_ROLE_QUERY_ERROR =
+  "쿼리 `role`은 planning, design, implementation, test 중 하나이거나 생략·빈 값이어야 합니다.";
+
+export function parseSessionIdQueryParam(raw: string | null): string | null {
+  if (raw == null) return null;
+  const t = raw.trim();
+  return t === "" ? null : t;
+}
+
 export type TimelineRangeParseResult =
   | { ok: true; fromIso: string; toIso: string }
   | { ok: false; message: string };
@@ -78,10 +88,52 @@ export async function loadTimelineEventsInRange(
   fromIso: string,
   toIso: string,
   take: number,
+  opts?: {
+    role: AgentRoleKey | null;
+    sessionId: string | null;
+  },
 ): Promise<WorkspaceFeedEvent[]> {
   const workspaceKey = timelineWorkspaceKey();
   const capped = Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, take));
-  const rows = await prisma.$queryRaw<{ payload: string }[]>`
+  const role = opts?.role ?? null;
+  const sessionId = opts?.sessionId ?? null;
+
+  const rows =
+    role && sessionId
+      ? await prisma.$queryRaw<{ payload: string }[]>`
+        SELECT "payload"
+        FROM "TimelineEvent"
+        WHERE "workspaceKey" = ${workspaceKey}
+          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
+          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
+          AND json_extract("payload", '$.sessionId') = ${sessionId}
+          AND json_extract("payload", '$.detail.role') = ${role}
+        ORDER BY "ts" ASC
+        LIMIT ${capped}
+      `
+      : sessionId
+        ? await prisma.$queryRaw<{ payload: string }[]>`
+        SELECT "payload"
+        FROM "TimelineEvent"
+        WHERE "workspaceKey" = ${workspaceKey}
+          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
+          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
+          AND json_extract("payload", '$.sessionId') = ${sessionId}
+        ORDER BY "ts" ASC
+        LIMIT ${capped}
+      `
+        : role
+          ? await prisma.$queryRaw<{ payload: string }[]>`
+        SELECT "payload"
+        FROM "TimelineEvent"
+        WHERE "workspaceKey" = ${workspaceKey}
+          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
+          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
+          AND json_extract("payload", '$.detail.role') = ${role}
+        ORDER BY "ts" ASC
+        LIMIT ${capped}
+      `
+          : await prisma.$queryRaw<{ payload: string }[]>`
     SELECT "payload"
     FROM "TimelineEvent"
     WHERE "workspaceKey" = ${workspaceKey}
