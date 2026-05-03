@@ -166,8 +166,8 @@ export default function Home() {
             className="font-display text-lg font-semibold tracking-tight text-foreground"
           >
             OpenGraze
-          </span>
-          <nav className="flex items-center gap-5 text-sm text-foreground">
+          </Link>
+          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm sm:gap-x-5">
             <Link
               href="/llms.txt"
               className="text-muted underline-offset-4 hover:text-foreground hover:underline"
@@ -176,11 +176,6 @@ export default function Home() {
             >
               연동 요약
             </Link>
-            {SHOW_LOGIN_LINKS ? (
-              <Link href="/login" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
-                로그인
-              </Link>
-            ) : null}
             <Link href="/dashboard" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
               대시보드
             </Link>

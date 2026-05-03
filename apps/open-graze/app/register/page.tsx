@@ -59,7 +59,7 @@ function RegisterInner() {
   return (
     <AppChrome active="register">
       <AuthCard>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">계정 만들기</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">계정 만들기</h1>
         <p className="mt-2 text-sm text-muted">
           워크스페이스·수집 API를 쓰려면 이메일로 가입한 뒤 대시보드로 이동합니다.
         </p>
@@ -140,6 +140,11 @@ function RegisterInner() {
             로그인
           </Link>
         </p>
+        <div className="mt-6 flex flex-col gap-2 border-t border-[var(--list-border)] pt-6 text-center text-sm text-muted">
+          <Link href="/" className="hover:text-foreground hover:underline">
+            관측 타임라인(홈)
+          </Link>
+        </div>
       </AuthCard>
     </AppChrome>
   );
@@ -149,8 +154,10 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <AppChrome>
-          <div className="p-8 text-center text-sm text-muted">불러오는 중…</div>
+        <AppChrome active="register">
+          <AuthCard>
+            <div className="py-4 text-center text-sm text-muted">불러오는 중…</div>
+          </AuthCard>
         </AppChrome>
       }
     >
