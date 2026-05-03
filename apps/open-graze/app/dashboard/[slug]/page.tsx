@@ -179,7 +179,12 @@ export default function WorkspaceDetailPage() {
           수집용 API 키
         </h2>
         <p className="mt-1 text-xs text-zinc-500">
-          앱·스크립트에서 이벤트를 보낼 때 사용합니다. 노출되지 않게 보관하세요.
+          앱·스크립트·서버에서 이 워크스페이스로 <strong className="text-zinc-700 dark:text-zinc-300">이벤트를 넣을 때</strong> 씁니다.{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">POST …/api/v1/events</code> 요청에 헤더{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">Authorization: Bearer &lt;전체 키&gt;</code> 와 JSON
+          본문(예: <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">kind</code>,{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">data</code>)을 붙입니다. 성공하면 아래{" "}
+          <strong className="text-zinc-700 dark:text-zinc-300">최근 수집 활동</strong>에 보입니다. 키는 노출·커밋하지 말고 환경 변수 등에만 두세요.
         </p>
         <form onSubmit={createKey} className="mt-3 flex flex-wrap gap-2">
           <input
