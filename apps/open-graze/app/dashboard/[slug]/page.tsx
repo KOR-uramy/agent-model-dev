@@ -36,6 +36,9 @@ export default function WorkspaceDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
+  /** SSR·첫 페인트에서도 전체 URL이 보이도록(기본은 로컬 dev 포트) */
+  const [publicOrigin, setPublicOrigin] = useState("http://localhost:3000");
 
   const load = useCallback(async () => {
     setEventsLoadErr(null);
@@ -75,6 +78,10 @@ export default function WorkspaceDetailPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    setPublicOrigin(window.location.origin);
+  }, []);
+
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -98,6 +105,35 @@ export default function WorkspaceDetailPage() {
     if (!confirm("이 키를 삭제하면 해당 키로는 더 이상 데이터를 보낼 수 없습니다. 삭제할까요?")) return;
     await fetch(`/api/workspaces/${slug}/api-keys/${id}`, { method: "DELETE" });
     await load();
+  }
+
+  async function copyNewTokenOnly() {
+    if (!newToken) return;
+    try {
+      await navigator.clipboard.writeText(newToken);
+      setCopyHint("전체 키를 클립보드에 복사했습니다.");
+    } catch {
+      setCopyHint("브라우저에서 클립보드 복사를 허용해 주세요.");
+    }
+    window.setTimeout(() => setCopyHint(null), 3000);
+  }
+
+  async function copyOpenGrazeEnvSnippet() {
+    if (!newToken) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const snippet = [
+      "# 플랫폼 연동(gitignore). OpenGraze 로그인·세션에는 별도로 AUTH_SECRET 필요(apps/open-graze/.env.example).",
+      `OPENGRAZE_PLATFORM_URL="${origin}"`,
+      `OPENGRAZE_PLATFORM_API_KEY="${newToken}"`,
+      "",
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopyHint("루트 .env 에 붙여넣을 두 줄(+주석)을 복사했습니다. 저장 후 루트에서 npm run platform:self-test");
+    } catch {
+      setCopyHint("브라우저에서 클립보드 복사를 허용해 주세요.");
+    }
+    window.setTimeout(() => setCopyHint(null), 4000);
   }
 
   function taskStatusLabel(status: string) {
@@ -225,13 +261,38 @@ export default function WorkspaceDetailPage() {
           </button>
         </form>
         {newToken ? (
-          <p className="mt-3 break-all rounded-md bg-emerald-50 p-3 text-xs text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-100">
-            <strong>지금만 표시됩니다.</strong> 복사 후 다른 앱·CI에는{" "}
-            <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_API_KEY</code> 로
-            저장하고, 베이스 URL은 <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_URL</code>{" "}
-            에 두면 이 레포의 <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">npm run platform:self-test</code> 와
-            문서 예제가 그대로 맞습니다. {newToken}
-          </p>
+          <div className="mt-3 rounded-md bg-emerald-50 p-3 text-xs text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-100">
+            <p>
+              <strong>지금만 표시됩니다.</strong> 다른 앱·CI·이 모노레포 루트{" "}
+              <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">.env</code>에는{" "}
+              <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_API_KEY</code> 와{" "}
+              <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_URL</code>{" "}
+              (보통 아래 버튼이 넣는 현재 origin)을 쓰면{" "}
+              <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">npm run platform:self-test</code>·문서
+              예제와 이름이 맞습니다. <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">.env</code>는
+              gitignore입니다.
+            </p>
+            <pre className="mt-2 max-h-24 overflow-auto break-all rounded bg-emerald-100/50 p-2 text-[11px] dark:bg-emerald-900/40">
+              {newToken}
+            </pre>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-md border border-emerald-700/30 bg-white px-2 py-1 text-[11px] font-medium text-emerald-950 dark:border-emerald-400/30 dark:bg-emerald-950 dark:text-emerald-100"
+                onClick={() => void copyNewTokenOnly()}
+              >
+                키만 복사
+              </button>
+              <button
+                type="button"
+                className="rounded-md border border-emerald-700/30 bg-white px-2 py-1 text-[11px] font-medium text-emerald-950 dark:border-emerald-400/30 dark:bg-emerald-950 dark:text-emerald-100"
+                onClick={() => void copyOpenGrazeEnvSnippet()}
+              >
+                루트 .env용 snippet 복사
+              </button>
+            </div>
+            {copyHint ? <p className="mt-2 text-[11px] text-emerald-900 dark:text-emerald-200">{copyHint}</p> : null}
+          </div>
         ) : null}
         <ul className="mt-4 space-y-2 text-sm">
           {keys.map((k) => (
@@ -285,7 +346,7 @@ export default function WorkspaceDetailPage() {
           참고하세요.
         </p>
         <pre className="mt-2 overflow-x-auto rounded bg-white p-2 text-[11px] dark:bg-zinc-900">
-          {`POST ${typeof window !== "undefined" ? window.location.origin : ""}/api/v1/events
+          {`POST ${publicOrigin}/api/v1/events
 Authorization: Bearer <발급한_키>
 Content-Type: application/json
 

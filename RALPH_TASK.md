@@ -24,7 +24,7 @@
 | OpenGraze / Workspace Platform | **동일 앱** — `apps/open-graze`(패키지名 `open-graze`). 별도 `workspace-platform` 앱은 없음. **타임라인·역할·수집 규약의 문서 단일 근거는 이 앱의 README·코드**로 둔다(제품 스코프 밖 패키지명은 요구사항 문장에 쓰지 않음). |
 | 자기 연동 테스트 | 루트 `npm run platform:self-test` — `scripts/platform-self-test.mjs`, 루트 `.env.example`의 `OPENGRAZE_PLATFORM_*` · LLM/연동 장문 **`docs/opengraze-llms-guide.md`**, 짧은 인덱스 **`/llms.txt`** |
 | 결제 연동 규범 | 토스페이먼츠 v2 — [LLMs로 결제 연동하기](https://docs.tosspayments.com/guides/v2/get-started/llms-guide), AI/에이전트용 문서 인덱스 [llms.txt](https://docs.tosspayments.com/llms.txt) |
-| 루프 상태 | `.ralph/progress.md`, `.ralph/guardrails.md`, `.ralph/errors.log` |
+| 루프 상태 | 로컬 `.ralph/progress.md`·`.ralph/errors.log`(git 제외), 공유 Signs 는 `docs/ralph-guardrails.md`(추적) |
 | 에이전트·모델 선택 근거 | `docs/agent-model-selection.md` |
 | 역할별 모니터링 규약 | 이벤트·텔레메트리 `detail.role` 등 — 아래 Success **역할별 다중 에이전트** 절(구현 완료) |
 | 회원가입·작업 현황 | `/register`, `POST /api/auth/register`, 워크스페이스 `WorkspaceTask` **API로 반영·갱신**, 대시보드는 **조회** — 아래 Success **제품 (OpenGraze 내 SaaS)** 절 |
@@ -119,7 +119,7 @@
 
 목표는 “한 번에 다 끝내기”가 아니라 **같은 본질 축에 대한 반복**이다. 매 **에이전트 이터**는 현재 **역할**(기획·디자인·구현·테스트 중 하나; 루프가 순서대로 부여)에 맞게 아래를 **순서대로** 끝낸다. 직전 이터가 남긴 커밋·`.ralph/progress.md`를 먼저 **감시 요약**한다.
 
-1. **읽기** — `RALPH_TASK.md`(미완 `[ ]` 중 우선순위 1개; **기획** 이터면 Goal **본질**·**기획 원칙**에 어긋나지 않는지 먼저 본다), `.ralph/guardrails.md`, `.ralph/progress.md`, `.ralph/errors.log`.
+1. **읽기** — `RALPH_TASK.md`(미완 `[ ]` 중 우선순위 1개; **기획** 이터면 Goal **본질**·**기획 원칙**에 어긋나지 않는지 먼저 본다), `docs/ralph-guardrails.md`, `.ralph/progress.md`, `.ralph/errors.log`.
 2. **하기** — 그 한 항목(또는 쪼갠 하위 한 덩어리)만 **현재 역할 범위 안에서** 구현·수정한다. 범위 밖 리팩터 금지.
 3. **검증** — 루트 `npm run build` **+** 이번 변경에 해당하는 **실행 검증**(루트 `README.md` 스모크: `npm run dev`는 **3000 포트만** — 열려 있으면 `kill` 후 기동, OpenGraze API `curl`, `npm run platform:self-test` 등). 임의 포트로 서버를 여러 개 띄우지 않는다.
 4. **기록** — **`git commit`**(스코프 단위로 자주), `.ralph/progress.md`에 “무엇을 왜 했는지” 한 단락, 해당 기준이 끝났으면 `RALPH_TASK.md`에서 `[x]`.
@@ -167,7 +167,7 @@ export MAX_ITERATIONS=999
 - Cursor CLI(에이전트): https://cursor.com/install — 설치 후 명령은 공식적으로 **`agent`**([CLI 설치](https://cursor.com/docs/cli/installation)). 레포 스크립트는 **`agent` 또는 예전 이름 `cursor-agent`** 중 PATH에 있는 것을 쓴다. `~/.local/bin`을 PATH에 넣고 `agent --version`으로 확인한다.
 - 선택 UI: `brew install gum`
 - 병렬 모드 사용 시 `RALPH_TASK.md`는 **반드시 커밋된 상태**여야 한다(upstream Ralph 제약).
-- **`ralph-parallel.sh` 병합** — `main`에 합칠 때 첫 `merge`가 실패하면 `merge --abort` 후 **`merge -X theirs`로 한 번 재시도**한다(충돌 시 에이전트 브랜치 쪽을 우선). 그래도 실패하면 ❌로 남기며, stderr는 해당 실행의 `.ralph/parallel/<run>/merge-errors.log`에 쌓인다. 동일 파일을 여러 에이전트가 크게 바꾸면 자동 해소가 어렵다 — `<!-- group: N -->`로 태스크를 나누거나 `--max-parallel 1`에 가깝게 줄인다.
+- **`ralph-parallel.sh` 병합** — `main`에 합칠 때 첫 `merge`가 실패하면 `merge --abort` 후 **`merge -X theirs`로 한 번 재시도**한다(충돌 시 에이전트 브랜치 쪽을 우선). 그래도 실패하면 ❌로 남기며, stderr는 해당 실행의 `.ralph/parallel/<run>/merge-errors.log`에 쌓인다. 동일 파일을 여러 에이전트가 크게 바꾸면 자동 해소가 어렵다 — `<!-- group: N -->`로 태스크를 나누거나 `--max-parallel 1`에 가깝게 줄인다. 실행 끝 요약은 **에이전트 코딩 단계**(Agent runs OK)와 **병합 단계**(Integrated / Merge failures)를 **별도 줄**로 구분한다(병합이 전부 ❌여도 에이전트 OK 숫자만큼 코딩은 성공한 것). **병합 대상 브랜치(`main` 등)에 커밋되지 않은 수정·미추적 파일**이 있으면 `git merge`가 “would be overwritten”로 **전부 거부**된다 — 수동으로 커밋·`git stash push -u` 후 재실행하거나, **`RALPH_MERGE_AUTOCOMMIT=1`**(병합 전 `git add -A` 후 스냅샷 커밋) 또는 **`RALPH_MERGE_AUTOSTASH=1`**(stash → 병합 → `stash pop`)을 쓴다. **`ralph-loop.sh` 병렬·병합**이면 두 변수를 아예 안 주면 **기본으로 `RALPH_MERGE_AUTOCOMMIT=1`** 이 켜진다(끄려면 `RALPH_MERGE_AUTOCOMMIT=0`). **`.ralph/` 전체는 git에 올리지 않는다**(`.gitignore`) — 로컬 진행·캐시·병렬 로그만 두고 merge 노이즈를 줄인다. 예전에 `.ralph/` 아래를 추적했으면 `git rm -r --cached .ralph` 로 인덱스만 정리한다.
 - 결제 구현·질의 시: [LLMs로 결제 연동하기](https://docs.tosspayments.com/guides/v2/get-started/llms-guide), 문서 맥락 [llms.txt](https://docs.tosspayments.com/llms.txt), 필요 시 MCP(가이드 내 Cursor 절)로 v2 스펙을 조회한다.
 - 로컬 서버 스모크 시 **포트 3000 고정**: `npm run dev`(선행 `kill:3000`). 테스트마다 `-p 3020` 등으로 포트를 늘리지 않는다(`scripts/kill-port.sh`).
 - **`ralph-loop.sh` 진행률** — `Progress: A / B`는 `RALPH_TASK.md` 전체에서 **목록 체크박스**(`- [ ]` / `- [x]`, `*`·`1.` 시작 동일)만 센다. B가 0이면 “기준이 없음”으로 곧바로 루프에 안 들어간다. **전부 `[x]`이면 남은 일 0으로 보고 기본은 즉시 종료**(`Task already complete!`)한다. 그래도 에이전트를 돌리려면 **`--force` / `-f`** 또는 **`FORCE_RALPH_TASK_GUARD=1`** 로 조기 종료를 건너뛴다. `--max-parallel 4` 등 **병렬 옵션은 미완 `[ ]`가 있을 때만** `run_parallel_tasks`가 실행된다; 완료 상태에서 병렬 줄만 보이고 바로 끝나는 것은 정상이다.

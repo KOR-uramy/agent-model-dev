@@ -3,15 +3,16 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import type { User as NextAuthUser } from "next-auth";
 import authConfig from "./auth.config";
+import { authSecretForNextAuth } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
 
 /**
  * DB 비밀번호(Credentials) + JWT 세션.
- * Google OAuth를 다시 쓰려면 `PrismaAdapter` + `Google` provider를 추가하고
- * `session.strategy`를 요구사항에 맞게 조정한다.
+ * lazy 설정: 매 요청 `AUTH_SECRET` 반영(Edge vs Node 불일치·`setEnvDefaults`와 충돌 방지).
  */
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
   ...authConfig,
+  ...authSecretForNextAuth(),
   providers: [
     Credentials({
       id: "credentials",
@@ -45,4 +46,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-});
+}));

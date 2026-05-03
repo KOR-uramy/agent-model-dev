@@ -191,7 +191,7 @@ main() {
       echo "🚨 Gutter detected - agent got stuck."
       echo ""
       echo "Review .ralph/errors.log and consider:"
-      echo "  1. Adding a guardrail to .ralph/guardrails.md"
+      echo "  1. Adding a guardrail to docs/ralph-guardrails.md"
       echo "  2. Simplifying the task"
       echo "  3. Fixing the blocking issue manually"
       ;;

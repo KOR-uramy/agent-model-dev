@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 import path from "path";
 import { fileURLToPath } from "url";
+import { bootstrapAuthEnvFromFiles } from "./lib/load-env-files";
 
 /** open-graze 패키지 루트 (모노레포에서 `npm run dev -w` 시 cwd가 루트일 수 있음) */
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
+
+bootstrapAuthEnvFromFiles(packageDir);
 
 /**
  * 로컬에서 `.env` 없이 `npm run dev`만 할 때 Prisma가 죽지 않게 기본 DB URL.

@@ -1,40 +1,12 @@
 import type { DefaultSession } from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 
-let authSecretFallbackWarned = false;
-
-const AUTH_SECRET_FALLBACK =
-  "open-graze-missing-AUTH_SECRET-placeholder-min-32-chars!";
-
 /**
- * Auth.js는 `secret` 필수. 미설정 시 폴백으로 빌드·`/api/auth/session` 500을 막는다.
- * 배포 전에는 반드시 `AUTH_SECRET`을 넣을 것(폴백은 세션 위조에 취약).
- */
-function resolveAuthSecret(): string {
-  const s =
-    process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
-  if (s) return s;
-  if (!authSecretFallbackWarned) {
-    authSecretFallbackWarned = true;
-    if (process.env.NODE_ENV === "production") {
-      console.error(
-        "[open-graze] CRITICAL: AUTH_SECRET 미설정 — 임시 시크릿 사용 중. 즉시 환경 변수를 설정하세요.",
-      );
-    } else {
-      console.warn(
-        "[open-graze] AUTH_SECRET 없음 — 개발용 임시 시크릿. apps/open-graze/.env 에 설정하세요.",
-      );
-    }
-  }
-  return AUTH_SECRET_FALLBACK;
-}
-
-/**
- * 미들웨어(Edge)에서만 사용 — Node 전용 모듈(bcrypt, Prisma) 없음.
- * 실제 Credentials provider는 `auth.ts`에서 병합한다.
+ * `secret`은 여기 두지 않는다. 고정값이 있으면 NextAuth `setEnvDefaults`가
+ * `AUTH_SECRET`으로 덮어쓰지 못해 Edge 미들웨어와 Node 라우트 secret 이 어긋날 수 있다.
+ * @see `lib/auth-secret.ts` + `auth.ts` / `middleware.ts` 의 lazy 설정
  */
 export default {
-  secret: resolveAuthSecret(),
   trustHost: true,
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 7 },
   pages: {

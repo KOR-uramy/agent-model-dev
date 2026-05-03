@@ -450,7 +450,7 @@ _build_prompt_shared_body() {
 
 Before doing anything:
 1. Read \`RALPH_TASK.md\` - your task and completion criteria
-2. Read \`.ralph/guardrails.md\` - lessons from past failures (FOLLOW THESE)
+2. Read \`docs/ralph-guardrails.md\` - lessons from past failures (FOLLOW THESE)
 3. Read \`.ralph/progress.md\` - what's been accomplished
 4. Read \`.ralph/errors.log\` - recent failures to avoid
 
@@ -492,7 +492,7 @@ $progress_rule
 When something fails:
 1. Check \`.ralph/errors.log\` for failure history
 2. Figure out the root cause
-3. Add a Sign to \`.ralph/guardrails.md\` using this format:
+3. Add a Sign to \`docs/ralph-guardrails.md\` using this format:
 
 \`\`\`
 ### Sign: [Descriptive Name]
@@ -593,7 +593,7 @@ EOF
     cat << EOF
 ## Supervision (감시) — 첫 단계
 
-There is no prior role output in this run yet. Base your plan strictly on \`RALPH_TASK.md\`, \`.ralph/guardrails.md\`, and git history.
+There is no prior role output in this run yet. Base your plan strictly on \`RALPH_TASK.md\`, \`docs/ralph-guardrails.md\`, and git history.
 
 EOF
   else
@@ -883,7 +883,7 @@ run_ralph_loop() {
         echo ""
         echo "🚨 Gutter detected. Check .ralph/errors.log for details."
         echo "   The agent may be stuck. Consider:"
-        echo "   1. Check .ralph/guardrails.md for lessons"
+        echo "   1. Check docs/ralph-guardrails.md for lessons"
         echo "   2. Manually fix the blocking issue"
         echo "   3. Re-run the loop"
         return 1

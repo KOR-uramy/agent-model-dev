@@ -83,6 +83,8 @@ Environment:
   RALPH_ROLE_MODE        cycle (기본): 이터마다 기획→디자인→구현→테스트 순환, 직전 역할 산출물 감시
                          mono: 역할 구분 없이 기존 단일 프롬프트
   FORCE_RALPH_TASK_GUARD 1 이면 --force와 동일(전부 [x]여도 조기 종료 안 함)
+  RALPH_MERGE_AUTOCOMMIT 병렬·병합: 미설정이면 기본 1(병합 전 git add -A 스냅샷 커밋). 0=끔.
+  RALPH_MERGE_AUTOSTASH  병합 전 stash(-u). 둘 다 미설정일 때만 AUTOCOMMIT 기본 적용.
 
 For interactive setup with a beautiful UI, use ralph-setup.sh instead.
 EOF
@@ -289,6 +291,14 @@ main() {
 
     # Parallel PR behavior: one integration branch + one PR
     export CREATE_PR="$OPEN_PR"
+
+    # 병합 단계: 로컬·에이전트 산출로 main 이 더러우면 merge 가 전부 거부되므로,
+    # 사용자가 둘 다 지정하지 않았을 때만 기본으로 스냅샷 커밋(비활성: RALPH_MERGE_AUTOCOMMIT=0).
+    if [[ "$SKIP_MERGE" != "true" ]]; then
+      if [[ -z "${RALPH_MERGE_AUTOCOMMIT+x}" ]] && [[ -z "${RALPH_MERGE_AUTOSTASH+x}" ]]; then
+        export RALPH_MERGE_AUTOCOMMIT=1
+      fi
+    fi
 
     local base_branch
     base_branch="$(git -C "$WORKSPACE" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"

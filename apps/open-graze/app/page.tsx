@@ -166,9 +166,14 @@ export default function Home() {
           </span>
           <nav className="flex items-center gap-5 text-sm text-foreground">
             {SHOW_LOGIN_LINKS ? (
-              <Link href="/login" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
-                로그인
-              </Link>
+              <>
+                <Link href="/register" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+                  회원가입
+                </Link>
+                <Link href="/login" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+                  로그인
+                </Link>
+              </>
             ) : null}
             <Link href="/dashboard" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
               대시보드
@@ -222,12 +227,20 @@ export default function Home() {
               대시보드 열기
             </Link>
             {SHOW_LOGIN_LINKS ? (
-              <Link
-                href="/login"
-                className="rounded-full border border-neutral-300 px-8 py-3 text-sm font-semibold text-foreground transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
-              >
-                로그인
-              </Link>
+              <>
+                <Link
+                  href="/register"
+                  className="rounded-full border border-neutral-300 px-8 py-3 text-sm font-semibold text-foreground transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+                >
+                  회원가입
+                </Link>
+                <Link
+                  href="/login"
+                  className="rounded-full border border-neutral-300 px-8 py-3 text-sm font-semibold text-foreground transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+                >
+                  로그인
+                </Link>
+              </>
             ) : null}
           </div>
         </div>

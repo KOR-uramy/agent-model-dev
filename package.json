@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
+    "prepare": "npm run postinstall -w open-graze --if-present",
     "build": "npm run build -w ralph-workspace-sdk && npm run build -w open-graze",
     "kill:3000": "sh scripts/kill-port.sh 3000",
     "dev": "sh scripts/dev-open-graze.sh",

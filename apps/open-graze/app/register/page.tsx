@@ -1,17 +1,14 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-function LoginInner() {
-  const sp = useSearchParams();
+export default function RegisterPage() {
   const router = useRouter();
-  const cb = sp.get("callbackUrl") ?? "/dashboard";
-  const registered = sp.get("registered") === "1";
-  const [email, setEmail] = useState("dev@opengraze.local");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -20,18 +17,25 @@ function LoginInner() {
     setErr(null);
     setPending(true);
     try {
-      const res = await signIn("credentials", {
-        email: email.trim(),
-        password,
-        redirect: false,
-        callbackUrl: cb,
+      const r = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          name: name.trim() || undefined,
+        }),
       });
-      if (res?.error) {
-        setErr("이메일 또는 비밀번호가 맞지 않습니다.");
+      const j = (await r.json()) as { error?: string | Record<string, string[]> };
+      if (!r.ok) {
+        const msg =
+          typeof j.error === "string"
+            ? j.error
+            : JSON.stringify(j.error ?? "가입에 실패했습니다.");
+        setErr(msg);
         return;
       }
-      router.push(cb);
-      router.refresh();
+      router.push("/login?registered=1");
     } finally {
       setPending(false);
     }
@@ -40,19 +44,26 @@ function LoginInner() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">OpenGraze 로그인</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">회원가입</h1>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          등록된 이메일과 비밀번호로 대시보드에 들어갑니다.
+          이메일과 비밀번호로 계정을 만든 뒤 로그인합니다. 비밀번호는 8자 이상이어야 합니다.
         </p>
       </div>
 
-      {registered ? (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
-          가입이 완료되었습니다. 같은 이메일로 로그인해 주세요.
-        </p>
-      ) : null}
-
       <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="name" className="mb-1 block text-xs font-medium text-zinc-500">
+            이름 (선택)
+          </label>
+          <input
+            id="name"
+            type="text"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+          />
+        </div>
         <div>
           <label htmlFor="email" className="mb-1 block text-xs font-medium text-zinc-500">
             이메일
@@ -69,17 +80,17 @@ function LoginInner() {
         </div>
         <div>
           <label htmlFor="password" className="mb-1 block text-xs font-medium text-zinc-500">
-            비밀번호
+            비밀번호 (8자 이상)
           </label>
           <input
             id="password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             required
+            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-            placeholder="시드 계정 비밀번호"
           />
         </div>
         {err ? <p className="text-sm text-red-600 dark:text-red-400">{err}</p> : null}
@@ -88,35 +99,19 @@ function LoginInner() {
           disabled={pending}
           className="w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
         >
-          {pending ? "확인 중…" : "로그인"}
+          {pending ? "처리 중…" : "가입하기"}
         </button>
       </form>
 
-      <p className="text-center text-xs text-zinc-500">
-        로컬 기본 계정은 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">dev@opengraze.local</code> · 시드
-        비밀번호 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">opengraze-dev</code>
-      </p>
-
       <p className="text-center text-sm text-zinc-500">
-        계정이 없나요?{" "}
-        <Link href="/register" className="font-medium text-zinc-800 underline dark:text-zinc-200">
-          회원가입
+        이미 계정이 있나요?{" "}
+        <Link href="/login" className="font-medium text-zinc-800 underline dark:text-zinc-200">
+          로그인
         </Link>
       </p>
-
       <Link href="/" className="text-center text-sm text-zinc-500 hover:underline">
-        홈으로 돌아가기
+        홈으로
       </Link>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={<div className="p-8 text-center text-sm text-zinc-500">불러오는 중…</div>}
-    >
-      <LoginInner />
-    </Suspense>
   );
 }

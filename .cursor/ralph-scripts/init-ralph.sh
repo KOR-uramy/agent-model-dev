@@ -74,9 +74,12 @@ fi
 # INITIALIZE STATE FILES
 # =============================================================================
 
-echo "📁 Initializing .ralph/ directory..."
+echo "📁 Initializing .ralph/ (local state, gitignored) + docs/ralph-guardrails.md …"
 
-cat > .ralph/guardrails.md << 'EOF'
+mkdir -p .ralph docs
+
+if [[ ! -f docs/ralph-guardrails.md ]]; then
+  cat > docs/ralph-guardrails.md << 'EOF'
 # Ralph Guardrails (Signs)
 
 > Lessons learned from past failures. READ THESE BEFORE ACTING.
@@ -105,6 +108,7 @@ cat > .ralph/guardrails.md << 'EOF'
 (Signs added from observed failures will appear below)
 
 EOF
+fi
 
 cat > .ralph/progress.md << 'EOF'
 # Progress Log
@@ -159,7 +163,6 @@ echo "✓ Scripts installed to .cursor/ralph-scripts/"
 # =============================================================================
 
 if [[ -f ".gitignore" ]]; then
-  # Don't gitignore .ralph/ - we want it tracked for state persistence
   if ! grep -q "ralph-config.json" .gitignore; then
     echo "" >> .gitignore
     echo "# Ralph config (may contain API keys)" >> .gitignore
@@ -185,8 +188,8 @@ echo "════════════════════════�
 echo ""
 echo "Files created:"
 echo "  • RALPH_TASK.md        - Define your task here"
-echo "  • .ralph/guardrails.md - Lessons learned (agent updates this)"
-echo "  • .ralph/progress.md   - Progress log (agent updates this)"
+echo "  • docs/ralph-guardrails.md - Lessons learned (agent updates; tracked in git)"
+echo "  • .ralph/progress.md   - Progress log (local, gitignored)"
 echo "  • .ralph/activity.log  - Tool call log (parser updates this)"
 echo "  • .ralph/errors.log    - Failure log (parser updates this)"
 echo ""

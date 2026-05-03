@@ -654,6 +654,7 @@ run_parallel_tasks() {
   local total_succeeded=0
   local total_failed=0
   local merged_count=0
+  local total_merge_failed=0
   local global_job_num=0
   
   # Track ALL successful items for final PR (across all groups)
@@ -903,10 +904,115 @@ run_parallel_tasks() {
     echo "📦 Group $group_label: Merging ${#successful_items[@]} branch(es) into ${merge_target}"
     echo "───────────────────────────────────────────────────────────────────"
 
+    # 병합 대상 브랜치로 맞춘 뒤 작업 트리 검사 (main 직접 병합 시 로컬 수정·미추적 파일이 남으면 git merge 가 전부 거부됨)
+    if ! git -C "$original_dir" checkout "$merge_target" >/dev/null 2>&1; then
+      echo "⚠️  checkout $merge_target 실패 — 현재 브랜치에서 상태 확인 후 수동으로 전환해 주세요." >&2
+    fi
+
     local merged_branches=()
     local failed_branches=()
     local integrated_task_ids=()
+    local merge_autostash_active=0
+    local skip_merge_loop=0
 
+    local dirty_porcelain
+    dirty_porcelain=$(git -C "$original_dir" status --porcelain 2>/dev/null || true)
+    if [[ -n "$dirty_porcelain" ]]; then
+      # AUTOCOMMIT 이 AUTOSTASH 보다 우선(스냅샷을 남기고 병합)
+      if [[ "${RALPH_MERGE_AUTOCOMMIT:-}" == "1" ]]; then
+        echo ""
+        echo "📝 RALPH_MERGE_AUTOCOMMIT=1 — 병합 전 로컬 변경을 한 커밋으로 묶습니다 (\`git add -A\`)."
+        local git_name git_email
+        git_name=$(git -C "$original_dir" config user.name 2>/dev/null || true)
+        git_email=$(git -C "$original_dir" config user.email 2>/dev/null || true)
+        git -C "$original_dir" add -A
+        if git -C "$original_dir" diff --cached --quiet 2>/dev/null; then
+          echo "⚠️  스테이징할 변경이 없습니다(이미 추적·미추적 외만 변경됐을 수 있음). 병합은 계속 시도합니다." >&2
+        else
+          local cmsg="ralph-parallel: snapshot WIP before agent merges (run ${RUN_ID})"
+          if [[ -n "$git_name" ]] && [[ -n "$git_email" ]]; then
+            if ! git -C "$original_dir" commit -m "$cmsg" >/dev/null 2>&1; then
+              echo "❌ 자동 커밋 실패 — 수동으로 커밋한 뒤 다시 실행하세요." >&2
+              {
+                echo "--- $(date -u '+%Y-%m-%dT%H:%M:%SZ') RALPH_MERGE_AUTOCOMMIT commit failed ---"
+                git -C "$original_dir" status --short 2>/dev/null || true
+              } >>"$RUN_DIR/merge-errors.log" 2>/dev/null || true
+              for item in "${successful_items[@]}"; do
+                local branch_name task_id job_id worktree_left
+                IFS='|' read -r branch_name task_id job_id worktree_left <<<"$item"
+                failed_branches+=("$branch_name")
+                echo -e "$(date -u '+%Y-%m-%dT%H:%M:%SZ')\tmerge\t${RUN_ID}\t${current_group}\t${job_id}\t${task_id}\t${branch_name}\tdirty_wt\t${BASE_SHA}\t\t" >>"$manifest"
+              done
+              total_merge_failed=$((total_merge_failed + ${#failed_branches[@]}))
+              skip_merge_loop=1
+            else
+              {
+                echo "--- $(date -u '+%Y-%m-%dT%H:%M:%SZ') RALPH_MERGE_AUTOCOMMIT snapshot commit ---"
+                git -C "$original_dir" log -1 --oneline 2>/dev/null || true
+              } >>"$RUN_DIR/merge-errors.log" 2>/dev/null || true
+            fi
+          else
+            if ! git -C "$original_dir" \
+              -c user.name="ralph-parallel" \
+              -c user.email="ralph-parallel@localhost" \
+              commit -m "$cmsg" >/dev/null 2>&1; then
+              echo "❌ 자동 커밋 실패(git user 미설정 포함). \`git config user.name\` / \`user.email\` 을 설정하세요." >&2
+              {
+                echo "--- $(date -u '+%Y-%m-%dT%H:%M:%SZ') RALPH_MERGE_AUTOCOMMIT commit failed (no identity?) ---"
+                git -C "$original_dir" status --short 2>/dev/null || true
+              } >>"$RUN_DIR/merge-errors.log" 2>/dev/null || true
+              for item in "${successful_items[@]}"; do
+                local branch_name task_id job_id worktree_left
+                IFS='|' read -r branch_name task_id job_id worktree_left <<<"$item"
+                failed_branches+=("$branch_name")
+                echo -e "$(date -u '+%Y-%m-%dT%H:%M:%SZ')\tmerge\t${RUN_ID}\t${current_group}\t${job_id}\t${task_id}\t${branch_name}\tdirty_wt\t${BASE_SHA}\t\t" >>"$manifest"
+              done
+              total_merge_failed=$((total_merge_failed + ${#failed_branches[@]}))
+              skip_merge_loop=1
+            else
+              {
+                echo "--- $(date -u '+%Y-%m-%dT%H:%M:%SZ') RALPH_MERGE_AUTOCOMMIT snapshot commit (ralph-parallel identity) ---"
+                git -C "$original_dir" log -1 --oneline 2>/dev/null || true
+              } >>"$RUN_DIR/merge-errors.log" 2>/dev/null || true
+            fi
+          fi
+        fi
+      elif [[ "${RALPH_MERGE_AUTOSTASH:-}" == "1" ]]; then
+        echo ""
+        echo "📦 RALPH_MERGE_AUTOSTASH=1 — 병합 전 로컬 변경을 stash 합니다 (미추적 포함: -u)."
+        if git -C "$original_dir" stash push -u -m "ralph-parallel autostash ${RUN_ID}" >/dev/null 2>&1; then
+          merge_autostash_active=1
+        else
+          echo "❌ git stash push 실패 — 병합을 시도하지만 로컬 파일 때문에 실패할 수 있습니다." >&2
+          {
+            echo "--- $(date -u '+%Y-%m-%dT%H:%M:%SZ') RALPH_MERGE_AUTOSTASH stash push failed ---"
+            git -C "$original_dir" status --short 2>/dev/null || true
+          } >>"$RUN_DIR/merge-errors.log" 2>/dev/null || true
+        fi
+      else
+        echo ""
+        echo "❌ 병합 대상($merge_target) 작업 트리가 깨끗하지 않습니다."
+        echo "   커밋되지 않은 수정이나 미추적 파일이 있으면 git merge 가 \"would be overwritten\" 로 중단됩니다."
+        echo "   조치: 직접 커밋·푸시하거나 \`git stash push -u -m ralph-wip\` 후 재실행."
+        echo "   자동: \`RALPH_MERGE_AUTOCOMMIT=1\`(add -A 후 스냅샷 커밋) 또는 \`RALPH_MERGE_AUTOSTASH=1\`(stash→병합→pop)."
+        echo ""
+        git -C "$original_dir" status --short 2>/dev/null | head -25 || true
+        {
+          echo "--- $(date -u '+%Y-%m-%dT%H:%M:%SZ') merge phase skipped: dirty working tree on $merge_target ---"
+          echo "$dirty_porcelain"
+        } >>"$RUN_DIR/merge-errors.log" 2>/dev/null || true
+        for item in "${successful_items[@]}"; do
+          local branch_name task_id job_id worktree_left
+          IFS='|' read -r branch_name task_id job_id worktree_left <<<"$item"
+          failed_branches+=("$branch_name")
+          echo -e "$(date -u '+%Y-%m-%dT%H:%M:%SZ')\tmerge\t${RUN_ID}\t${current_group}\t${job_id}\t${task_id}\t${branch_name}\tdirty_wt\t${BASE_SHA}\t\t" >>"$manifest"
+        done
+        total_merge_failed=$((total_merge_failed + ${#failed_branches[@]}))
+        skip_merge_loop=1
+      fi
+    fi
+
+    if [[ "$skip_merge_loop" -eq 0 ]]; then
     for item in "${successful_items[@]}"; do
       local branch_name task_id job_id worktree_left
       IFS='|' read -r branch_name task_id job_id worktree_left <<< "$item"
@@ -944,6 +1050,18 @@ run_parallel_tasks() {
           ;;
       esac
     done
+
+    total_merge_failed=$((total_merge_failed + ${#failed_branches[@]}))
+    fi
+
+    if [[ "${merge_autostash_active:-0}" -eq 1 ]]; then
+      echo ""
+      if git -C "$original_dir" stash pop >/dev/null 2>&1; then
+        echo "✅ stash pop 완료 (병합 전 로컬 변경 복원)."
+      else
+        echo "⚠️  stash pop 실패 또는 충돌 — \`git stash list\`·\`git status\` 로 확인하세요."
+      fi
+    fi
 
     if [[ -s "$RUN_DIR/merge-errors.log" ]]; then
       echo ""
@@ -1063,9 +1181,10 @@ $commit_body"
   echo "═══════════════════════════════════════════════════════════════════"
   echo "📊 Parallel Execution Complete"
   echo "═══════════════════════════════════════════════════════════════════"
-  echo "  Integrated: $merged_count"
-  echo "  Succeeded:  $total_succeeded"
-  echo "  Failed:    $total_failed"
+  echo "  Integrated (merged into $merge_target): $merged_count"
+  echo "  Merge failures (conflict/error):       $total_merge_failed"
+  echo "  Agent runs OK (coding phase):          $total_succeeded"
+  echo "  Agent runs failed:                     $total_failed"
   echo "  Run dir:   $RUN_DIR"
   echo ""
   

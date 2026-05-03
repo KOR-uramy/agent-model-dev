@@ -1,6 +1,6 @@
 # ralph-workspace-sdk
 
-Ralph `stream-parser`의 **`.ralph/events.jsonl`**과, 앱이 남기는 **`.ralph/workspace-telemetry.jsonl`**을 합쳐 읽습니다. Next.js(OpenGraze) API 한 줄·**작업 로거**로 **워크스페이스 플랫폼**에 붙일 수 있습니다.
+Ralph `stream-parser`의 **`.ralph/events.jsonl`**과, 앱이 남기는 **`.ralph/workspace-telemetry.jsonl`**을 합쳐 읽습니다. Next.js(**OpenGraze** = **Workspace Platform**, 코드는 `apps/open-graze`) API 한 줄·**작업 로거**로 같은 앱에 붙일 수 있습니다.
 
 **역할 메타** — 병합 행(`WorkspaceFeedEvent`)의 `detail`이 객체일 때 **선택** 필드 **`role`**(문서상 경로 **`detail.role`**)에 `planning` \| `design` \| `implementation` \| `test` 만 허용. `session_start`는 루프가 `RALPH_ROLE`을 줄 때만 기록한다. 앱 텔레메트리에도 동일 키를 선택적으로 넣을 수 있다(`RALPH_TASK.md`).
 
