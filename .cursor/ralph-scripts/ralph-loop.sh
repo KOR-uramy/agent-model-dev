@@ -13,6 +13,7 @@
 #   ./ralph-loop.sh --branch feature/foo --pr   # Create branch and PR
 #   ./ralph-loop.sh -y                           # Skip confirmation (for scripting)
 #   ./ralph-loop.sh -y --infinite                # No iteration cap (until all [x] or GUTTER / Ctrl-C)
+#   ./ralph-loop.sh -y --infinite --force        # Same, but run even when every checkbox is already [x]
 #
 # Flags:
 #   -n, --iterations N     Max iterations (default: 20). Use 0 for unlimited.
@@ -24,6 +25,7 @@
 #   --no-merge             Skip auto-merge in parallel mode
 #   -y, --yes              Skip confirmation prompt
 #   --infinite             Same as -n 0 (no cap; tmux + interrupt 권장)
+#   --force                RALPH_TASK.md가 전부 [x]여도 여기서 종료하지 않고 루프 진입(또는 env FORCE_RALPH_TASK_GUARD=1)
 #   -h, --help             Show this help
 #
 # Requirements:
@@ -65,6 +67,7 @@ Options:
   --max-parallel N       Max parallel agents (default: 3)
   --no-merge             Skip auto-merge in parallel mode
   -y, --yes              Skip confirmation prompt
+  --force, -f            RALPH_TASK.md 체크가 모두 [x]여도 루프·병렬 진입(기본은 즉시 종료)
   -h, --help             Show this help
 
 Examples:
@@ -79,6 +82,7 @@ Environment:
   RALPH_MODEL            Override default model (same as -m; default in repo: auto)
   RALPH_ROLE_MODE        cycle (기본): 이터마다 기획→디자인→구현→테스트 순환, 직전 역할 산출물 감시
                          mono: 역할 구분 없이 기존 단일 프롬프트
+  FORCE_RALPH_TASK_GUARD 1 이면 --force와 동일(전부 [x]여도 조기 종료 안 함)
 
 For interactive setup with a beautiful UI, use ralph-setup.sh instead.
 EOF
@@ -88,6 +92,8 @@ EOF
 PARALLEL_MODE=false
 MAX_PARALLEL=3
 SKIP_MERGE=false
+# 1이면 «전부 [x]» 조기 종료를 건너뜀 (--force 또는 환경 변수 FORCE_RALPH_TASK_GUARD=1)
+FORCE_RALPH_TASK_GUARD="${FORCE_RALPH_TASK_GUARD:-0}"
 
 # Parse command line arguments
 WORKSPACE=""
@@ -139,6 +145,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --infinite)
       MAX_ITERATIONS="0"
+      shift
+      ;;
+    --force|-f)
+      FORCE_RALPH_TASK_GUARD=1
       shift
       ;;
     -h|--help)
@@ -206,7 +216,7 @@ main() {
   # Show task summary
   echo "📋 Task Summary:"
   echo "─────────────────────────────────────────────────────────────────"
-  head -30 "$task_file"
+  head -55 "$task_file"
   echo "─────────────────────────────────────────────────────────────────"
   echo ""
   
@@ -230,9 +240,22 @@ main() {
   [[ "$SKIP_MERGE" == "true" ]] && echo "Merge:    Skipped"
   echo ""
   
-  if [[ "$remaining" -eq 0 ]] && [[ "$total_criteria" -gt 0 ]]; then
+  if [[ "$remaining" -eq 0 ]] && [[ "$total_criteria" -gt 0 ]] && [[ "${FORCE_RALPH_TASK_GUARD:-0}" != "1" ]]; then
     echo "🎉 Task already complete! All criteria are checked."
+    echo "   (한국어) RALPH_TASK.md 목록 체크가 모두 [x]라 에이전트를 띄우지 않고 종료합니다."
+    echo ""
+    echo "집계: RALPH_TASK.md 안에서 줄 시작이 «- [ ]» 또는 «- [x]»(또는 «*», «1.»)인 목록만 센다."
+    echo "그래도 루프를 돌리려면: ./ralph-loop.sh --force …  또는  FORCE_RALPH_TASK_GUARD=1 ./ralph-loop.sh …"
+    if [[ "$PARALLEL_MODE" == "true" ]]; then
+      echo "병렬(--parallel / --max-parallel): 미완 «- [ ]»가 없으면 에이전트를 띄우지 않고 여기서 종료한다."
+      echo "이어 돌리려면 새 기준을 «- [ ]»로 추가하거나, 검증 전 항목을 «[ ]»로 되돌린 뒤 다시 실행하라."
+    fi
     exit 0
+  fi
+
+  if [[ "$remaining" -eq 0 ]] && [[ "$total_criteria" -gt 0 ]] && [[ "${FORCE_RALPH_TASK_GUARD:-0}" == "1" ]]; then
+    echo "⚠️  RALPH_TASK.md는 모두 [x]이지만 --force (또는 FORCE_RALPH_TASK_GUARD=1)로 루프를 계속합니다." >&2
+    echo "" >&2
   fi
   
   # Confirm before starting (unless -y flag)

@@ -484,7 +484,7 @@ If you get rotated, the next agent picks up from your last commit. Your commits 
 2. Run tests after changes when your role is **test** or when you touch executable code (**implementation**).
 3. **Mark completed criteria**: Edit RALPH_TASK.md and change \`[ ]\` to \`[x]\` only when your role owns verification (**test** role for code-facing criteria, or when the criterion is purely planning/docs and **planning** agrees).
 $progress_rule
-5. When ALL criteria show \`[x]\`: output \`<ralph>COMPLETE</ralph>\`
+5. When every list checkbox in \`RALPH_TASK.md\` is \`[x]\`: follow the doc’s **성장 루프** / **동종 비교 → 체크 확장** / **성장·동종 비교** — name 1–3 comparison SaaS in \`.ralph/progress.md\`, gap-scan UI·UX·design·monetization·traffic·marketing, add new measurable \`[ ]\` items before treating the sprint as done. Output \`<ralph>COMPLETE</ralph>\` only when you stop and there are **no** remaining \`[ ]\` checkboxes (after any required expansion pass).
 6. If stuck 3+ times on same issue: output \`<ralph>GUTTER</ralph>\`
 
 ## Learning from Failures
@@ -991,7 +991,7 @@ show_task_summary() {
   
   echo "📋 Task Summary:"
   echo "─────────────────────────────────────────────────────────────────"
-  head -30 "$task_file"
+  head -55 "$task_file"
   echo "─────────────────────────────────────────────────────────────────"
   echo ""
   
