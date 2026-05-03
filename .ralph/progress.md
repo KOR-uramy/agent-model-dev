@@ -153,3 +153,9 @@
 **다음 인계 — 테스트** — ① 루트 `npm run build`(필요 시 동일 `.next` 삭제). ② dev + `curl -sS 'http://localhost:3000/api/ralph/events?tail=5'` → JSON 200. ③ 브라우저 `/`에서 역할 열·배지·`—` 표시 확인. ④ 통과 시 `RALPH_TASK.md` **규약**·**소비 UI** 두 줄을 `[x]`로 바꾸고 커밋.
 
 **Session 3 ended** — 구현 산출물 커밋됨; 성공 기준 체크는 테스트 역할 소유.
+
+### 2026-05-03 10:44:37
+**Session 3 ended** - Agent finished naturally (2 criteria remaining)
+
+### 2026-05-03 10:44:39
+**Session 4 started** — 역할: 테스트 (`test`) · model: auto
