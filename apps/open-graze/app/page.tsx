@@ -5,11 +5,14 @@ import { disclosureSummary, roleBadgeClass, tableHeaderRow } from "@/lib/ui-toke
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { buildApiPayloadFromMetaAndRangeEvents } from "@/lib/timeline-client-payload";
+import { TIMELINE_RANGE_MAX_ROWS } from "@/lib/timeline-constants";
 import {
   AGENT_ROLE_KEYS,
   eventDetailRole,
   parseRoleQueryParam,
   parseSessionIdQueryParam,
+  parseTimelineRangeParams,
 } from "@/lib/timeline-query-params";
 import type {
   AgentRoleKey,
@@ -146,6 +149,43 @@ function Home() {
     [searchParams],
   );
 
+  const rangeParsed = useMemo(
+    () =>
+      parseTimelineRangeParams(
+        searchParams.get("from"),
+        searchParams.get("to"),
+      ),
+    [searchParams],
+  );
+
+  const rangeMode = rangeParsed.ok;
+
+  const [rangeDraftFrom, setRangeDraftFrom] = useState("");
+  const [rangeDraftTo, setRangeDraftTo] = useState("");
+
+  useEffect(() => {
+    if (rangeParsed.ok) {
+      setRangeDraftFrom(rangeParsed.fromIso);
+      setRangeDraftTo(rangeParsed.toIso);
+    } else {
+      setRangeDraftFrom("");
+      setRangeDraftTo("");
+    }
+  }, [rangeParsed]);
+
+  /** `from`·`to` 중 하나만 있거나 파싱 실패 시 API와 같게 구간 모드를 쓰지 않고 둘 다 제거한다. */
+  useEffect(() => {
+    const fr = searchParams.get("from");
+    const tr = searchParams.get("to");
+    if (fr === null && tr === null) return;
+    if (rangeParsed.ok) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("from");
+    next.delete("to");
+    const q = next.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+  }, [pathname, rangeParsed.ok, router, searchParams]);
+
   /** `role` 키는 있으나 API와 동일 규칙으로 인정되지 않는 값이면 주소에서 제거한다. */
   useEffect(() => {
     const raw = searchParams.get("role");
@@ -191,6 +231,22 @@ function Home() {
     [pathname, router, searchParams],
   );
 
+  const setFromToQuery = useCallback(
+    (fromIso: string | null, toIso: string | null) => {
+      const next = new URLSearchParams(searchParams.toString());
+      if (fromIso == null || toIso == null) {
+        next.delete("from");
+        next.delete("to");
+      } else {
+        next.set("from", fromIso);
+        next.set("to", toIso);
+      }
+      const q = next.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [knownSessionIds, setKnownSessionIds] = useState<string[]>([]);
@@ -205,18 +261,57 @@ function Home() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams({ tail: "1200" });
-      if (roleFilter) qs.set("role", roleFilter);
-      if (sessionIdFilter) qs.set("sessionId", sessionIdFilter);
-      const r = await fetch(`/api/ralph/events?${qs.toString()}`);
-      const j = (await r.json()) as ApiPayload;
-      setData(j);
+      if (rangeParsed.ok) {
+        const qsRange = new URLSearchParams({
+          from: rangeParsed.fromIso,
+          to: rangeParsed.toIso,
+          limit: String(TIMELINE_RANGE_MAX_ROWS),
+        });
+        if (roleFilter) qsRange.set("role", roleFilter);
+        if (sessionIdFilter) qsRange.set("sessionId", sessionIdFilter);
+
+        const [metaRes, rangeRes] = await Promise.all([
+          fetch(`/api/ralph/events?tail=1`),
+          fetch(`/api/ralph/events/range?${qsRange.toString()}`),
+        ]);
+        const meta = (await metaRes.json()) as ApiPayload;
+        const rangeJson = (await rangeRes.json()) as {
+          events?: WorkspaceFeedEvent[];
+          truncated?: boolean;
+          error?: string;
+        };
+        if (!rangeRes.ok) {
+          setData({
+            ...meta,
+            events: [],
+            summary: { ...meta.summary, rowCount: 0 },
+            error: "RANGE_QUERY_ERROR",
+            hint:
+              typeof rangeJson.error === "string"
+                ? rangeJson.error
+                : "기간 요청을 처리하지 못했습니다.",
+          });
+          return;
+        }
+        const events = Array.isArray(rangeJson.events) ? rangeJson.events : [];
+        const truncated = Boolean(rangeJson.truncated);
+        setData(
+          buildApiPayloadFromMetaAndRangeEvents(meta, events, { truncated }),
+        );
+      } else {
+        const qs = new URLSearchParams({ tail: "1200" });
+        if (roleFilter) qs.set("role", roleFilter);
+        if (sessionIdFilter) qs.set("sessionId", sessionIdFilter);
+        const r = await fetch(`/api/ralph/events?${qs.toString()}`);
+        const j = (await r.json()) as ApiPayload;
+        setData(j);
+      }
     } catch {
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, [roleFilter, sessionIdFilter]);
+  }, [rangeParsed, roleFilter, sessionIdFilter]);
 
   useEffect(() => {
     void load();
@@ -516,7 +611,11 @@ function Home() {
           <div className="flex flex-col gap-3 border-b border-[var(--list-border)] px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="font-display text-lg font-semibold text-foreground">활동 타임라인</h2>
-              <p className="mt-1 text-xs text-muted">시간은 UTC · 에이전트와 제품 출처를 구분합니다</p>
+              <p className="mt-1 text-xs text-muted">
+                {rangeMode
+                  ? "UTC · 주소의 ?from·?to·?role·?sessionId 조합은 GET /api/ralph/events/range 와 동일한 AND 필터입니다"
+                  : "시간은 UTC · 에이전트와 제품 출처를 구분합니다 · 최근 tail(내부 고정) 또는 아래 기간 지정"}
+              </p>
             </div>
             <div className="flex w-full max-w-xl flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:flex-wrap sm:items-end sm:justify-end">
               <label className="flex min-w-0 flex-1 flex-col gap-1 text-left sm:max-w-[14rem] sm:flex-initial sm:items-end">
@@ -583,6 +682,91 @@ function Home() {
                   ))}
                 </select>
               </label>
+            </div>
+            <div className="flex w-full flex-col gap-2 border-t border-[var(--list-border)] pt-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                  시간 구간 (UTC, ISO 8601)
+                </span>
+                <span
+                  className={
+                    rangeMode
+                      ? "rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100"
+                      : "rounded-full border border-neutral-200 px-2 py-0.5 text-[10px] text-muted dark:border-neutral-700"
+                  }
+                >
+                  {rangeMode ? "기간 모드 · /api/ralph/events/range" : "최근 모드 · /api/ralph/events?tail=1200"}
+                </span>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-[min(100%,22rem)]">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">from</span>
+                  <input
+                    type="text"
+                    value={rangeDraftFrom}
+                    onChange={(ev) => setRangeDraftFrom(ev.target.value)}
+                    placeholder="2026-05-01T00:00:00.000Z"
+                    className="w-full min-w-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 font-mono text-xs text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
+                    aria-label="기간 시작 from (ISO 8601 UTC)"
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-[min(100%,22rem)]">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">to</span>
+                  <input
+                    type="text"
+                    value={rangeDraftTo}
+                    onChange={(ev) => setRangeDraftTo(ev.target.value)}
+                    placeholder="2026-05-03T23:59:59.999Z"
+                    className="w-full min-w-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 font-mono text-xs text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
+                    aria-label="기간 끝 to (ISO 8601 UTC)"
+                    spellCheck={false}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-sm transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                  onClick={() => {
+                    const p = parseTimelineRangeParams(
+                      rangeDraftFrom.trim() || null,
+                      rangeDraftTo.trim() || null,
+                    );
+                    if (!p.ok) return;
+                    setFromToQuery(p.fromIso, p.toIso);
+                  }}
+                >
+                  구간 적용
+                </button>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-sm transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                  onClick={() => {
+                    const to = new Date();
+                    const from = new Date(to.getTime() - 24 * 60 * 60 * 1000);
+                    setFromToQuery(from.toISOString(), to.toISOString());
+                  }}
+                >
+                  지난 24시간
+                </button>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-sm transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                  onClick={() => {
+                    const to = new Date();
+                    const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    setFromToQuery(from.toISOString(), to.toISOString());
+                  }}
+                >
+                  지난 7일
+                </button>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-dashed border-neutral-400 px-3 py-2 text-xs font-semibold text-muted transition hover:border-neutral-500 hover:text-foreground dark:border-neutral-600"
+                  onClick={() => setFromToQuery(null, null)}
+                >
+                  최근만 보기
+                </button>
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">
