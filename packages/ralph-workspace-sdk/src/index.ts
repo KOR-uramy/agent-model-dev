@@ -16,7 +16,7 @@ export type {
   WorkspaceFeedEvent,
   CreateRalphEventsHandlerOptions,
 } from "./types";
-export { AGENT_ROLE_KEYS } from "./types";
+export { AGENT_ROLE_KEYS, EVENT_SOURCE_KEYS } from "./types";
 export {
   parseUsdPerMillionEstTokens,
   resolveEventsJsonlPath,
@@ -33,6 +33,7 @@ export {
   opengrazeEnvTemplate,
   parseEventsJsonl,
   parseRoleQueryParam,
+  parseSourceQueryParam,
   parseSessionIdQueryParam,
   ralphEnvTemplate,
 } from "./snapshot";

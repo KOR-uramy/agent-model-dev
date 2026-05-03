@@ -4,6 +4,12 @@ export type RalphEnv = Record<string, string | undefined>;
 
 export type EventSource = "ralph" | "application";
 
+/** 타임라인 페이로드 `source`·API `source` 쿼리와 동일한 순서 */
+export const EVENT_SOURCE_KEYS: readonly EventSource[] = [
+  "ralph",
+  "application",
+] as const;
+
 /** 타임라인 `detail` 객체의 `role` 값 — `RALPH_TASK.md` 역할별 모니터링 규약과 동일 집합 */
 export type AgentRoleKey =
   | "planning"

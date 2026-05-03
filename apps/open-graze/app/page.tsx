@@ -7,12 +7,15 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AGENT_ROLE_KEYS,
+  EVENT_SOURCE_KEYS,
   eventDetailRole,
   parseRoleQueryParam,
   parseSessionIdQueryParam,
+  parseSourceQueryParam,
 } from "@/lib/timeline-query-params";
 import type {
   AgentRoleKey,
+  EventSource,
   RalphEventsApiPayload,
   WorkspaceFeedEvent,
 } from "ralph-workspace-sdk";
@@ -27,6 +30,11 @@ const ROLE_LABEL_KO: Record<AgentRoleKey, string> = {
   design: "디자인",
   implementation: "구현",
   test: "테스트",
+};
+
+const SOURCE_LABEL_KO: Record<EventSource, string> = {
+  ralph: "에이전트",
+  application: "제품",
 };
 
 function RoleTimelineCell({ detail }: { detail: WorkspaceFeedEvent["detail"] }) {
@@ -146,6 +154,11 @@ function Home() {
     [searchParams],
   );
 
+  const sourceFilter = useMemo(
+    () => parseSourceQueryParam(searchParams.get("source")),
+    [searchParams],
+  );
+
   /** `role` 키는 있으나 API와 동일 규칙으로 인정되지 않는 값이면 주소에서 제거한다. */
   useEffect(() => {
     const raw = searchParams.get("role");
@@ -164,6 +177,17 @@ function Home() {
     if (parseSessionIdQueryParam(raw) !== null) return;
     const next = new URLSearchParams(searchParams.toString());
     next.delete("sessionId");
+    const q = next.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  /** `source` 키는 있으나 API와 동일 규칙으로 인정되지 않는 값이면 주소에서 제거한다. */
+  useEffect(() => {
+    const raw = searchParams.get("source");
+    if (raw === null) return;
+    if (parseSourceQueryParam(raw) !== null) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("source");
     const q = next.toString();
     router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
   }, [pathname, router, searchParams]);
@@ -191,6 +215,17 @@ function Home() {
     [pathname, router, searchParams],
   );
 
+  const setSourceQuery = useCallback(
+    (src: EventSource | null) => {
+      const next = new URLSearchParams(searchParams.toString());
+      if (src == null) next.delete("source");
+      else next.set("source", src);
+      const q = next.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [knownSessionIds, setKnownSessionIds] = useState<string[]>([]);
@@ -208,6 +243,7 @@ function Home() {
       const qs = new URLSearchParams({ tail: "1200" });
       if (roleFilter) qs.set("role", roleFilter);
       if (sessionIdFilter) qs.set("sessionId", sessionIdFilter);
+      if (sourceFilter) qs.set("source", sourceFilter);
       const r = await fetch(`/api/ralph/events?${qs.toString()}`);
       const j = (await r.json()) as ApiPayload;
       setData(j);
@@ -216,7 +252,7 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  }, [roleFilter, sessionIdFilter]);
+  }, [roleFilter, sessionIdFilter, sourceFilter]);
 
   useEffect(() => {
     void load();
@@ -579,6 +615,25 @@ function Home() {
                   {AGENT_ROLE_KEYS.map((key: AgentRoleKey) => (
                     <option key={key} value={key}>
                       {ROLE_LABEL_KO[key]}만
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-w-0 flex-1 flex-col gap-1 text-left sm:max-w-[11rem] sm:flex-initial sm:items-end">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">출처</span>
+                <select
+                  className="w-full min-w-[9.5rem] rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
+                  value={sourceFilter ?? ""}
+                  onChange={(ev) => {
+                    const v = ev.target.value;
+                    setSourceQuery(v === "" ? null : (v as EventSource));
+                  }}
+                  aria-label="타임라인 출처 필터"
+                >
+                  <option value="">전체 출처</option>
+                  {EVENT_SOURCE_KEYS.map((key: EventSource) => (
+                    <option key={key} value={key}>
+                      {SOURCE_LABEL_KO[key]}만
                     </option>
                   ))}
                 </select>

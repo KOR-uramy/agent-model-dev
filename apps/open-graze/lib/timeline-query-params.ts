@@ -2,7 +2,11 @@
  * 홈 타임라인 UI용 — `ralph-workspace-sdk`의 `parseRoleQueryParam` 등과 동일 의미.
  * 클라이언트 번들이 SDK 메인 엔트리( fs/promises 의존 )를 끌어오지 않도록 분리한다.
  */
-import type { AgentRoleKey, WorkspaceFeedEvent } from "ralph-workspace-sdk";
+import type {
+  AgentRoleKey,
+  EventSource,
+  WorkspaceFeedEvent,
+} from "ralph-workspace-sdk";
 
 /** UI·API `role` 쿼리에서 허용하는 값과 동일한 순서 */
 export const AGENT_ROLE_KEYS: readonly AgentRoleKey[] = [
@@ -10,6 +14,12 @@ export const AGENT_ROLE_KEYS: readonly AgentRoleKey[] = [
   "design",
   "implementation",
   "test",
+] as const;
+
+/** API·페이로드 `source`와 동일 집합 */
+export const EVENT_SOURCE_KEYS: readonly EventSource[] = [
+  "ralph",
+  "application",
 ] as const;
 
 export function eventDetailRole(
@@ -50,4 +60,13 @@ export function parseSessionIdQueryParam(
   if (value == null) return null;
   const t = value.trim();
   return t === "" ? null : t;
+}
+
+export function parseSourceQueryParam(
+  value: string | null | undefined,
+): EventSource | null {
+  if (value == null || value.trim() === "") return null;
+  const v = value.trim();
+  if (v === "ralph" || v === "application") return v;
+  return null;
 }

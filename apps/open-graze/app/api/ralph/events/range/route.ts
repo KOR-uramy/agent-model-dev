@@ -1,11 +1,15 @@
 import {
   RALPH_EVENTS_ROLE_QUERY_ERROR,
+  RALPH_EVENTS_SOURCE_QUERY_ERROR,
   TIMELINE_RANGE_MAX_ROWS,
   loadTimelineEventsInRange,
   parseSessionIdQueryParam,
   parseTimelineRangeParams,
 } from "@/lib/timeline-feed";
-import { parseRoleQueryParam } from "ralph-workspace-sdk";
+import {
+  parseRoleQueryParam,
+  parseSourceQueryParam,
+} from "@/lib/timeline-query-params";
 import { NextResponse } from "next/server";
 
 /**
@@ -35,6 +39,18 @@ export async function GET(req: Request) {
   }
   const role = parseRoleQueryParam(roleRaw);
   const sessionId = parseSessionIdQueryParam(searchParams.get("sessionId"));
+  const sourceRaw = searchParams.get("source");
+  if (
+    sourceRaw !== null &&
+    sourceRaw.trim() !== "" &&
+    parseSourceQueryParam(sourceRaw) === null
+  ) {
+    return NextResponse.json(
+      { error: RALPH_EVENTS_SOURCE_QUERY_ERROR },
+      { status: 400 },
+    );
+  }
+  const source = parseSourceQueryParam(sourceRaw);
   const limitRaw = parseInt(searchParams.get("limit") ?? "10000", 10);
   const limit = Number.isFinite(limitRaw)
     ? Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, limitRaw))
@@ -43,7 +59,7 @@ export async function GET(req: Request) {
     parsed.fromIso,
     parsed.toIso,
     limit,
-    { role, sessionId },
+    { role, sessionId, source },
   );
   return NextResponse.json({
     events,
