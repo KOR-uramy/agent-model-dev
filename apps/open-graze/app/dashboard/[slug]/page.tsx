@@ -2,6 +2,12 @@
 
 import { AppChrome, AppMain } from "@/app/components/app-chrome";
 import {
+  codeInline,
+  inputFieldInline,
+  proseMutedSm,
+  sectionEyebrow,
+} from "@/lib/ui-tokens";
+import {
   WORKSPACE_TASK_STATUS_LABEL,
   isWorkspaceTaskStatus,
 } from "@/lib/workspace-task-status";
@@ -37,10 +43,6 @@ export default function WorkspaceDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
-  const [copyHint, setCopyHint] = useState<string | null>(null);
-  /** SSR·첫 페인트에서도 전체 URL이 보이도록(기본은 로컬 dev 포트) */
-  const [publicOrigin, setPublicOrigin] = useState("http://localhost:3000");
-
   const load = useCallback(async () => {
     setEventsLoadErr(null);
     setTasksLoadErr(null);
@@ -79,10 +81,6 @@ export default function WorkspaceDetailPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    setPublicOrigin(window.location.origin);
-  }, []);
-
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -108,47 +106,11 @@ export default function WorkspaceDetailPage() {
     await load();
   }
 
-  async function copyNewTokenOnly() {
-    if (!newToken) return;
-    try {
-      await navigator.clipboard.writeText(newToken);
-      setCopyHint("전체 키를 클립보드에 복사했습니다.");
-    } catch {
-      setCopyHint("브라우저에서 클립보드 복사를 허용해 주세요.");
-    }
-    window.setTimeout(() => setCopyHint(null), 3000);
-  }
-
-  async function copyOpenGrazeEnvSnippet() {
-    if (!newToken) return;
-    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-    const snippet = [
-      "# 플랫폼 연동(gitignore). OpenGraze 로그인·세션에는 별도로 AUTH_SECRET 필요(apps/open-graze/.env.example).",
-      `OPENGRAZE_PLATFORM_URL="${origin}"`,
-      `OPENGRAZE_PLATFORM_API_KEY="${newToken}"`,
-      "",
-    ].join("\n");
-    try {
-      await navigator.clipboard.writeText(snippet);
-      setCopyHint("루트 .env 에 붙여넣을 두 줄(+주석)을 복사했습니다. 저장 후 루트에서 npm run platform:self-test");
-    } catch {
-      setCopyHint("브라우저에서 클립보드 복사를 허용해 주세요.");
-    }
-    window.setTimeout(() => setCopyHint(null), 4000);
-  }
-
   function taskStatusLabel(status: string) {
     return isWorkspaceTaskStatus(status)
       ? WORKSPACE_TASK_STATUS_LABEL[status]
       : status;
   }
-
-  const sectionTitle = "text-xs font-semibold uppercase tracking-wider text-muted";
-  const proseMuted = "mt-1 text-xs leading-relaxed text-muted";
-  const codeInline =
-    "rounded-md bg-neutral-100 px-1 py-0.5 font-mono text-[11px] text-foreground dark:bg-neutral-900";
-  const inputClass =
-    "min-w-[12rem] flex-1 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2.5 text-sm shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600";
 
   return (
     <AppChrome active="dashboard">
@@ -187,8 +149,8 @@ export default function WorkspaceDetailPage() {
         ) : null}
 
         <section className="mt-10 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm">
-          <h2 className={sectionTitle}>작업 현황</h2>
-          <p className={proseMuted}>
+          <h2 className={sectionEyebrow}>작업 현황</h2>
+          <p className={proseMutedSm}>
             API로 반영된 제목·설명·상태를 표시합니다(이 화면에서는 편집하지 않음).{" "}
             <strong className="text-foreground">코드만 고친다고 여기가 자동으로 채워지지는 않습니다</strong> — DB에 들어간
             작업만 보입니다. 넣는 방법은 이 앱 <code className={codeInline}>README.md</code>의 워크스페이스 Task API 또는 로컬{" "}
@@ -229,8 +191,8 @@ export default function WorkspaceDetailPage() {
         </section>
 
         <section className="mt-8 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm">
-          <h2 className={sectionTitle}>수집용 API 키</h2>
-          <p className={proseMuted}>
+          <h2 className={sectionEyebrow}>수집용 API 키</h2>
+          <p className={proseMutedSm}>
             앱·스크립트·서버에서 이 워크스페이스로 <strong className="text-foreground">이벤트를 넣을 때</strong> 씁니다.{" "}
             <code className={codeInline}>POST …/api/v1/events</code> 요청에 헤더{" "}
             <code className={codeInline}>Authorization: Bearer &lt;전체 키&gt;</code> 와 JSON 본문(예:{" "}
@@ -244,7 +206,7 @@ export default function WorkspaceDetailPage() {
           </p>
           <form onSubmit={createKey} className="mt-4 flex flex-wrap gap-2">
             <input
-              className={inputClass}
+              className={inputFieldInline}
               placeholder="구분 이름 · 예: 프로덕션 수집"
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}
@@ -267,87 +229,28 @@ export default function WorkspaceDetailPage() {
               그대로 맞습니다. {newToken}
             </p>
           ) : null}
-        </div>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          수집용 API 키
-        </h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          앱·스크립트·서버에서 이 워크스페이스로 <strong className="text-zinc-700 dark:text-zinc-300">이벤트를 넣을 때</strong> 씁니다.{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">POST …/api/v1/events</code> 요청에 헤더{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">Authorization: Bearer &lt;전체 키&gt;</code> 와 JSON
-          본문(예: <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">kind</code>,{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">data</code>)을 붙입니다. 성공하면 아래{" "}
-          <strong className="text-zinc-700 dark:text-zinc-300">최근 수집 활동</strong>에 보입니다. 키는 노출·커밋하지 말고{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">OPENGRAZE_PLATFORM_API_KEY</code> 같은 환경 변수에만
-          두세요.{" "}
-          <Link href="/llms.txt" className="text-zinc-700 underline dark:text-zinc-300">
-            /llms.txt
-          </Link>{" "}
-          (짧은 인덱스) · 레포의{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">docs/opengraze-llms-guide.md</code>
-        </p>
-        <p className="mt-2 rounded-md border border-zinc-200 bg-zinc-50/90 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">운영·남용 방어</span> — 키마다 윈도 단위 요청
-          한도가 걸릴 수 있습니다(기본 분당 120회·60초 윈도,{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_RATE_LIMIT_PER_WINDOW</code>·
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_RATE_LIMIT_WINDOW_MS</code>,{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">0</code>이면 비활성). 초과 시 HTTP{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">429</code>와 본문{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">retryAfterSeconds</code>, 헤더{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">Retry-After</code>·
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">X-RateLimit-*</code>를 확인하세요. 본문 크기는{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_MAX_BODY_BYTES</code> 상한이 있습니다. 서버
-          로그에는 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">ingest_rate_limited</code> 등 JSON 한 줄이
-          남을 수 있습니다.
-        </p>
-        <form onSubmit={createKey} className="mt-3 flex flex-wrap gap-2">
-          <input
-            className="min-w-[12rem] flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-            placeholder="구분 이름 · 예: 프로덕션 수집"
-            value={keyName}
-            onChange={(e) => setKeyName(e.target.value)}
-            required
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
-          >
-            새 키 만들기
-          </button>
-        </form>
-        {newToken ? (
-          <p className="mt-3 break-all rounded-md bg-emerald-50 p-3 text-xs text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-100">
-            <strong>지금만 표시됩니다.</strong> 복사 후 다른 앱·CI에는{" "}
-            <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_API_KEY</code> 로
-            저장하고, 베이스 URL은 <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_URL</code>{" "}
-            에 두면 이 레포의 <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">npm run platform:self-test</code> 와
-            문서 예제가 그대로 맞습니다. {newToken}
+          <p className="mt-4 rounded-xl border border-[var(--list-border)] bg-surface-subtle px-4 py-3 text-xs leading-relaxed text-muted">
+            <span className="font-semibold text-foreground">운영·남용 방어</span> — 키마다 윈도 단위 요청 한도가 걸릴 수 있습니다(기본
+            분당 120회·60초 윈도, <code className={codeInline}>INGEST_RATE_LIMIT_PER_WINDOW</code>·
+            <code className={codeInline}>INGEST_RATE_LIMIT_WINDOW_MS</code>, <code className={codeInline}>0</code>이면 비활성). 초과 시
+            HTTP <code className={codeInline}>429</code>와 본문 <code className={codeInline}>retryAfterSeconds</code>, 헤더{" "}
+            <code className={codeInline}>Retry-After</code>·<code className={codeInline}>X-RateLimit-*</code>를 확인하세요. 본문 크기는{" "}
+            <code className={codeInline}>INGEST_MAX_BODY_BYTES</code> 상한이 있습니다. 서버 로그에는{" "}
+            <code className={codeInline}>ingest_rate_limited</code> 등 JSON 한 줄이 남을 수 있습니다.
           </p>
-        ) : null}
-        <ul className="mt-4 space-y-2 text-sm">
-          {keys.map((k) => (
-            <li
-              key={k.id}
-              className="flex items-center justify-between rounded-md border border-zinc-200 px-3 py-2 dark:border-zinc-800"
-            >
-              <span>
-                {k.name}{" "}
-                <code className="text-xs text-zinc-500">{k.prefix}…</code>
-              </span>
-              <button
-                type="button"
-                className="text-xs text-red-600 hover:underline"
-                onClick={() => delKey(k.id)}
+          <ul className="mt-6 space-y-2 text-sm">
+            {keys.map((k) => (
+              <li
+                key={k.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--list-border)] px-4 py-3 transition hover:bg-neutral-50/60 dark:hover:bg-neutral-900/30"
               >
-                <span className="min-w-0 text-foreground">
-                  {k.name} <code className="text-xs text-muted">{k.prefix}…</code>
+                <span className="min-w-0 truncate">
+                  <span className="font-medium text-foreground">{k.name}</span>{" "}
+                  <code className={codeInline}>{k.prefix}…</code>
                 </span>
                 <button
                   type="button"
-                  className="shrink-0 self-start text-xs text-red-600 hover:underline dark:text-red-400"
+                  className="shrink-0 text-xs text-red-600 hover:underline dark:text-red-400"
                   onClick={() => delKey(k.id)}
                 >
                   삭제하기
@@ -358,8 +261,8 @@ export default function WorkspaceDetailPage() {
         </section>
 
         <section className="mt-8 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm">
-          <h2 className={sectionTitle}>최근 수집 활동</h2>
-          <p className={proseMuted}>
+          <h2 className={sectionEyebrow}>최근 수집 활동</h2>
+          <p className={proseMutedSm}>
             이 워크스페이스로 들어온 <code className={codeInline}>POST /api/v1/events</code> 결과만 보입니다.{" "}
             <strong className="text-foreground">지금 편집 중인 UI·코드 변경은 여기에 나타나지 않습니다.</strong> 아래가{" "}
             <code className={codeInline}>[]</code>이면 아직 이벤트를 한 번도 안 보낸 것이거나, 이 키가 아닌 다른 키로 보냈을 수

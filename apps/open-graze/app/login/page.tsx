@@ -1,19 +1,16 @@
 "use client";
 
 import { AppChrome, AuthCard } from "@/app/components/app-chrome";
+import { codeInline, inputField, linkSubtleTight, proseBodyMuted } from "@/lib/ui-tokens";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
-const inputClass =
-  "w-full rounded-lg border border-[var(--list-border)] bg-background px-3 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted/70 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600";
-
 function LoginInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const cb = sp.get("callbackUrl") ?? "/dashboard";
-  const registered = sp.get("registered") === "1";
   const [email, setEmail] = useState("dev@opengraze.local");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -42,19 +39,24 @@ function LoginInner() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">OpenGraze 로그인</h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+    <AppChrome active="login">
+      <AuthCard>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">OpenGraze 로그인</h1>
+        <p className={proseBodyMuted}>
           워크스페이스·API 키·수집 이벤트를 한곳에서 관리합니다. 아래 이메일·비밀번호로 대시보드에 들어갑니다.
         </p>
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
+        <p className="mt-3 text-xs text-muted">
           HTTP 수집 계약 요약은{" "}
-          <Link href="/llms.txt" className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200" target="_blank" rel="noopener noreferrer">
+          <Link
+            href="/llms.txt"
+            className={linkSubtleTight}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             /llms.txt
           </Link>
           , 앱 설치·마이그레이션은 저장소{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">apps/open-graze/README.md</code> 를 참고하세요.
+          <code className={codeInline}>apps/open-graze/README.md</code> 를 참고하세요.
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
@@ -69,7 +71,7 @@ function LoginInner() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
+              className={inputField}
             />
           </div>
           <div>
@@ -83,7 +85,7 @@ function LoginInner() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
+              className={inputField}
               placeholder="시드 계정 비밀번호"
             />
           </div>
@@ -108,15 +110,16 @@ function LoginInner() {
           </code>
         </p>
 
-      <div className="flex flex-col gap-2 text-center text-sm text-zinc-500">
-        <Link href="/" className="hover:underline">
-          타임라인(홈)으로 돌아가기
-        </Link>
-        <Link href="/dashboard" className="hover:underline">
-          대시보드로 이동
-        </Link>
-      </div>
-    </div>
+        <div className="mt-8 flex flex-col gap-2 text-center text-sm text-muted">
+          <Link href="/" className={linkSubtleTight}>
+            타임라인(홈)으로 돌아가기
+          </Link>
+          <Link href="/dashboard" className={linkSubtleTight}>
+            대시보드로 이동
+          </Link>
+        </div>
+      </AuthCard>
+    </AppChrome>
   );
 }
 
@@ -124,7 +127,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <AppChrome>
+        <AppChrome active="login">
           <div className="p-8 text-center text-sm text-muted">불러오는 중…</div>
         </AppChrome>
       }

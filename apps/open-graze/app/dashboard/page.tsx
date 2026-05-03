@@ -1,6 +1,7 @@
 "use client";
 
 import { AppChrome, AppMain } from "@/app/components/app-chrome";
+import { codeInline, inputField, linkSubtleTight, proseBodyMuted } from "@/lib/ui-tokens";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -69,21 +70,22 @@ export default function DashboardIndexPage() {
     );
   }
 
-  const fieldClass =
-    "w-full rounded-lg border border-[var(--list-border)] bg-background px-3 py-2.5 text-sm shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600";
-
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">워크스페이스</h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        프로젝트나 팀마다 공간을 나누고, API 키·수집 이벤트·(설정 시) 구독·결제를 함께 묶습니다. 외부 앱에서 보내는 이벤트는{" "}
-        <Link href="/llms.txt" className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100" target="_blank" rel="noopener noreferrer">
-          /llms.txt
-        </Link>{" "}
-        요약과 저장소{" "}
-        <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-900">docs/opengraze-llms-guide.md</code>{" "}
-        를 따르세요.
-      </p>
+    <AppChrome active="dashboard">
+      <AppMain>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">워크스페이스</h1>
+        <p className={proseBodyMuted}>
+          프로젝트나 팀마다 공간을 나누고, API 키·수집 이벤트·(설정 시) 구독·결제를 함께 묶습니다. 외부 앱에서 보내는 이벤트는{" "}
+          <Link
+            href="/llms.txt"
+            className={linkSubtleTight}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            /llms.txt
+          </Link>{" "}
+          요약과 저장소 <code className={codeInline}>docs/opengraze-llms-guide.md</code> 를 따르세요.
+        </p>
 
         <form
           onSubmit={create}
@@ -91,14 +93,14 @@ export default function DashboardIndexPage() {
         >
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">새 워크스페이스</h2>
           <input
-            className={fieldClass}
+            className={inputField}
             placeholder="표시 이름 · 예: 프로덕션 모니터링"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
           <input
-            className={fieldClass}
+            className={inputField}
             placeholder="주소 ID · 소문자·숫자·하이픈 · 예: acme-prod"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}

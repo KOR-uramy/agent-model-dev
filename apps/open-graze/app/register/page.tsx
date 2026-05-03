@@ -1,13 +1,11 @@
 "use client";
 
 import { AppChrome, AuthCard } from "@/app/components/app-chrome";
+import { inputField } from "@/lib/ui-tokens";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-
-const inputClass =
-  "w-full rounded-lg border border-[var(--list-border)] bg-background px-3 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted/70 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600";
 
 function RegisterInner() {
   const sp = useSearchParams();
@@ -76,7 +74,7 @@ function RegisterInner() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
+              className={inputField}
               placeholder="you@company.com"
             />
           </div>
@@ -90,7 +88,7 @@ function RegisterInner() {
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={inputClass}
+              className={inputField}
               placeholder="예: 운영 대시보드"
             />
           </div>
@@ -105,7 +103,7 @@ function RegisterInner() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
+              className={inputField}
               placeholder="8자 이상"
               minLength={8}
             />
@@ -121,7 +119,7 @@ function RegisterInner() {
               required
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className={inputClass}
+              className={inputField}
             />
           </div>
           {err ? <p className="text-sm text-red-600 dark:text-red-400">{err}</p> : null}
