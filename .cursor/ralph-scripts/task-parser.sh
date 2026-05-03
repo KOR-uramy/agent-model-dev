@@ -88,6 +88,21 @@ _yaml_escape() {
   fi
 }
 
+# Match markdown checkbox list lines without bash [[ =~ ]] (zsh-sourcing-safe; bash 3.2-safe).
+# Sets: _cb_marker, _cb_status_char, _cb_description, _cb_parallel_group. Returns 0 on match.
+_checkbox_parse_line() {
+  local line="$1"
+  printf '%s\n' "$line" | grep -qE '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[(x|X| )\][[:space:]]+' || return 1
+  _cb_marker="$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]*(([-*]|[0-9]+\.)).*/\1/')"
+  _cb_status_char="$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[(.)\].*/\2/')"
+  _cb_description="$(printf '%s\n' "$line" | sed -E 's/^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[(x|X| )\][[:space:]]+//')"
+  _cb_parallel_group="$DEFAULT_GROUP"
+  if printf '%s\n' "$line" | grep -qE '<!--[[:space:]]*group:[[:space:]]*[0-9]+[[:space:]]*-->'; then
+    _cb_parallel_group="$(printf '%s\n' "$line" | sed -E 's/.*<!--[[:space:]]*group:[[:space:]]*([0-9]+)[[:space:]]*-->.*/\1/')"
+  fi
+  _cb_description="$(sed -E 's/[[:space:]]*<!--[[:space:]]*group:[[:space:]]*[0-9]+[[:space:]]*-->[[:space:]]*//g' <<<"$_cb_description")"
+}
+
 # Write task cache to YAML format
 _write_cache() {
   local workspace="${1:-.}"
@@ -119,26 +134,17 @@ _write_cache() {
       line_num=$((line_num + 1))
       line=$(_normalize_line_endings <<< "$line")
       
-      # Match checkbox list items: "- [ ]", "* [x]", "1. [ ]", etc.
-      if [[ "$line" =~ ^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[(x|X|\ )\][[:space:]]+(.*) ]]; then
-        local marker="${BASH_REMATCH[1]}"
-        local status_char="${BASH_REMATCH[2]}"
-        local description="${BASH_REMATCH[3]}"
+      # Match checkbox list items: "- [ ]", "* [x]", "1. [ ]", etc. (grep/sed: zsh-safe when sourced)
+      if _checkbox_parse_line "$line"; then
+        local marker="$_cb_marker"
+        local status_char="$_cb_status_char"
+        local description="$_cb_description"
+        local parallel_group="$_cb_parallel_group"
         
-        # Extract parallel_group from line (first match wins)
-        # Format: <!-- group: N --> where N is a number
-        local parallel_group="$DEFAULT_GROUP"
-        if [[ "$line" =~ \<!--[[:space:]]*group:[[:space:]]*([0-9]+)[[:space:]]*--\> ]]; then
-          parallel_group="${BASH_REMATCH[1]}"
-        fi
-        
-        # Strip ALL group comments from description for cleanliness
-        description="$(sed -E 's/[[:space:]]*<!--[[:space:]]*group:[[:space:]]*[0-9]+[[:space:]]*-->[[:space:]]*//g' <<<"$description")"
-        
-        # Determine status
-        local status="pending"
+        # Determine task_status (avoid zsh read-only name "status")
+        local task_status="pending"
         if [[ "$status_char" == "x" ]] || [[ "$status_char" == "X" ]]; then
-          status="completed"
+          task_status="completed"
         fi
         
         # Calculate indentation level (each 2 spaces = 1 level)
@@ -148,7 +154,7 @@ _write_cache() {
         # Write YAML entry
         echo "  - id: \"line_$line_num\""
         echo "    line_number: $line_num"
-        echo "    status: $status"
+        echo "    status: $task_status"
         echo "    parallel_group: $parallel_group"
         echo "    description: $(_yaml_escape "$description")"
         echo "    indent_level: $indent_level"
@@ -213,24 +219,26 @@ get_all_tasks() {
   
   # If cache exists, use it; otherwise parse directly
   if [[ -f "$cache_file" ]]; then
-    # Parse YAML cache (simple line-by-line extraction)
+    # Parse YAML cache (grep/sed: zsh-safe when sourced)
     local current_id="" current_status="" current_desc=""
     while IFS= read -r line; do
       line="${line#"${line%%[![:space:]]*}"}"  # trim leading whitespace
       
-      if [[ "$line" =~ ^-\ id:\ \"?([^\"]+)\"?$ ]]; then
-        # New task entry - output previous if exists
+      if printf '%s\n' "$line" | grep -qE '^-\ id:'; then
         if [[ -n "$current_id" ]]; then
           echo "$current_id|$current_status|$current_desc"
         fi
-        current_id="${BASH_REMATCH[1]}"
+        current_id="$(printf '%s\n' "$line" | sed -E 's/^-\ id:[[:space:]]+"([^"]+)".*/\1/')"
+        if [[ "$current_id" == "$line" ]]; then
+          current_id="$(printf '%s\n' "$line" | sed -E 's/^-\ id:[[:space:]]+([^[:space:]]+).*/\1/')"
+        fi
         current_status=""
         current_desc=""
-      elif [[ "$line" =~ ^status:\ (.+)$ ]]; then
-        current_status="${BASH_REMATCH[1]}"
-      elif [[ "$line" =~ ^description:\ \"?(.*)\"?$ ]]; then
-        current_desc="${BASH_REMATCH[1]}"
-        # Remove trailing quote if present
+      elif printf '%s\n' "$line" | grep -qE '^status:'; then
+        current_status="$(printf '%s\n' "$line" | sed -E 's/^status:[[:space:]]+(.*)/\1/')"
+      elif printf '%s\n' "$line" | grep -qE '^description:'; then
+        current_desc="$(printf '%s\n' "$line" | sed -E 's/^description:[[:space:]]+//')"
+        current_desc="${current_desc#\"}"
         current_desc="${current_desc%\"}"
       fi
     done < "$cache_file"
@@ -254,16 +262,16 @@ _parse_tasks_direct() {
     line_num=$((line_num + 1))
     line=$(_normalize_line_endings <<< "$line")
     
-    if [[ "$line" =~ ^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[(x|X|\ )\][[:space:]]+(.*) ]]; then
-      local status_char="${BASH_REMATCH[2]}"
-      local description="${BASH_REMATCH[3]}"
+    if _checkbox_parse_line "$line"; then
+      local status_char="$_cb_status_char"
+      local description="$_cb_description"
       
-      local status="pending"
+      local task_status="pending"
       if [[ "$status_char" == "x" ]] || [[ "$status_char" == "X" ]]; then
-        status="completed"
+        task_status="completed"
       fi
       
-      echo "line_$line_num|$status|$description"
+      echo "line_$line_num|$task_status|$description"
     fi
   done < "$task_file"
 }
@@ -284,21 +292,24 @@ get_all_tasks_with_group() {
     while IFS= read -r line; do
       line="${line#"${line%%[![:space:]]*}"}"  # trim leading whitespace
       
-      if [[ "$line" =~ ^-\ id:\ \"?([^\"]+)\"?$ ]]; then
-        # New task entry - output previous if exists
+      if printf '%s\n' "$line" | grep -qE '^-\ id:'; then
         if [[ -n "$current_id" ]]; then
           echo "$current_id|$current_status|$current_group|$current_desc"
         fi
-        current_id="${BASH_REMATCH[1]}"
+        current_id="$(printf '%s\n' "$line" | sed -E 's/^-\ id:[[:space:]]+"([^"]+)".*/\1/')"
+        if [[ "$current_id" == "$line" ]]; then
+          current_id="$(printf '%s\n' "$line" | sed -E 's/^-\ id:[[:space:]]+([^[:space:]]+).*/\1/')"
+        fi
         current_status=""
         current_group="$DEFAULT_GROUP"
         current_desc=""
-      elif [[ "$line" =~ ^status:\ (.+)$ ]]; then
-        current_status="${BASH_REMATCH[1]}"
-      elif [[ "$line" =~ ^parallel_group:\ (.+)$ ]]; then
-        current_group="${BASH_REMATCH[1]}"
-      elif [[ "$line" =~ ^description:\ \"?(.*)\"?$ ]]; then
-        current_desc="${BASH_REMATCH[1]}"
+      elif printf '%s\n' "$line" | grep -qE '^status:'; then
+        current_status="$(printf '%s\n' "$line" | sed -E 's/^status:[[:space:]]+(.*)/\1/')"
+      elif printf '%s\n' "$line" | grep -qE '^parallel_group:'; then
+        current_group="$(printf '%s\n' "$line" | sed -E 's/^parallel_group:[[:space:]]+(.*)/\1/')"
+      elif printf '%s\n' "$line" | grep -qE '^description:'; then
+        current_desc="$(printf '%s\n' "$line" | sed -E 's/^description:[[:space:]]+//')"
+        current_desc="${current_desc#\"}"
         current_desc="${current_desc%\"}"
       fi
     done < "$cache_file"
@@ -322,25 +333,17 @@ _parse_tasks_direct_with_group() {
     line_num=$((line_num + 1))
     line=$(_normalize_line_endings <<< "$line")
     
-    if [[ "$line" =~ ^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[(x|X|\ )\][[:space:]]+(.*) ]]; then
-      local status_char="${BASH_REMATCH[2]}"
-      local description="${BASH_REMATCH[3]}"
+    if _checkbox_parse_line "$line"; then
+      local status_char="$_cb_status_char"
+      local description="$_cb_description"
+      local group="$_cb_parallel_group"
       
-      # Extract group
-      local group="$DEFAULT_GROUP"
-      if [[ "$line" =~ \<!--[[:space:]]*group:[[:space:]]*([0-9]+)[[:space:]]*--\> ]]; then
-        group="${BASH_REMATCH[1]}"
-      fi
-      
-      # Strip group comment from description
-      description="$(sed -E 's/[[:space:]]*<!--[[:space:]]*group:[[:space:]]*[0-9]+[[:space:]]*-->[[:space:]]*//g' <<<"$description")"
-      
-      local status="pending"
+      local task_status="pending"
       if [[ "$status_char" == "x" ]] || [[ "$status_char" == "X" ]]; then
-        status="completed"
+        task_status="completed"
       fi
       
-      echo "line_$line_num|$status|$group|$description"
+      echo "line_$line_num|$task_status|$group|$description"
     fi
   done < "$task_file"
 }
@@ -375,9 +378,9 @@ get_pending_groups() {
 get_next_task() {
   local workspace="${1:-.}"
   
-  get_all_tasks "$workspace" | while IFS='|' read -r id status desc; do
-    if [[ "$status" == "pending" ]]; then
-      echo "$id|$status|$desc"
+  get_all_tasks "$workspace" | while IFS='|' read -r id task_status desc; do
+    if [[ "$task_status" == "pending" ]]; then
+      echo "$id|$task_status|$desc"
       break
     fi
   done
@@ -389,9 +392,9 @@ get_task_by_id() {
   local workspace="${1:-.}"
   local target_id="$2"
   
-  get_all_tasks "$workspace" | while IFS='|' read -r id status desc; do
+  get_all_tasks "$workspace" | while IFS='|' read -r id task_status desc; do
     if [[ "$id" == "$target_id" ]]; then
-      echo "$id|$status|$desc"
+      echo "$id|$task_status|$desc"
       break
     fi
   done
@@ -402,8 +405,8 @@ count_remaining() {
   local workspace="${1:-.}"
   local count=0
   
-  while IFS='|' read -r id status desc; do
-    if [[ "$status" == "pending" ]]; then
+  while IFS='|' read -r id task_status desc; do
+    if [[ "$task_status" == "pending" ]]; then
       count=$((count + 1))
     fi
   done < <(get_all_tasks "$workspace")
@@ -416,8 +419,8 @@ count_completed() {
   local workspace="${1:-.}"
   local count=0
   
-  while IFS='|' read -r id status desc; do
-    if [[ "$status" == "completed" ]]; then
+  while IFS='|' read -r id task_status desc; do
+    if [[ "$task_status" == "completed" ]]; then
       count=$((count + 1))
     fi
   done < <(get_all_tasks "$workspace")
@@ -572,9 +575,9 @@ print_task_status() {
   echo ""
   echo "Tasks:"
   
-  get_all_tasks "$workspace" | while IFS='|' read -r id status desc; do
+  get_all_tasks "$workspace" | while IFS='|' read -r id task_status desc; do
     local checkbox="[ ]"
-    if [[ "$status" == "completed" ]]; then
+    if [[ "$task_status" == "completed" ]]; then
       checkbox="[x]"
     fi
     echo "  $checkbox $desc (${id})"
