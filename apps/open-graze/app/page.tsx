@@ -163,9 +163,9 @@ export default function Home() {
           </h1>
 
           <p className="mt-3 max-w-[30rem] text-pretty text-sm leading-snug text-muted sm:text-[0.95rem]">
-            제품 APM과 챗 로그를 따로 보지 않고,{" "}
+            챗 로그·APM 대시보드를 오가며 맞춰 보지 않고,{" "}
             <strong className="font-medium text-foreground">역할·추정 비용·제품 이벤트</strong>를 한 타임라인에서 재현합니다.
-            외부 연동 계약은{" "}
+            수집·연동 계약은{" "}
             <Link
               href="/llms.txt"
               className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
@@ -174,7 +174,9 @@ export default function Home() {
             >
               /llms.txt
             </Link>
-            로 고정해 두었습니다.
+            로 공개해 두었고, 리포지토리의{" "}
+            <code className="rounded bg-neutral-100 px-1 text-xs dark:bg-neutral-800">apps/open-graze/README.md</code> 한 블록으로
+            핵심 플로를 재현할 수 있습니다.
           </p>
 
           <p className="mt-4 max-w-[26rem] text-pretty text-base font-medium leading-snug text-muted">
@@ -200,10 +202,25 @@ export default function Home() {
             반복되는 에이전트 실행과 실제 서비스 동작을 같은 줄에서 추적하고, 워크스페이스에서 수집과 결제까지 이어집니다.
           </p>
 
+          <p className="mt-6 max-w-[28rem] text-pretty text-center text-xs leading-relaxed text-muted">
+            <strong className="font-medium text-foreground">신뢰</strong> — 이메일·비밀번호(Credentials·JWT), 워크스페이스별 API 키, 수집 API 남용 완화.
+            운영·구매 담당자에게는 위 공개 계약과{" "}
+            <Link
+              href="/llms.txt"
+              className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              HTTP 수집 요약
+            </Link>
+            을 먼저 보여 주세요.
+          </p>
+
           <p className="mt-8 flex flex-wrap items-center justify-center gap-2 text-[11px] text-muted">
             <span className="rounded-full border border-neutral-200 px-2.5 py-0.5 dark:border-neutral-700">몇 초마다 자동 갱신</span>
             <span className="rounded-full border border-neutral-200 px-2.5 py-0.5 dark:border-neutral-700">역할 배지·토큰·$ 추정</span>
             <span className="rounded-full border border-neutral-200 px-2.5 py-0.5 dark:border-neutral-700">공개 수집 스키마</span>
+            <span className="rounded-full border border-neutral-200 px-2.5 py-0.5 dark:border-neutral-700">도그푸드 self-test</span>
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -275,6 +292,15 @@ export default function Home() {
                 <code className="rounded bg-neutral-100 px-1 text-xs dark:bg-neutral-800">docs/opengraze-llms-guide.md</code>
                 , 요약은 위 <strong className="text-foreground">HTTP 수집 요약</strong> 링크(
                 <code className="rounded bg-neutral-100 px-1 text-xs dark:bg-neutral-800">/llms.txt</code>)입니다.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="shrink-0 text-foreground" aria-hidden>
+                ·
+              </span>
+              <span>
+                <strong className="text-foreground">전환</strong> — 무료 가입 후 워크스페이스에서 키를 발급하고, 같은 화면에서 수집·과금 흐름을
+                이어갑니다.
               </span>
             </li>
           </ul>
@@ -440,7 +466,7 @@ export default function Home() {
         </div>
 
         <footer className="mx-auto mt-16 max-w-lg border-t border-[var(--list-border)] pt-10 text-center text-[11px] leading-relaxed text-muted">
-          <p className="text-[12px] font-medium text-foreground">신뢰·연동</p>
+          <p className="text-[12px] font-medium text-foreground">신뢰·연동·시작</p>
           <p className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <Link href="/llms.txt" className="underline underline-offset-4 hover:text-foreground" target="_blank" rel="noopener noreferrer">
               /llms.txt
@@ -456,6 +482,12 @@ export default function Home() {
             </span>
             <Link href="/dashboard" className="underline underline-offset-4 hover:text-foreground">
               워크스페이스
+            </Link>
+            <span aria-hidden className="text-neutral-300 dark:text-neutral-600">
+              |
+            </span>
+            <Link href="/register" className="underline underline-offset-4 hover:text-foreground">
+              무료 가입
             </Link>
           </p>
           <p className="mt-6 break-all">

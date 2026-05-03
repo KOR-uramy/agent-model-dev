@@ -86,7 +86,11 @@ export default function DashboardIndexPage() {
           </Link>{" "}
           공개 계약을 따르고, 장문 가이드는 저장소{" "}
           <code className="rounded bg-neutral-100 px-1 text-xs dark:bg-neutral-800">docs/opengraze-llms-guide.md</code>를
-          참고하세요.
+          참고하세요. 홈 타임라인에서 에이전트 역할·비용 추정을 함께 보려면{" "}
+          <Link href="/" className="font-medium text-foreground underline-offset-4 hover:underline">
+            관측 홈
+          </Link>
+          으로 이동하세요.
         </p>
 
         <form onSubmit={create} className={`mt-8 space-y-4 ${surfaceCard}`}>

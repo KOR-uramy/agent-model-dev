@@ -46,6 +46,8 @@ export default function WorkspaceDetailPage() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [keyName, setKeyName] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
+  const [publicOrigin, setPublicOrigin] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
@@ -130,45 +132,29 @@ export default function WorkspaceDetailPage() {
   }, [load]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setPublicOrigin(`${window.location.protocol}//${window.location.host}`);
-    }
+    if (typeof window !== "undefined") setPublicOrigin(window.location.origin);
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const sp = new URLSearchParams(window.location.search);
-    if (sp.get("billing") !== "success") return;
-    setBillingSuccess(true);
-    void router.replace(`/dashboard/${slug}`, { scroll: false });
-  }, [router, slug]);
 
   async function copyNewTokenOnly() {
     if (!newToken) return;
-    setCopyHint(null);
     try {
       await navigator.clipboard.writeText(newToken);
-      setCopyHint("전체 키를 클립보드에 복사했습니다.");
+      setCopyHint("클립보드에 키를 복사했습니다.");
     } catch {
-      setCopyHint("복사에 실패했습니다. 키를 직접 선택해 복사해 주세요.");
+      setCopyHint("클립보드 복사에 실패했습니다. 직접 선택해 복사해 주세요.");
     }
   }
 
   async function copyOpenGrazeEnvSnippet() {
     if (!newToken) return;
-    setCopyHint(null);
-    const origin =
-      typeof window !== "undefined"
-        ? `${window.location.protocol}//${window.location.host}`
-        : "http://localhost:3000";
-    const snippet = `OPENGRAZE_PLATFORM_URL="${origin}"
-OPENGRAZE_PLATFORM_API_KEY="${newToken}"
-# OPENGRAZE_WORKSPACE_SLUG="${slug}"`;
+    const base =
+      typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
+    const snippet = `OPENGRAZE_PLATFORM_URL=${base}\nOPENGRAZE_PLATFORM_API_KEY=${newToken}\n`;
     try {
       await navigator.clipboard.writeText(snippet);
-      setCopyHint("루트 .env.example 스타일 스니펫을 복사했습니다. 워크스페이스 slug 주석은 필요 시 해제하세요.");
+      setCopyHint("URL·키 스니펫을 클립보드에 복사했습니다.");
     } catch {
-      setCopyHint("복사에 실패했습니다.");
+      setCopyHint("클립보드 복사에 실패했습니다.");
     }
   }
 
@@ -499,7 +485,7 @@ OPENGRAZE_PLATFORM_API_KEY="${newToken}"
             , 장문 가이드는 저장소 <code className={codeInline}>docs/opengraze-llms-guide.md</code> 를 참고하세요.
           </p>
           <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--list-border)] bg-card p-3 font-mono text-[11px] text-foreground">
-            {`${ingestPostExample}
+            {`POST ${publicOrigin || "<이-브라우저-호스트>"}/api/v1/events
 Authorization: Bearer <발급한_키>
 Content-Type: application/json
 

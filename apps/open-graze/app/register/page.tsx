@@ -44,7 +44,7 @@ function RegisterInner() {
         callbackUrl: cb,
       });
       if (res?.error) {
-        router.replace("/login?registered=1");
+        router.replace(`/login?registered=1&callbackUrl=${encodeURIComponent(cb)}`);
         return;
       }
       router.push(cb);
@@ -69,6 +69,11 @@ function RegisterInner() {
             /llms.txt
           </Link>{" "}
           계약을 따릅니다.
+        </p>
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          비밀번호는 bcrypt로 저장됩니다. 장문 연동·로컬 재현은 저장소{" "}
+          <code className="rounded bg-neutral-100 px-1 text-[11px] dark:bg-neutral-800">docs/opengraze-llms-guide.md</code> ·{" "}
+          <code className="rounded bg-neutral-100 px-1 text-[11px] dark:bg-neutral-800">apps/open-graze/README.md</code>를 참고하세요.
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
