@@ -12,7 +12,8 @@ This directory is the Codex CLI clone of the repo's Cursor Ralph setup.
 
 - Uses `codex exec` instead of Cursor `agent` / `cursor-agent`
 - Defaults `RALPH_MODEL` to `gpt-5.2` unless overridden
-- Stores Codex session state under `workspace/.ralph/codex-home` by default
+- Uses your normal Codex login/session state by default (`~/.codex`)
+- Supports an optional isolated `RALPH_CODEX_HOME` override when you explicitly want it
 - Treats each iteration as a fresh Codex run instead of relying on Cursor `--resume`
 
 ## Basic Usage

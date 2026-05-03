@@ -107,7 +107,9 @@ ralph_cursor_agent_bin() {
 
 ralph_codex_home() {
   local workspace="${1:-.}"
-  echo "${RALPH_CODEX_HOME:-$workspace/.ralph/codex-home}"
+  if [[ -n "${RALPH_CODEX_HOME:-}" ]]; then
+    echo "$RALPH_CODEX_HOME"
+  fi
 }
 
 # Get current iteration from .ralph/.iteration
@@ -763,7 +765,6 @@ run_iteration() {
 
   local codex_home
   codex_home="$(ralph_codex_home "$workspace")"
-  mkdir -p "$codex_home"
 
   local last_message="$workspace/.ralph/last-message.txt"
   local signal_file="$workspace/.ralph/.last-signal"
@@ -790,7 +791,12 @@ run_iteration() {
   
   # Start parser in background, reading from codex json output.
   (
-    printf "%s" "$prompt" | env CODEX_HOME="$codex_home" "${cmd[@]}" - 2>&1 | "$script_dir/stream-parser.sh" "$workspace" > "$signal_file"
+    if [[ -n "$codex_home" ]]; then
+      mkdir -p "$codex_home"
+      printf "%s" "$prompt" | env CODEX_HOME="$codex_home" "${cmd[@]}" - 2>&1
+    else
+      printf "%s" "$prompt" | "${cmd[@]}" - 2>&1
+    fi | "$script_dir/stream-parser.sh" "$workspace" > "$signal_file"
   ) &
   local agent_pid=$!
   

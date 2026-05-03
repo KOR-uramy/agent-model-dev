@@ -299,7 +299,6 @@ Begin by reading any relevant files, then implement the task."
 
   local codex_home
   codex_home="$(ralph_codex_home "$worktree_dir")"
-  mkdir -p "$codex_home"
 
   local cmd=(
     "$agent_bin"
@@ -314,7 +313,15 @@ Begin by reading any relevant files, then implement the task."
     cmd+=(--model "$MODEL")
   fi
 
-  if cd "$worktree_dir" && printf "%s" "$prompt" | env CODEX_HOME="$codex_home" "${cmd[@]}" - >> "$log_file" 2>&1; then
+  if [[ -n "$codex_home" ]]; then
+    mkdir -p "$codex_home"
+  fi
+
+  if cd "$worktree_dir" && if [[ -n "$codex_home" ]]; then
+    printf "%s" "$prompt" | env CODEX_HOME="$codex_home" "${cmd[@]}" -
+  else
+    printf "%s" "$prompt" | "${cmd[@]}" -
+  fi >> "$log_file" 2>&1; then
     echo "done" > "$status_file"
     
     # Check if any commits were made
