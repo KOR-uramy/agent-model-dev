@@ -333,7 +333,8 @@ _merge_agent_single_try() {
   local strategy="${4:-}"
   local err_log="${5:-}"
 
-  if ! git -C "$workspace" checkout "$target_branch" 2>/dev/null; then
+  # stdout 금지: `r=$(merge_agent_branch)` 시 "Switched to branch…" 가 섞이면 success 판별이 깨진다.
+  if ! git -C "$workspace" checkout "$target_branch" >/dev/null 2>&1; then
     echo "checkout_error"
     return 0
   fi
@@ -397,7 +398,7 @@ merge_agent_branch() {
   local err_log="${4:-}"
 
   local r
-  r=$(_merge_agent_single_try "$branch" "$target_branch" "$workspace" "" "$err_log")
+  r=$(_merge_agent_single_try "$branch" "$target_branch" "$workspace" "" "$err_log" | tail -1)
   if [[ "$r" == "success" ]]; then
     echo "success"
     return 0
@@ -410,7 +411,7 @@ merge_agent_branch() {
   abort_merge "$workspace"
 
   echo "  ↳ 재시도: 충돌·잔류 시 에이전트 브랜치 우선(-X theirs)" >&2
-  r=$(_merge_agent_single_try "$branch" "$target_branch" "$workspace" "theirs" "$err_log")
+  r=$(_merge_agent_single_try "$branch" "$target_branch" "$workspace" "theirs" "$err_log" | tail -1)
   if [[ "$r" == "success" ]]; then
     echo "success"
     return 0
@@ -616,13 +617,13 @@ run_parallel_tasks() {
     return 0
   fi
   
-  # Format group list for display (hide 999999, show as "unannotated")
+  # 999999 = RALPH_TASK.md 에 `<!-- group: N -->` 주석이 없는 체크리스트(“그룹 미지정”)
   local groups_display=""
   for g in "${groups[@]}"; do
     if [[ "$g" == "999999" ]]; then
-      groups_display+="unannotated "
+      groups_display+="그룹-미지정 "
     else
-      groups_display+="$g "
+      groups_display+="group:$g "
     fi
   done
   echo "📋 Found ${#groups[@]} group(s) to process: ${groups_display}"
@@ -680,7 +681,7 @@ run_parallel_tasks() {
     
     # Display group header
     local group_label="$current_group"
-    [[ "$current_group" == "999999" ]] && group_label="unannotated (999999)"
+    [[ "$current_group" == "999999" ]] && group_label="그룹-미지정(999999)"
     
     echo ""
     echo "═══════════════════════════════════════════════════════════════════"
