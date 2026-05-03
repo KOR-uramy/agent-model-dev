@@ -5,7 +5,7 @@
 ## Summary
 
 - Iterations completed: 4 (+ 토스 v2 결제위젯·승인·웹훅)
-- Current status: `RALPH_TASK.md`에 **미완료 `[ ]` 2건** — 역할별 모니터링 **규약(문서)** · **소비 UI(`/` 타임라인)**. 나머지 성공 기준은 `[x]`.
+- Current status: `RALPH_TASK.md`에 **미완료 `[ ]` 2건**(규약·소비 UI). 디자인 단계에서 요구사항+SDK·앱 README에 **역할 필드(`detail.role`)** 규약 문구를 반영함; SDK 타입·`/` 테이블 UI는 **구현** 예정.
 
 ## Session History
 
@@ -101,3 +101,37 @@
 
 ### 2026-05-03 10:39:48
 **Session 2 started** — 역할: 디자인 (`design`) · model: auto
+
+### 2026-05-03 (Ralph 사이클 1 — 디자인, 단계 2/4)
+
+**Session** — 역할: 디자인 (`design`) · 사이클 1 · 단계 2/4 · model: auto
+
+**감시 요약(직전: 기획)** — `progress.md` 2026-05-03 기획 블록·`RALPH_TASK.md` 미완료 2건·`git log`(`docs(ralph): 기획 사이클1…`)를 확인했다. 데이터 계약·UI·ingest 경계·리스크( `detail.role` vs JSON 키 `role` )가 체크리스트로 정리되어 있어 **승인**한다. 보완 요청 없음.
+
+**이번에 한 일(디자인 산출)** — 요구사항 문서에 **역할 필드 고정** 문단을 추가하고, `packages/ralph-workspace-sdk/README.md`·`apps/open-graze/README.md`에 동일 규약을 반영했다(구현 전 **단일 진실**). 아래는 **구현**용 계약·와이어·터치 리스트.
+
+#### 데이터·API 계약
+
+| 항목 | 결정 |
+|------|------|
+| JSON | `detail` 객체의 프로퍼티 **`role`** (논리 경로 표기 **`detail.role`**) |
+| 허용 값 | `planning` \| `design` \| `implementation` \| `test` |
+| 생산 | `stream-parser` `session_start` — `RALPH_ROLE` 있을 때만 `detail`에 `role` |
+| 소비 | `GET /api/ralph/events` → `events[]` 그대로; 별도 top-level 필드 추가 **불필요** |
+| application | `detail.role` **선택**; 없으면 UI `—` |
+| ingest | 북극성 UI는 `/`만; 수집 페이로드에 넣을 경우 **동일 관례 권장** |
+
+#### UI 와이어 (`/` 활동 타임라인 테이블)
+
+- **`<th>역할</th>`** — `채널` 오른쪽(또는 `유형` 왼쪽)에 고정 폭 열 하나 추가.
+- 셀: `detail`에서 `typeof detail.role === 'string'` 이고 허용 네 값이면 **캡슐 배지**(짧은 **한글** 라벨: 기획·디자인·구현·테스트; `title`에 원문 키 유지). 그 외·비객체·ralph가 아니어도 role 없으면 **`—`**.
+- **색 구분**(구현 시 기존 토큰/뉴트럴 링에 맞출 것): 예) 기획=슬레이트, 디자인=바이올렛, 구현=에메랄드, 테스트=앰버 — 구체 클래스는 `page.tsx` 일관 스타일로.
+
+#### 구현 터치 리스트(파일·섹션)
+
+1. `packages/ralph-workspace-sdk/src/types.ts` — `export type AgentRoleKey = "planning" | "design" | "implementation" | "test"`; `ApplicationTelemetryDetail`에 `role?: AgentRoleKey` (주석: `RALPH_TASK.md` 규약).
+2. `apps/open-graze/app/page.tsx` — `ROLE_LABEL_KO` 맵 + `roleBadgeClass(key)` + 테이블 `<th>`/`<td>`; `min-w` 테이블 폭 +80px 정도.
+3. (선택) `lib/timeline-feed.ts` — 변경 없이 `payload` 통과면 불필요; 역할 정규화는 **하지 않음**(원본 JSON 유지).
+4. 성공 기준 **`[x]`** — **규약**은 문서·타입 반영 후 **테스트** 역할이 빌드·스모크로 확인하고 체크; **소비 UI**는 구현 후 동일.
+
+**다음 인계** — **구현**: 위 1~2를 코드로 반영하고, 필요 시 배지 스타일만 조정. **테스트**: `npm run build` + `GET /api/ralph/events` 스모크, 수동으로 `/`에서 배지·`—` 확인 후 `RALPH_TASK.md` 두 체크박스 처리.

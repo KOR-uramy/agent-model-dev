@@ -2,7 +2,7 @@
 
 **한 Next 앱**에서 다음을 제공합니다.
 
-- **`/`** — SQLite **`TimelineEvent`** 타임라인(원본은 `.ralph/*.jsonl` → 동기화 API로 적재)
+- **`/`** — SQLite **`TimelineEvent`** 타임라인(원본은 `.ralph/*.jsonl` → 동기화 API로 적재). 타임라인 JSON 한 줄의 `detail`이 객체일 때 **선택** 필드 **`role`**(`detail.role`)에 `planning` \| `design` \| `implementation` \| `test` 만 온다(`RALPH_TASK.md` 규약).
 - **`/login`**, **`/dashboard`** — 이메일·비밀번호 로그인(Auth.js Credentials + DB), 워크스페이스, API 키, 수집 이벤트
 - **`POST /api/v1/events`** — Bearer API 키로 클라우드 수집
 - **웹훅** — `/api/webhooks/toss`(토스 v2), `/api/webhooks/stripe`(레거시), `/api/webhooks/telegram`

@@ -66,6 +66,8 @@
 
 역할 집합(1차): **기획 · 디자인 · 구현 · 테스트**. 저장 시 권장 키: `planning` | `design` | `implementation` | `test`(UI 표기는 한글 가능). 확장 시 이 문서와 SDK 타입을 함께 갱신한다.
 
+**역할 필드(고정, 2026-05 디자인)** — 타임라인 한 행(`WorkspaceFeedEvent` / `TimelineEvent.payload` JSON)에서 `detail`이 객체일 때 **선택** 필드 **`role`**을 둔다. 문서·코드 주석에서는 이를 **`detail.role`**이라 부른다(JSON 키 이름은 `role`이며 `detail.role`이라는 단일 키를 쓰지 않는다). 값은 위 권장 키 네 가지 중 하나만 허용. 생략·알 수 없음이면 소비 UI는 `—`(무배지). `stream-parser`의 `session_start`는 `RALPH_ROLE`이 있을 때만 `detail`에 `role`을 넣는다(`RALPH_ROLE_MODE=mono` 등으로 역할 없으면 생략). `source: application` 텔레메트리도 동일 규칙으로 `detail.role` **선택**. 워크스페이스 **`POST /api/v1/events`** 본문에 역할을 실을 경우 동일 `detail.role` 관례를 **권장**(이번 북극성 UI는 **`/` 타임라인**만).
+
 - [ ] **규약** — `packages/ralph-workspace-sdk`·`apps/open-graze` 문서에, 타임라인·ingest에 쓸 **역할 필드 위치·형식**(예: `detail.role` 또는 동등)이 한 줄로 고정되어 있다.
 - [x] **생산 경로(루프)** — `ralph-loop`/`ralph-once`가 이터마다 역할을 순환하고, `stream-parser`의 `session_start` 이벤트 `detail.role`에 `planning` \| `design` \| `implementation` \| `test`가 기록된다(`RALPH_ROLE_MODE=mono`일 때는 생략).
 - [ ] **소비 UI** — OpenGraze **`/`** 타임라인(및 관련 API 응답)에서 역할이 **헤더·배지 등으로 구분**되어, 같은 시간축에서 역할별 스캔이 가능하다.
