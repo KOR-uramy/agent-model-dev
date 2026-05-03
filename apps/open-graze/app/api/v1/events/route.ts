@@ -1,4 +1,8 @@
 import { readJsonBodyLimited } from "@/lib/ingest-body";
+import {
+  consumeIngestRateLimitToken,
+  ingestRateLimitHeaders,
+} from "@/lib/ingest-rate-limit";
 import { prisma } from "@/lib/prisma";
 import { digestToken } from "@/lib/tokens";
 import { NextResponse } from "next/server";
@@ -33,19 +37,54 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
+  const rl = consumeIngestRateLimitToken(apiKey.id);
+  if (!rl.ok) {
+    const headers = ingestRateLimitHeaders(rl);
+    console.warn(
+      JSON.stringify({
+        event: "ingest_rate_limited",
+        workspaceId: apiKey.workspaceId,
+        apiKeyPrefix: apiKey.prefix,
+        limit: rl.limit,
+        retryAfterSec: rl.retryAfterSec,
+      }),
+    );
+    return NextResponse.json(
+      {
+        error: "Too many requests",
+        code: "rate_limited",
+        retryAfterSeconds: rl.retryAfterSec,
+        limitPerWindow: rl.limit,
+      },
+      { status: 429, headers },
+    );
+  }
+
   const bodyRead = await readJsonBodyLimited(req);
   if (!bodyRead.ok) {
+    const h = ingestRateLimitHeaders(rl);
+    if (bodyRead.status === 413) {
+      console.warn(
+        JSON.stringify({
+          event: "ingest_body_rejected",
+          reason: "too_large",
+          workspaceId: apiKey.workspaceId,
+          apiKeyPrefix: apiKey.prefix,
+        }),
+      );
+    }
     return NextResponse.json(
       { error: bodyRead.error },
-      { status: bodyRead.status },
+      { status: bodyRead.status, headers: h },
     );
   }
 
   const parsed = bodySchema.safeParse(bodyRead.value);
   if (!parsed.success) {
+    const h = ingestRateLimitHeaders(rl);
     return NextResponse.json(
       { error: parsed.error.flatten().fieldErrors },
-      { status: 400 },
+      { status: 400, headers: h },
     );
   }
 
@@ -63,5 +102,17 @@ export async function POST(req: Request) {
     }),
   ]);
 
-  return NextResponse.json({ ok: true });
+  if (process.env.INGEST_LOG_EACH_REQUEST === "1") {
+    console.log(
+      JSON.stringify({
+        event: "ingest_ok",
+        workspaceId: apiKey.workspaceId,
+        apiKeyPrefix: apiKey.prefix,
+        kind: parsed.data.kind,
+      }),
+    );
+  }
+
+  const okHeaders = ingestRateLimitHeaders(rl);
+  return NextResponse.json({ ok: true }, { headers: okHeaders });
 }

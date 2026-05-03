@@ -44,6 +44,15 @@ const res = await fetch(url, {
 });
 
 const text = await res.text();
+const rlLimit = res.headers.get("x-ratelimit-limit");
+const rlRem = res.headers.get("x-ratelimit-remaining");
+const rlReset = res.headers.get("x-ratelimit-reset");
+if (rlLimit != null) {
+  console.log(
+    "수집 레이트 한도 헤더:",
+    { "X-RateLimit-Limit": rlLimit, "X-RateLimit-Remaining": rlRem, "X-RateLimit-Reset": rlReset },
+  );
+}
 if (!res.ok) {
   console.error(`HTTP ${res.status}`, text);
   process.exit(1);

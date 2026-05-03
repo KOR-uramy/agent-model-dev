@@ -209,6 +209,20 @@ export default function WorkspaceDetailPage() {
           (짧은 인덱스) · 레포의{" "}
           <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">docs/opengraze-llms-guide.md</code>
         </p>
+        <p className="mt-2 rounded-md border border-zinc-200 bg-zinc-50/90 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
+          <span className="font-medium text-zinc-700 dark:text-zinc-300">운영·남용 방어</span> — 키마다 윈도 단위 요청
+          한도가 걸릴 수 있습니다(기본 분당 120회·60초 윈도,{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_RATE_LIMIT_PER_WINDOW</code>·
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_RATE_LIMIT_WINDOW_MS</code>,{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">0</code>이면 비활성). 초과 시 HTTP{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">429</code>와 본문{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">retryAfterSeconds</code>, 헤더{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">Retry-After</code>·
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">X-RateLimit-*</code>를 확인하세요. 본문 크기는{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_MAX_BODY_BYTES</code> 상한이 있습니다. 서버
+          로그에는 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">ingest_rate_limited</code> 등 JSON 한 줄이
+          남을 수 있습니다.
+        </p>
         <form onSubmit={createKey} className="mt-3 flex flex-wrap gap-2">
           <input
             className="min-w-[12rem] flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
