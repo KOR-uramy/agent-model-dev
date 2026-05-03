@@ -3,6 +3,7 @@
 import { AppChrome, AppMain } from "@/app/components/app-chrome";
 import {
   btnPrimarySm,
+  btnSecondary,
   codeInline,
   inputFieldInline,
   pageTitle,
@@ -19,7 +20,7 @@ import {
 } from "@/lib/workspace-task-status";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 type KeyRow = { id: string; name: string; prefix: string; createdAt: string };
@@ -41,6 +42,8 @@ type TaskRow = {
 export default function WorkspaceDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const billingSuccess = searchParams.get("billing") === "success";
   const [keys, setKeys] = useState<KeyRow[]>([]);
   const [events, setEvents] = useState<EvRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -55,30 +58,6 @@ export default function WorkspaceDetailPage() {
   useEffect(() => {
     setPublicOrigin(window.location.origin);
   }, []);
-
-  async function copyNewTokenOnly() {
-    if (!newToken) return;
-    try {
-      await navigator.clipboard.writeText(newToken);
-      setCopyHint("키를 클립보드에 복사했습니다.");
-    } catch {
-      setCopyHint("클립보드 복사에 실패했습니다. 키를 수동으로 복사하세요.");
-    }
-    window.setTimeout(() => setCopyHint(null), 4500);
-  }
-
-  async function copyOpenGrazeEnvSnippet() {
-    if (!newToken) return;
-    const origin = window.location.origin;
-    const snippet = `OPENGRAZE_PLATFORM_URL=${origin}\nOPENGRAZE_PLATFORM_API_KEY=${newToken}\n`;
-    try {
-      await navigator.clipboard.writeText(snippet);
-      setCopyHint(".env용 스니펫을 복사했습니다.");
-    } catch {
-      setCopyHint("클립보드 복사에 실패했습니다.");
-    }
-    window.setTimeout(() => setCopyHint(null), 4500);
-  }
 
   const load = useCallback(async () => {
     setEventsLoadErr(null);
@@ -129,33 +108,6 @@ export default function WorkspaceDetailPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") setPublicOrigin(window.location.origin);
-  }, []);
-
-  async function copyNewTokenOnly() {
-    if (!newToken) return;
-    try {
-      await navigator.clipboard.writeText(newToken);
-      setCopyHint("클립보드에 키를 복사했습니다.");
-    } catch {
-      setCopyHint("클립보드 복사에 실패했습니다. 직접 선택해 복사해 주세요.");
-    }
-  }
-
-  async function copyOpenGrazeEnvSnippet() {
-    if (!newToken) return;
-    const base =
-      typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
-    const snippet = `OPENGRAZE_PLATFORM_URL=${base}\nOPENGRAZE_PLATFORM_API_KEY=${newToken}\n`;
-    try {
-      await navigator.clipboard.writeText(snippet);
-      setCopyHint("URL·키 스니펫을 클립보드에 복사했습니다.");
-    } catch {
-      setCopyHint("클립보드 복사에 실패했습니다.");
-    }
-  }
-
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -197,6 +149,7 @@ export default function WorkspaceDetailPage() {
     } catch {
       setCopyHint("복사에 실패했습니다. 아래 텍스트를 직접 선택해 주세요.");
     }
+    window.setTimeout(() => setCopyHint(null), 4500);
   }
 
   async function copyOpenGrazeEnvSnippet() {
@@ -210,6 +163,7 @@ export default function WorkspaceDetailPage() {
     } catch {
       setCopyHint("복사에 실패했습니다.");
     }
+    window.setTimeout(() => setCopyHint(null), 4500);
   }
 
   return (

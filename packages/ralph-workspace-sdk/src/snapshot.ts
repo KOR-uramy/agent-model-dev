@@ -51,6 +51,17 @@ export function parseRoleQueryParam(
   return null;
 }
 
+/**
+ * `GET ?sessionId=` 쿼리 파싱. `GET /api/ralph/events`와 동일: 공백만이면 null(키 제거·필터 없음).
+ */
+export function parseSessionIdQueryParam(
+  value: string | null | undefined,
+): string | null {
+  if (value == null) return null;
+  const t = value.trim();
+  return t === "" ? null : t;
+}
+
 export function parseEventsJsonl(text: string, tail: number): RalphEvent[] {
   const lines = text.split("\n").filter((l) => l.trim().length > 0);
   const slice = tail > 0 ? lines.slice(-tail) : lines;

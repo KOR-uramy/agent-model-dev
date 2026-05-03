@@ -1,12 +1,6 @@
 import { loadTimelineFromDb } from "@/lib/timeline-feed";
-import { parseRoleQueryParam } from "ralph-workspace-sdk";
+import { parseRoleQueryParam, parseSessionIdQueryParam } from "ralph-workspace-sdk";
 import { NextResponse } from "next/server";
-
-function parseSessionIdQueryParam(raw: string | null): string | null {
-  if (raw == null) return null;
-  const t = raw.trim();
-  return t === "" ? null : t;
-}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
