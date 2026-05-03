@@ -33,6 +33,7 @@ export {
   opengrazeEnvTemplate,
   parseEventsJsonl,
   parseRoleQueryParam,
+  parseSessionIdQueryParam,
   ralphEnvTemplate,
 } from "./snapshot";
 export type { LoadRalphEventsSnapshotOptions } from "./snapshot";

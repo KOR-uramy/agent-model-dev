@@ -3,14 +3,18 @@
 import { AppChrome } from "@/app/components/app-chrome";
 import { disclosureSummary, roleBadgeClass, tableHeaderRow } from "@/lib/ui-tokens";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AGENT_ROLE_KEYS,
   eventDetailRole,
   parseRoleQueryParam,
-  type AgentRoleKey,
-  type RalphEventsApiPayload,
-  type WorkspaceFeedEvent,
+  parseSessionIdQueryParam,
+} from "@/lib/timeline-query-params";
+import type {
+  AgentRoleKey,
+  RalphEventsApiPayload,
+  WorkspaceFeedEvent,
 } from "ralph-workspace-sdk";
 
 type ApiPayload = RalphEventsApiPayload;
@@ -137,6 +141,11 @@ function Home() {
     [searchParams],
   );
 
+  const sessionIdFilter = useMemo(
+    () => parseSessionIdQueryParam(searchParams.get("sessionId")),
+    [searchParams],
+  );
+
   /** `role` 키는 있으나 API와 동일 규칙으로 인정되지 않는 값이면 주소에서 제거한다. */
   useEffect(() => {
     const raw = searchParams.get("role");
@@ -144,6 +153,17 @@ function Home() {
     if (parseRoleQueryParam(raw) !== null) return;
     const next = new URLSearchParams(searchParams.toString());
     next.delete("role");
+    const q = next.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  /** `sessionId` 키만 있고 값이 공백뿐이면 API와 같게 필터 없음으로 보고 키를 제거한다. */
+  useEffect(() => {
+    const raw = searchParams.get("sessionId");
+    if (raw === null) return;
+    if (parseSessionIdQueryParam(raw) !== null) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("sessionId");
     const q = next.toString();
     router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
   }, [pathname, router, searchParams]);
@@ -159,25 +179,35 @@ function Home() {
     [pathname, router, searchParams],
   );
 
+  const setSessionIdQuery = useCallback(
+    (sessionId: string | null) => {
+      const next = new URLSearchParams(searchParams.toString());
+      const trimmed = sessionId?.trim() ?? "";
+      if (trimmed === "") next.delete("sessionId");
+      else next.set("sessionId", trimmed);
+      const q = next.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timelineRole, setTimelineRole] = useState<AgentRoleKey | null>(null);
-  const [timelineSessionId, setTimelineSessionId] = useState<string | null>(null);
   const [knownSessionIds, setKnownSessionIds] = useState<string[]>([]);
   const [sessionManual, setSessionManual] = useState("");
 
   const sessionSelectChoices = useMemo(() => {
     const s = new Set(knownSessionIds);
-    if (timelineSessionId) s.add(timelineSessionId);
+    if (sessionIdFilter) s.add(sessionIdFilter);
     return [...s].sort((a, b) => a.localeCompare(b));
-  }, [knownSessionIds, timelineSessionId]);
+  }, [knownSessionIds, sessionIdFilter]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const qs = new URLSearchParams({ tail: "1200" });
-      if (timelineRole) qs.set("role", timelineRole);
-      if (timelineSessionId) qs.set("sessionId", timelineSessionId);
+      if (roleFilter) qs.set("role", roleFilter);
+      if (sessionIdFilter) qs.set("sessionId", sessionIdFilter);
       const r = await fetch(`/api/ralph/events?${qs.toString()}`);
       const j = (await r.json()) as ApiPayload;
       setData(j);
@@ -186,7 +216,7 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  }, [timelineRole, timelineSessionId]);
+  }, [roleFilter, sessionIdFilter]);
 
   useEffect(() => {
     void load();
@@ -195,7 +225,7 @@ function Home() {
   }, [load]);
 
   useEffect(() => {
-    if (timelineSessionId != null) return;
+    if (sessionIdFilter != null) return;
     if (!data?.events) return;
     const ids = new Set<string>();
     for (const e of data.events) {
@@ -204,7 +234,7 @@ function Home() {
       }
     }
     setKnownSessionIds([...ids].sort((a, b) => a.localeCompare(b)));
-  }, [data, timelineSessionId]);
+  }, [data, sessionIdFilter]);
 
   const events = data?.events ?? [];
   const s = data?.summary;
@@ -435,7 +465,7 @@ function Home() {
             ) : null}
             {data.hint ? <p className="mt-2 text-sm leading-relaxed opacity-90">{data.hint}</p> : null}
           </div>
-        ) : data?.hint && !data?.error && events.length === 0 && timelineSessionId ? (
+        ) : data?.hint && !data?.error && events.length === 0 && sessionIdFilter ? (
           <div className="mx-auto mt-8 rounded-xl border border-[var(--list-border)] bg-card px-5 py-4 text-left text-sm text-muted">
             <p className="font-semibold text-foreground">이 세션에는 아직 표시할 행이 없어요</p>
             <p className="mt-2 text-sm leading-relaxed opacity-90">{data.hint}</p>
@@ -493,10 +523,10 @@ function Home() {
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">세션</span>
                 <select
                   className="w-full min-w-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
-                  value={timelineSessionId ?? ""}
+                  value={sessionIdFilter ?? ""}
                   onChange={(ev) => {
                     const v = ev.target.value;
-                    setTimelineSessionId(v === "" ? null : v);
+                    setSessionIdQuery(v === "" ? null : v);
                     setSessionManual("");
                   }}
                   aria-label="타임라인 세션 선택"
@@ -527,7 +557,7 @@ function Home() {
                     className="shrink-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-sm transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
                     onClick={() => {
                       const v = sessionManual.trim();
-                      setTimelineSessionId(v === "" ? null : v);
+                      setSessionIdQuery(v === "" ? null : v);
                     }}
                   >
                     적용
@@ -538,10 +568,10 @@ function Home() {
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">역할 필터</span>
                 <select
                   className="w-full min-w-[10.5rem] rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
-                  value={timelineRole ?? ""}
+                  value={roleFilter ?? ""}
                   onChange={(ev) => {
                     const v = ev.target.value;
-                    setTimelineRole(v === "" ? null : (v as AgentRoleKey));
+                    setRoleQuery(v === "" ? null : (v as AgentRoleKey));
                   }}
                   aria-label="타임라인 역할 필터"
                 >

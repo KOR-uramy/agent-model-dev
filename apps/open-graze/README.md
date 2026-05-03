@@ -5,10 +5,10 @@
 **한 Next 앱**에서 다음을 제공합니다.
 
 - **LLM·외부 앱 연동 문서** — 저장소 루트 **`docs/opengraze-llms-guide.md`**(환경 변수·`POST /api/v1/events`·복붙 예제). 배포 후 브라우저·봇이 짧게 읽을 **`/llms.txt`** (`public/llms.txt`).
-- **`/`** — SQLite **`TimelineEvent`** 타임라인(원본은 `.ralph/*.jsonl` → 동기화 API로 적재). 타임라인 JSON 한 줄의 `detail`이 객체일 때 **선택** 필드 **`role`**(`detail.role`)에 `planning` \| `design` \| `implementation` \| `test` 만 온다(`RALPH_TASK.md` 규약). 홈의 역할 필터는 **`?role=`** 쿼리와 양방향 동기화되며, `GET /api/ralph/events`의 **`role`** 과 동일한 네 가지 값만 인정한다.
+- **`/`** — SQLite **`TimelineEvent`** 타임라인(원본은 `.ralph/*.jsonl` → 동기화 API로 적재). 타임라인 JSON 한 줄의 `detail`이 객체일 때 **선택** 필드 **`role`**(`detail.role`)에 `planning` \| `design` \| `implementation` \| `test` 만 온다(`RALPH_TASK.md` 규약). 홈의 역할 필터는 **`?role=`** 쿼리와 양방향 동기화되며, `GET /api/ralph/events`의 **`role`** 과 동일한 네 가지 값만 인정한다. 세션 선택·직접 입력은 **`?sessionId=`** 와 양방향 동기화되며(값이 비어 있으면 쿼리 키 제거), **`role`** 과 함께 붙여도 `GET /api/ralph/events`와 같은 조합 의미로 동작한다.
 
 ```
-http://localhost:3000/?role=planning
+http://localhost:3000/?role=planning&sessionId=ralph-session-example
 ```
 - **`/register`**, **`/login`**, **`/dashboard`** — 회원가입(`POST /api/auth/register`), 이메일·비밀번호 로그인(Credentials + DB), 워크스페이스, **작업 현황**(`WorkspaceTask` — 대시보드는 **조회만**; 생성·상태 변경은 `POST`/`PATCH` **`/api/workspaces/[slug]/tasks`** 등 API), API 키, 수집 이벤트
 - **`POST /api/v1/events`** — Bearer API 키로 클라우드 수집
