@@ -43,35 +43,6 @@ async function getJson(path, label) {
   return json;
 }
 
-async function getArray(path, label) {
-  const url = `${base}${path}`;
-  let res;
-  try {
-    res = await fetch(url, { headers: { Accept: "application/json" } });
-  } catch (e) {
-    const err = e instanceof Error ? e.message : String(e);
-    console.error(`${label}: 요청 실패 (${err}).\n  → \`npm run dev\` 후 재시도.`);
-    process.exit(1);
-  }
-  const text = await res.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    console.error(`${label}: HTTP ${res.status}, JSON 아님:\n`, text.slice(0, 500));
-    process.exit(1);
-  }
-  if (!res.ok) {
-    console.error(`${label}: HTTP ${res.status}`, data);
-    process.exit(1);
-  }
-  if (!Array.isArray(data)) {
-    console.error(`${label}: 응답이 배열이 아님`, typeof data);
-    process.exit(1);
-  }
-  return data;
-}
-
 console.log("런타임 스모크 →", base);
 
 const limits = await getJson("/api/v1/meta/limits", "GET /api/v1/meta/limits");
@@ -103,7 +74,22 @@ const now = Date.now();
 const fromIso = new Date(now - 7 * 86400000).toISOString();
 const toIso = new Date(now).toISOString();
 const rangePath = `/api/ralph/events/range?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}&limit=100`;
-await getArray(rangePath, "GET /api/ralph/events/range");
+const rangePayload = await getJson(
+  rangePath,
+  "GET /api/ralph/events/range",
+);
+if (
+  !Array.isArray(rangePayload.events) ||
+  typeof rangePayload.truncated !== "boolean" ||
+  typeof rangePayload.returnedCount !== "number" ||
+  rangePayload.returnedCount !== rangePayload.events.length
+) {
+  console.error(
+    "ralph/events/range: events·truncated·returnedCount 형식 오류:",
+    Object.keys(rangePayload),
+  );
+  process.exit(1);
+}
 console.log("  ✓ ralph/events/range (7d window)");
 
 let llmsRes;
