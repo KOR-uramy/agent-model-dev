@@ -8,6 +8,50 @@ import type {
   WorkspaceFeedEvent,
 } from "ralph-workspace-sdk";
 
+export type TimelineRangeParseResult =
+  | { ok: true; fromIso: string; toIso: string }
+  | { ok: false; message: string };
+
+export function parseTimelineRangeParams(
+  fromRaw: string | null,
+  toRaw: string | null,
+): TimelineRangeParseResult {
+  const fromTrim = fromRaw?.trim() ?? "";
+  const toTrim = toRaw?.trim() ?? "";
+  if (!fromTrim || !toTrim) {
+    return {
+      ok: false,
+      message:
+        "쿼리 `from`·`to`는 필수입니다(ISO 8601, 예: 2026-05-03T00:00:00Z).",
+    };
+  }
+  const fromMs = Date.parse(fromTrim);
+  const toMs = Date.parse(toTrim);
+  if (Number.isNaN(fromMs) || Number.isNaN(toMs)) {
+    return {
+      ok: false,
+      message: "`from`·`to`는 파싱 가능한 ISO 8601 날짜·시각이어야 합니다.",
+    };
+  }
+  if (fromMs > toMs) {
+    return { ok: false, message: "`from`은 `to`보다 이전이거나 같아야 합니다." };
+  }
+  return {
+    ok: true,
+    fromIso: new Date(fromMs).toISOString(),
+    toIso: new Date(toMs).toISOString(),
+  };
+}
+
+export function parseSourceQueryParam(
+  value: string | null | undefined,
+): EventSource | null {
+  if (value == null || value.trim() === "") return null;
+  const v = value.trim();
+  if (v === "ralph" || v === "application") return v;
+  return null;
+}
+
 /** UI·API `role` 쿼리에서 허용하는 값과 동일한 순서 */
 export const AGENT_ROLE_KEYS: readonly AgentRoleKey[] = [
   "planning",

@@ -5,10 +5,8 @@ import {
   loadTimelineEventsInRange,
   parseSessionIdQueryParam,
 } from "@/lib/timeline-feed";
-import {
-  parseRoleQueryParam,
-  parseSourceQueryParam,
-} from "@/lib/timeline-query-params";
+import { parseTimelineRangeParams } from "@/lib/timeline-query-params";
+import { parseRoleQueryParam } from "ralph-workspace-sdk";
 import { NextResponse } from "next/server";
 
 /**

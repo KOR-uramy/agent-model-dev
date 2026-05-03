@@ -5,7 +5,7 @@
 **한 Next 앱**에서 다음을 제공합니다.
 
 - **LLM·외부 앱 연동 문서** — 저장소 루트 **`docs/opengraze-llms-guide.md`**(환경 변수·`POST /api/v1/events`·복붙 예제). 배포 후 브라우저·봇이 짧게 읽을 **`/llms.txt`** (`public/llms.txt`).
-- **`/`** — SQLite **`TimelineEvent`** 타임라인(원본은 `.ralph/*.jsonl` → 동기화 API로 적재). 타임라인 JSON 한 줄의 `detail`이 객체일 때 **선택** 필드 **`role`**(`detail.role`)에 `planning` \| `design` \| `implementation` \| `test` 만 온다(`RALPH_TASK.md` 규약). 홈의 역할 필터는 **`?role=`** 쿼리와 양방향 동기화되며, `GET /api/ralph/events`의 **`role`** 과 동일한 네 가지 값만 인정한다. 세션 선택·직접 입력은 **`?sessionId=`** 와 양방향 동기화되며(값이 비어 있으면 쿼리 키 제거), **`role`** 과 함께 붙여도 `GET /api/ralph/events`와 같은 조합 의미로 동작한다. **`?source=`** 는 페이로드 최상위 **`source`**(`ralph` \| `application`)과 동일 집합으로 필터하며, 홈의 출처 선택과 양방향 동기화된다.
+- **`/`** — SQLite **`TimelineEvent`** 타임라인(원본은 `.ralph/*.jsonl` → 동기화 API로 적재). 타임라인 JSON 한 줄의 `detail`이 객체일 때 **선택** 필드 **`role`**(`detail.role`)에 `planning` \| `design` \| `implementation` \| `test` 만 온다(`RALPH_TASK.md` 규약). 홈의 역할 필터는 **`?role=`** 쿼리와 양방향 동기화되며, `GET /api/ralph/events`의 **`role`** 과 동일한 네 가지 값만 인정한다. 세션 선택·직접 입력은 **`?sessionId=`** 와 양방향 동기화되며(값이 비어 있으면 쿼리 키 제거), **`role`** 과 함께 붙여도 `GET /api/ralph/events`와 같은 조합 의미로 동작한다. 구간 **`?from=`**·**`?to=`**(ISO 8601 쌍)과 채널 **`?source=`**(`ralph` \| `application`)도 URL·API·화면이 같게 맞춰진다. **운영·감사 검증(한 줄)**: 「현재 뷰 URL 복사」로 클립보드에 담은 뒤 시크릿 창에 붙여넣고, 주소창의 `role`·`sessionId`·`from`·`to`·`source`와 타임라인 필터 UI가 원본 탭과 동일한지 확인한다.
 
 ```
 http://localhost:3000/?role=planning&sessionId=ralph-session-example&source=ralph
