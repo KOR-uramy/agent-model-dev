@@ -1,4 +1,5 @@
-/** `WorkspaceTask.status` — API와 동일 허용값 */
+/** `WorkspaceTask.status` 허용 값(RALPH_TASK·API와 동일 집합). */
+
 export const WORKSPACE_TASK_STATUSES = [
   "backlog",
   "todo",
@@ -9,6 +10,10 @@ export const WORKSPACE_TASK_STATUSES = [
 
 export type WorkspaceTaskStatus = (typeof WORKSPACE_TASK_STATUSES)[number];
 
+export function isWorkspaceTaskStatus(s: string): s is WorkspaceTaskStatus {
+  return (WORKSPACE_TASK_STATUSES as readonly string[]).includes(s);
+}
+
 export const WORKSPACE_TASK_STATUS_LABEL: Record<WorkspaceTaskStatus, string> = {
   backlog: "백로그",
   todo: "할 일",
@@ -16,7 +21,3 @@ export const WORKSPACE_TASK_STATUS_LABEL: Record<WorkspaceTaskStatus, string> = 
   blocked: "막힘",
   done: "완료",
 };
-
-export function isWorkspaceTaskStatus(s: string): s is WorkspaceTaskStatus {
-  return (WORKSPACE_TASK_STATUSES as readonly string[]).includes(s);
-}

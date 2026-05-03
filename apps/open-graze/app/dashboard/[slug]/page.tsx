@@ -267,11 +267,80 @@ export default function WorkspaceDetailPage() {
               그대로 맞습니다. {newToken}
             </p>
           ) : null}
-          <ul className="mt-4 space-y-2 text-sm">
-            {keys.map((k) => (
-              <li
-                key={k.id}
-                className="flex flex-col gap-2 rounded-xl border border-[var(--list-border)] px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+          수집용 API 키
+        </h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          앱·스크립트·서버에서 이 워크스페이스로 <strong className="text-zinc-700 dark:text-zinc-300">이벤트를 넣을 때</strong> 씁니다.{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">POST …/api/v1/events</code> 요청에 헤더{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">Authorization: Bearer &lt;전체 키&gt;</code> 와 JSON
+          본문(예: <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">kind</code>,{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">data</code>)을 붙입니다. 성공하면 아래{" "}
+          <strong className="text-zinc-700 dark:text-zinc-300">최근 수집 활동</strong>에 보입니다. 키는 노출·커밋하지 말고{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">OPENGRAZE_PLATFORM_API_KEY</code> 같은 환경 변수에만
+          두세요.{" "}
+          <Link href="/llms.txt" className="text-zinc-700 underline dark:text-zinc-300">
+            /llms.txt
+          </Link>{" "}
+          (짧은 인덱스) · 레포의{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">docs/opengraze-llms-guide.md</code>
+        </p>
+        <p className="mt-2 rounded-md border border-zinc-200 bg-zinc-50/90 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
+          <span className="font-medium text-zinc-700 dark:text-zinc-300">운영·남용 방어</span> — 키마다 윈도 단위 요청
+          한도가 걸릴 수 있습니다(기본 분당 120회·60초 윈도,{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_RATE_LIMIT_PER_WINDOW</code>·
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_RATE_LIMIT_WINDOW_MS</code>,{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">0</code>이면 비활성). 초과 시 HTTP{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">429</code>와 본문{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">retryAfterSeconds</code>, 헤더{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">Retry-After</code>·
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">X-RateLimit-*</code>를 확인하세요. 본문 크기는{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">INGEST_MAX_BODY_BYTES</code> 상한이 있습니다. 서버
+          로그에는 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-950">ingest_rate_limited</code> 등 JSON 한 줄이
+          남을 수 있습니다.
+        </p>
+        <form onSubmit={createKey} className="mt-3 flex flex-wrap gap-2">
+          <input
+            className="min-w-[12rem] flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+            placeholder="구분 이름 · 예: 프로덕션 수집"
+            value={keyName}
+            onChange={(e) => setKeyName(e.target.value)}
+            required
+          />
+          <button
+            type="submit"
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
+          >
+            새 키 만들기
+          </button>
+        </form>
+        {newToken ? (
+          <p className="mt-3 break-all rounded-md bg-emerald-50 p-3 text-xs text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-100">
+            <strong>지금만 표시됩니다.</strong> 복사 후 다른 앱·CI에는{" "}
+            <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_API_KEY</code> 로
+            저장하고, 베이스 URL은 <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_URL</code>{" "}
+            에 두면 이 레포의 <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">npm run platform:self-test</code> 와
+            문서 예제가 그대로 맞습니다. {newToken}
+          </p>
+        ) : null}
+        <ul className="mt-4 space-y-2 text-sm">
+          {keys.map((k) => (
+            <li
+              key={k.id}
+              className="flex items-center justify-between rounded-md border border-zinc-200 px-3 py-2 dark:border-zinc-800"
+            >
+              <span>
+                {k.name}{" "}
+                <code className="text-xs text-zinc-500">{k.prefix}…</code>
+              </span>
+              <button
+                type="button"
+                className="text-xs text-red-600 hover:underline"
+                onClick={() => delKey(k.id)}
               >
                 <span className="min-w-0 text-foreground">
                   {k.name} <code className="text-xs text-muted">{k.prefix}…</code>
