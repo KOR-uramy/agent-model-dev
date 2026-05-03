@@ -40,6 +40,8 @@ export default function WorkspaceDetailPage() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [keyName, setKeyName] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
+  const [publicOrigin, setPublicOrigin] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
@@ -92,10 +94,38 @@ export default function WorkspaceDetailPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") setPublicOrigin(window.location.origin);
+  }, []);
+
+  async function copyNewTokenOnly() {
+    if (!newToken) return;
+    try {
+      await navigator.clipboard.writeText(newToken);
+      setCopyHint("클립보드에 키를 복사했습니다.");
+    } catch {
+      setCopyHint("클립보드 복사에 실패했습니다. 직접 선택해 복사해 주세요.");
+    }
+  }
+
+  async function copyOpenGrazeEnvSnippet() {
+    if (!newToken) return;
+    const base =
+      typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
+    const snippet = `OPENGRAZE_PLATFORM_URL=${base}\nOPENGRAZE_PLATFORM_API_KEY=${newToken}\n`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopyHint("URL·키 스니펫을 클립보드에 복사했습니다.");
+    } catch {
+      setCopyHint("클립보드 복사에 실패했습니다.");
+    }
+  }
+
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setNewToken(null);
+    setCopyHint(null);
     const r = await fetch(`/api/workspaces/${slug}/api-keys`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -308,7 +338,6 @@ export default function WorkspaceDetailPage() {
               새 키 만들기
             </button>
           </form>
-          {copyHint ? <p className="mt-3 text-xs text-muted">{copyHint}</p> : null}
           {newToken ? (
             <div className="mt-4 space-y-2 rounded-xl border border-emerald-200/80 bg-emerald-50 p-4 text-xs text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
               <p className="break-all">
@@ -390,7 +419,7 @@ export default function WorkspaceDetailPage() {
             , 장문 가이드는 저장소 <code className={codeInline}>docs/opengraze-llms-guide.md</code> 를 참고하세요.
           </p>
           <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--list-border)] bg-card p-3 font-mono text-[11px] text-foreground">
-            {`POST ${publicOrigin}/api/v1/events
+            {`POST ${publicOrigin || "<이-브라우저-호스트>"}/api/v1/events
 Authorization: Bearer <발급한_키>
 Content-Type: application/json
 
