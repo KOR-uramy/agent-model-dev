@@ -26,6 +26,12 @@ const pathOpts = {
 const EMPTY_HINT =
   "아직 이 화면에 올라온 활동 기록이 없습니다. 로컬 에이전트·앱에서 쌓인 로그가 동기화되면 여기에 표시됩니다. 연동 설정은 운영 문서를 참고하세요.";
 
+const ROLE_FILTER_EMPTY_HINT =
+  "선택한 역할이 최근 구간에 없습니다. 역할 필터를 해제하거나 tail 값을 늘려 보세요.";
+
+const SESSION_FILTER_EMPTY_HINT =
+  "해당 세션 ID로 동기화된 이벤트가 없습니다. 식별자를 확인하거나 동기화를 실행해 보세요.";
+
 /** `GET /api/ralph/events/range` 한 번에 돌려줄 최대 행 수 */
 export const TIMELINE_RANGE_MAX_ROWS = 10_000;
 
@@ -112,20 +118,10 @@ function lineHash(e: WorkspaceFeedEvent): string {
     .digest("hex");
 }
 
-type TimelineEventRow = {
-  id: string;
-  workspaceKey: string;
-  lineHash: string;
-  source: string;
-  ts: string;
-  kind: string;
-  payload: string;
-  createdAt: Date;
-};
-
 export async function loadTimelineFromDb(
   tail: number,
   role: AgentRoleKey | null = null,
+  sessionId: string | null = null,
 ): Promise<RalphEventsApiPayload> {
   const workspaceKey = timelineWorkspaceKey();
   const workspace = resolveRalphWorkspace(pathOpts);
@@ -133,13 +129,24 @@ export async function loadTimelineFromDb(
   const telemetryPath = resolveTelemetryJsonlPath(pathOpts);
   const usdPerM = parseUsdPerMillionEstTokens(pathOpts);
   const t = Math.min(5000, Math.max(1, tail));
-  const fetchSize = role ? Math.min(5000, Math.max(t, t * 40)) : t;
+  const fetchSize =
+    role || sessionId ? Math.min(5000, Math.max(t, t * 40)) : t;
 
-  const rows = await prisma.timelineEvent.findMany({
-    where: { workspaceKey },
-    orderBy: { ts: "desc" },
-    take: fetchSize,
-  });
+  const rows = sessionId
+    ? await prisma.$queryRaw<{ payload: string }[]>`
+        SELECT "payload"
+        FROM "TimelineEvent"
+        WHERE "workspaceKey" = ${workspaceKey}
+          AND json_extract("payload", '$.sessionId') = ${sessionId}
+        ORDER BY "ts" DESC
+        LIMIT ${fetchSize}
+      `
+    : await prisma.timelineEvent.findMany({
+        where: { workspaceKey },
+        orderBy: { ts: "desc" },
+        take: fetchSize,
+        select: { payload: true },
+      });
 
   const mergedChrono: WorkspaceFeedEvent[] = rows
     .map((r) => {
@@ -158,20 +165,32 @@ export async function loadTimelineFromDb(
 
   if (role) {
     const before = merged.length;
-    merged = mergedChrono.filter((e) => eventDetailRole(e.detail) === role);
+    merged = merged.filter((e) => eventDetailRole(e.detail) === role);
     if (before > 0 && merged.length === 0) roleFilterEmpty = true;
-    if (merged.length > t) merged = merged.slice(merged.length - t);
+  }
+
+  if (merged.length > t) {
+    merged = merged.slice(merged.length - t);
   }
 
   const empty = rawEmpty;
+  const sessionFilterMiss = Boolean(sessionId && empty);
+  const timelineGloballyEmpty = empty && !sessionId;
+
   return buildRalphEventsApiPayloadFromMerged({
     workspace,
     eventsPath: ralphPath,
     telemetryPath,
     usdPerMillionEstTokens: usdPerM,
     merged,
-    error: empty ? "TIMELINE_EMPTY" : undefined,
-    hint: empty ? EMPTY_HINT : roleFilterEmpty ? ROLE_FILTER_EMPTY_HINT : undefined,
+    error: timelineGloballyEmpty ? "TIMELINE_EMPTY" : undefined,
+    hint: timelineGloballyEmpty
+      ? EMPTY_HINT
+      : sessionFilterMiss
+        ? SESSION_FILTER_EMPTY_HINT
+        : roleFilterEmpty
+          ? ROLE_FILTER_EMPTY_HINT
+          : undefined,
   });
 }
 
