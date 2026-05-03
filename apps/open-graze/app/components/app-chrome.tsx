@@ -34,6 +34,14 @@ export function AppChrome({
             <Link href="/" className={navLinkClass(active, "home")}>
               관측
             </Link>
+            <Link
+              href="/llms.txt"
+              className="text-muted transition-colors hover:text-foreground"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              연동 요약
+            </Link>
             <Link href="/dashboard" className={navLinkClass(active, "dashboard")}>
               대시보드
             </Link>

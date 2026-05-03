@@ -73,17 +73,23 @@ export default function DashboardIndexPage() {
     "w-full rounded-lg border border-[var(--list-border)] bg-background px-3 py-2.5 text-sm shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600";
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">워크스페이스</h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        프로젝트나 팀마다 공간을 나누고, API 키·수집 이벤트·(설정 시) 구독·결제를 함께 묶습니다. 외부 앱에서 보내는 이벤트는{" "}
-        <Link href="/llms.txt" className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100" target="_blank" rel="noopener noreferrer">
-          /llms.txt
-        </Link>{" "}
-        요약과 저장소{" "}
-        <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-900">docs/opengraze-llms-guide.md</code>{" "}
-        를 따르세요.
-      </p>
+    <AppChrome active="dashboard">
+      <AppMain>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">워크스페이스</h1>
+        <p className="mt-2 text-sm text-muted">
+          프로젝트나 팀마다 공간을 나누고, <strong className="font-medium text-foreground">API 키·수집 이벤트·(설정 시) 구독·결제</strong>를 한곳에 묶습니다. 외부 앱은{" "}
+          <Link
+            href="/llms.txt"
+            className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            /llms.txt
+          </Link>{" "}
+          공개 계약을 따르고, 장문 가이드는 저장소{" "}
+          <code className="rounded bg-neutral-100 px-1 text-xs dark:bg-neutral-800">docs/opengraze-llms-guide.md</code>를
+          참고하세요.
+        </p>
 
         <form
           onSubmit={create}
@@ -109,7 +115,7 @@ export default function DashboardIndexPage() {
             type="submit"
             className="rounded-lg bg-cta px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
           >
-            만들기
+            워크스페이스 만들고 계속
           </button>
         </form>
 

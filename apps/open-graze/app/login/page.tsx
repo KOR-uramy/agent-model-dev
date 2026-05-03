@@ -42,20 +42,34 @@ function LoginInner() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">OpenGraze 로그인</h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          워크스페이스·API 키·수집 이벤트를 한곳에서 관리합니다. 아래 이메일·비밀번호로 대시보드에 들어갑니다.
+    <AppChrome active="login">
+      <AuthCard>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">OpenGraze 로그인</h1>
+        <p className="mt-2 text-sm text-muted">
+          대시보드에서 <strong className="font-medium text-foreground">워크스페이스·API 키·수집 이벤트</strong>를 한곳에서 관리합니다.
         </p>
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
+        <p className="mt-3 text-xs leading-relaxed text-muted">
           HTTP 수집 계약 요약은{" "}
-          <Link href="/llms.txt" className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200" target="_blank" rel="noopener noreferrer">
+          <Link
+            href="/llms.txt"
+            className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             /llms.txt
           </Link>
-          , 앱 설치·마이그레이션은 저장소{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">apps/open-graze/README.md</code> 를 참고하세요.
+          , 상세 가이드는 저장소{" "}
+          <code className="rounded bg-neutral-100 px-1 text-[11px] dark:bg-neutral-800">docs/opengraze-llms-guide.md</code>{" "}
+          를 참고하세요. 로컬 앱 설치는 저장소의{" "}
+          <code className="rounded bg-neutral-100 px-1 text-[11px] dark:bg-neutral-800">apps/open-graze/README.md</code>{" "}
+          를 따릅니다.
         </p>
+
+        {registered ? (
+          <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100">
+            가입이 완료되었습니다. 방금 만든 비밀번호로 로그인해 주세요.
+          </p>
+        ) : null}
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <div>
@@ -93,7 +107,7 @@ function LoginInner() {
             disabled={pending}
             className="w-full rounded-lg bg-cta py-3 text-sm font-semibold text-white transition hover:bg-cta-hover disabled:opacity-60 dark:text-neutral-900"
           >
-            {pending ? "확인 중…" : "로그인"}
+            {pending ? "확인 중…" : "대시보드로 로그인"}
           </button>
         </form>
 
@@ -108,15 +122,16 @@ function LoginInner() {
           </code>
         </p>
 
-      <div className="flex flex-col gap-2 text-center text-sm text-zinc-500">
-        <Link href="/" className="hover:underline">
-          타임라인(홈)으로 돌아가기
-        </Link>
-        <Link href="/dashboard" className="hover:underline">
-          대시보드로 이동
-        </Link>
-      </div>
-    </div>
+        <div className="mt-6 flex flex-col gap-2 border-t border-[var(--list-border)] pt-6 text-center text-sm text-muted">
+          <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
+            계정이 없으면 가입하기
+          </Link>
+          <Link href="/" className="hover:text-foreground hover:underline">
+            타임라인(홈)으로
+          </Link>
+        </div>
+      </AuthCard>
+    </AppChrome>
   );
 }
 
