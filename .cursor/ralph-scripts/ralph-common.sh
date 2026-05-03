@@ -515,7 +515,7 @@ If you get rotated, the next agent picks up from your last commit **on the remot
 ## Task Execution
 
 1. Work on the next unchecked criterion in RALPH_TASK.md (look for \`[ ]\`) **that fits your current role** (see Role Boundaries above). If none fit, document blockers in \`.ralph/progress.md\` and output handoff notes for the next role.
-2. Run tests after changes when your role is **test** or when you touch executable code (**implementation**).
+2. Run tests after changes when your role is **test** or when you touch executable code (**implementation**). For the **test** role, always include a compile/build verification pass (`npm test` if the repo defines it; otherwise the documented build command such as `npm run build`) before you mark anything done.
 3. **Mark completed criteria**: Edit RALPH_TASK.md and change \`[ ]\` to \`[x]\` only when your role owns verification (**test** role for code-facing criteria, or when the criterion is purely planning/docs and **planning** agrees).
 $progress_rule
 5. When every list checkbox in \`RALPH_TASK.md\` is \`[x]\`: follow the doc’s **성장 루프** / **동종 비교 → 체크 확장** / **성장·동종 비교** — name 1–3 comparison SaaS in \`.ralph/progress.md\`, gap-scan UI·UX·design·monetization·traffic·marketing, add new measurable \`[ ]\` items before treating the sprint as done. Output \`<ralph>COMPLETE</ralph>\` only when you stop and there are **no** remaining \`[ ]\` checkboxes (after any required expansion pass).
@@ -624,6 +624,7 @@ EOF
 ## Role Boundaries — 테스트 (test)
 
 - Run the repo’s documented checks (e.g. \`npm run build\`, tests in \`RALPH_TASK.md\`).
+- Compile verification is mandatory in this role: run \`npm test\` when available; otherwise run the repo’s documented compile/build command before approving or flipping any \`[x]\`.
 - Report pass/fail with evidence; fix only what is necessary for green builds or file minimal issues for **구현**/**디자인**.
 - You **own** flipping checkboxes to \`[x]\` when verification matches the criterion.
 
@@ -945,13 +946,15 @@ run_ralph_loop() {
           defer_delay=$(($(calculate_backoff_delay "$defer_attempt" 15 120 true) / 1000))
         fi
         
-        echo ""
-        echo "⏸️  Rate limit or transient error detected."
-        echo "   Waiting ${defer_delay}s before retrying (attempt ${DEFER_COUNT:-1})..."
+        printf "\r\033[K" >&2
+        echo "" >&2
+        echo "⏸️  Rate limit or transient error detected." >&2
+        echo "   Waiting ${defer_delay}s before retrying (attempt ${DEFER_COUNT:-1})..." >&2
         sleep "$defer_delay"
         
         # Don't increment iteration - retry the same task
-        echo "   Resuming..."
+        printf "\r\033[K" >&2
+        echo "   Resuming..." >&2
         ;;
       *)
         # Agent finished naturally, check if more work needed

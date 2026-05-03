@@ -18,7 +18,7 @@ import {
   WORKSPACE_TASK_STATUS_LABEL,
   isWorkspaceTaskStatus,
 } from "@/lib/workspace-task-status";
-import { summarizeIngestPayload } from "ralph-workspace-sdk";
+import { summarizeIngestPayload } from "ralph-workspace-sdk/platform";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -227,8 +227,9 @@ export default function WorkspaceDetailPage() {
                 위 표는 <strong className="text-foreground">WorkspaceTask</strong> —{" "}
                 <code className={codeInline}>POST/PATCH …/tasks</code> API로만 바뀌는 공식 작업입니다(이 화면에서는 편집하지 않음).
                 아래 <strong className="text-foreground">수집 활동 요약</strong>은 같은 워크스페이스로{" "}
-                <code className={codeInline}>POST /api/v1/events</code>로 들어온 기록을 시간순으로 보여 줍니다. 로컬에서{" "}
-                <code className={codeInline}>npm run platform:self-test</code> 등을 돌리면 여기 줄이 쌓입니다. 시드 작업만
+                <code className={codeInline}>POST /api/v1/events</code>로 들어온 기록을 시간순으로 보여 줍니다. 정식 연동은 앱·스크립트·서버가
+                이 엔드포인트로 실제 이벤트를 보내는 것이고,{" "}
+                <code className={codeInline}>npm run platform:self-test</code>는 그 경로를 빠르게 확인하는 선택 스모크입니다. 시드 작업만
                 쓰려면 이 앱 <code className={codeInline}>README.md</code>의 Task API 또는{" "}
                 <code className={codeInline}>npm run db:seed -w open-graze</code> 입니다.
               </p>
@@ -310,7 +311,7 @@ export default function WorkspaceDetailPage() {
             {events.length === 0 && !eventsLoadErr ? (
               <p className="px-4 py-8 text-center text-xs text-muted">
                 수집 이벤트가 없습니다. API 키를 발급한 뒤 <code className={codeInline}>POST /api/v1/events</code>로 한 번
-                보내거나, 루트에서 <code className={codeInline}>npm run platform:self-test</code> 를 실행해 보세요.
+                보내 보세요. <code className={codeInline}>npm run platform:self-test</code> 는 선택 검증용입니다.
               </p>
             ) : null}
           </div>
@@ -427,8 +428,9 @@ export default function WorkspaceDetailPage() {
                 <code className="rounded bg-emerald-100/90 px-1 dark:bg-emerald-900/60">OPENGRAZE_PLATFORM_API_KEY</code> 로 저장하고,
                 베이스 URL은{" "}
                 <code className="rounded bg-emerald-100/90 px-1 dark:bg-emerald-900/60">OPENGRAZE_PLATFORM_URL</code> 에 두면 이 레포의{" "}
-                <code className="rounded bg-emerald-100/90 px-1 dark:bg-emerald-900/60">npm run platform:self-test</code> 와 문서 예제가
-                그대로 맞습니다. {newToken}
+                실제 연동 코드나 문서 예제가 그대로 맞습니다.{" "}
+                <code className="rounded bg-emerald-100/90 px-1 dark:bg-emerald-900/60">npm run platform:self-test</code> 는 같은 자격증명을
+                쓰는 선택 스모크일 뿐입니다. {newToken}
               </p>
               <div className="flex flex-wrap gap-2">
                 <button

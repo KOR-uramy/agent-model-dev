@@ -8,6 +8,9 @@
 .ralph-worktrees/
 # 로컬 런타임·병렬 산출물(점 있는 폴더). Signs 는 docs/ralph-guardrails.md
 .ralph/
+!.ralph/
+.ralph/*
+!.ralph/progress.md
 # 루트에만: 무점 이름 ralph/ (도구·실험용). 앱 라우트 `.../api/ralph` 와는 별개(슬래시 경로가 다름)
 /ralph/
 

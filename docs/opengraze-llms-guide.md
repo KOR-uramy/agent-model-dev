@@ -19,7 +19,7 @@
 
 ## 2. 환경 변수(권장)
 
-**이 레포(monorepo)에서 자기 연동 스모크**할 때는 저장소 **루트** `.env`(또는 셸 `export`)에 둔다. `npm run platform:self-test`가 읽는다.
+이 레포(monorepo)에서 선택 self-test를 돌릴 때는 저장소 **루트** `.env`(또는 셸 `export`)에 둔다. `npm run platform:self-test`가 읽는다.
 
 | 변수 | 필수 | 설명 |
 |------|------|------|
@@ -74,7 +74,9 @@ export OPENGRAZE_WORKSPACE_SLUG="open-graze-self"
 
 1. OpenGraze `npm run dev` (포트 **3000** 규약).
 2. 로그인 → 워크스페이스 → 수집용 API 키 생성 → 전체 키를 `OPENGRAZE_PLATFORM_API_KEY`에 설정.
-3. 이 레포 루트에서 `npm run platform:self-test` — 대시보드 **최근 수집 활동**에 `opengraze.self_test` 가 보이면 성공.
+3. 아래 `curl` 또는 앱 코드에서 `POST /api/v1/events`로 실제 이벤트를 한 번 보낸다.
+4. 대시보드 **최근 수집 활동**에 방금 보낸 `kind`가 보이면 정식 연동 성공이다.
+5. `npm run platform:self-test`는 같은 자격증명 경로를 빠르게 확인하는 선택 스모크다.
 
 ---
 

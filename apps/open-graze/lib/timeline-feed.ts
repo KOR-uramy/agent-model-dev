@@ -37,9 +37,6 @@ const SESSION_FILTER_EMPTY_HINT =
 const SOURCE_FILTER_EMPTY_HINT =
   "선택한 채널(에이전트·제품)에 맞는 행이 없습니다. 채널 필터를 해제하거나 구간·세션을 조정해 보세요.";
 
-/** `GET /api/ralph/events/range` 한 번에 돌려줄 최대 행 수 */
-export const TIMELINE_RANGE_MAX_ROWS = 10_000;
-
 /** `GET /api/ralph/events`·`GET /api/ralph/events/range` 공통 — 비어 있지 않은 `role`이 네 가지가 아닐 때 */
 export const RALPH_EVENTS_ROLE_QUERY_ERROR =
   "쿼리 `role`은 planning, design, implementation, test 중 하나이거나 생략·빈 값이어야 합니다.";
@@ -68,6 +65,7 @@ export type TimelineRangeLoadResult = {
 export type TimelineRangeLoadOpts = {
   role: AgentRoleKey | null;
   sessionId: string | null;
+  source?: EventSource | null;
   /**
    * true면 구간 안에서 시각 내림차순으로 잘라 최근 건부터 가져온 뒤, 반환 배열은 시각 오름차순으로 맞춘다(홈 타임라인).
    * false면 구간 안 오름차순으로 앞에서부터(기본, range API).
@@ -85,6 +83,7 @@ export async function loadTimelineEventsInRange(
   const capped = Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, take));
   const role = opts.role;
   const sessionId = opts.sessionId;
+  const source = opts.source ?? null;
   const newestFirst = opts.newestFirst === true;
   const orderDir = newestFirst ? Prisma.raw("DESC") : Prisma.raw("ASC");
 
@@ -137,7 +136,12 @@ export async function loadTimelineEventsInRange(
   for (const r of rows) {
     try {
       const ev = JSON.parse(r.payload) as WorkspaceFeedEvent;
-      if (ev && typeof ev.ts === "string" && typeof ev.kind === "string") {
+      if (
+        ev &&
+        typeof ev.ts === "string" &&
+        typeof ev.kind === "string" &&
+        (!source || ev.source === source)
+      ) {
         out.push(ev);
       }
     } catch {
@@ -277,7 +281,6 @@ export async function loadTimelineFromDb(
   const empty = rawEmpty;
   const sessionFilterMiss = Boolean(sessionId && empty);
   const timelineGloballyEmpty = empty && !sessionId && !source;
-  const sourceFilterEmptyHint = Boolean(source && empty && !sessionId);
 
   return buildRalphEventsApiPayloadFromMerged({
     workspace,

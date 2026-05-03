@@ -21,7 +21,7 @@ http://localhost:3000/?role=planning&sessionId=ralph-session-example&source=ralp
 
 ### 워크스페이스 작업 API (`WorkspaceTask`)
 
-`/dashboard/{slug}` 화면은 **조회만** 한다(공식 작업 표). 같은 섹션의 **수집 활동 요약**은 수집 API로 쌓인 이벤트를 읽기 전용으로 보여 주며, `npm run platform:self-test` 등으로 줄이 추가된다. 제목·설명·상태를 **공식 작업**으로 바꾸려면 **로그인 세션**(대시보드와 동일 출처)으로 아래를 호출하면 된다(연동 스크립트·백오피스·자동화 등).
+`/dashboard/{slug}` 화면은 **조회만** 한다(공식 작업 표). 같은 섹션의 **수집 활동 요약**은 수집 API로 쌓인 이벤트를 읽기 전용으로 보여 주며, 정식 연동은 앱·스크립트·서버가 `POST /api/v1/events`로 실제 이벤트를 보내는 것이다. `npm run platform:self-test`는 같은 경로를 빠르게 확인하는 선택 스모크다. 제목·설명·상태를 **공식 작업**으로 바꾸려면 **로그인 세션**(대시보드와 동일 출처)으로 아래를 호출하면 된다(연동 스크립트·백오피스·자동화 등).
 
 - `GET /api/workspaces/{slug}/tasks` — 목록
 - `POST /api/workspaces/{slug}/tasks` — 본문 `{"title":"…","description?":"…","status?":"todo"}` (`status` 생략 시 `todo`; 허용값: `backlog` \| `todo` \| `in_progress` \| `blocked` \| `done`)
@@ -77,9 +77,9 @@ npm run dev
 1. 브라우저에서 `http://localhost:3000/login` — 시드한 이메일·비밀번호로 로그인  
 2. `http://localhost:3000/dashboard` — 워크스페이스 생성(이름·slug)  
 3. 워크스페이스 대시보드에서 **API 키** 발급 후 `og_live_…` 전체 복사  
-4. 수집 확인(택 1):
-   - 저장소 루트에 `OPENGRAZE_PLATFORM_API_KEY=og_live_…`를 두고 `npm run platform:self-test`
-   - 또는 예시 `curl`(성공 시 HTTP 200, 대시보드 **이벤트**에 `opengraze.self_test` 또는 아래 `kind`가 보임):
+4. 수집 확인(정식 연동):
+   - 예시 `curl` 또는 앱 코드로 `POST /api/v1/events`를 보내고, 대시보드 **이벤트**에 해당 `kind`가 보이는지 확인
+   - `npm run platform:self-test`는 같은 자격증명으로 빠르게 확인하는 선택 스모크
 
 ```bash
 curl -sS -X POST "http://localhost:3000/api/v1/events" \

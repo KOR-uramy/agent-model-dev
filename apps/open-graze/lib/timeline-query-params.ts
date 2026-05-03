@@ -105,12 +105,3 @@ export function parseSessionIdQueryParam(
   const t = value.trim();
   return t === "" ? null : t;
 }
-
-export function parseSourceQueryParam(
-  value: string | null | undefined,
-): EventSource | null {
-  if (value == null || value.trim() === "") return null;
-  const v = value.trim();
-  if (v === "ralph" || v === "application") return v;
-  return null;
-}

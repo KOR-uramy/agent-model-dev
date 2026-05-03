@@ -4,7 +4,7 @@
 
 ## OpenGraze(제품) — 왜 쓰는지 한눈에
 
-**OpenGraze**(이 레포의 `apps/open-graze`)는 에이전트 루프 로그와 제품 텔레메트리를 **같은 타임라인**에 올려, 역할(기획·디자인·구현·테스트) 단위로 “무슨 일이 있었는지”를 운영·개발이 함께 읽을 수 있게 합니다. 배포 후에는 브라우저에서 **`/llms.txt`**(HTTP 수집·환경 변수 요약)와 **`apps/open-graze/README.md`**(로그인·워크스페이스·결제·동기화)가 첫 연동의 기준 문서입니다. 자기 검증은 루트 **`npm run platform:self-test`** 로 수집 API까지 한 번에 확인합니다.
+**OpenGraze**(이 레포의 `apps/open-graze`)는 에이전트 루프 로그와 제품 텔레메트리를 **같은 타임라인**에 올려, 역할(기획·디자인·구현·테스트) 단위로 “무슨 일이 있었는지”를 운영·개발이 함께 읽을 수 있게 합니다. 배포 후에는 브라우저에서 **`/llms.txt`**(HTTP 수집·환경 변수 요약)와 **`apps/open-graze/README.md`**(로그인·워크스페이스·결제·동기화)가 첫 연동의 기준 문서입니다. 정식 연동은 **`POST /api/v1/events`** 로 실제 이벤트를 보내는 것이고, 루트 **`npm run platform:self-test`** 는 그 경로를 확인하는 선택 스모크입니다.
 
 ## 요구 사항
 
@@ -54,9 +54,9 @@ curl -sS -o /dev/null -w "%{http_code}\n" "http://localhost:3000/api/ralph/event
 
 **OpenGraze 수집 연동(LLM·타 앱)** — 환경 변수 이름과 HTTP 계약은 **`docs/opengraze-llms-guide.md`** 에 모아 두었다. 배포된 OpenGraze 기준 짧은 인덱스는 **`/llms.txt`**(앱 `public/llms.txt`).
 
-### 자기 연동 테스트(dogfood)
+### 자기 연동 테스트(dogfood, 선택)
 
-이 레포를 **수집 API의 첫 클라이언트**처럼 등록해 검증한다.
+이 레포를 **수집 API의 첫 클라이언트**처럼 등록해 검증한다. 정식 연동 자체에 이 스크립트가 필수는 아니다.
 
 1. `apps/open-graze/.env`에 DB·`AUTH_*`를 넣고 `npm run db:migrate -w open-graze` 후 `npm run dev`(포트 3000만 사용).
 2. 브라우저에서 로그인 → 워크스페이스 생성(이름 예: `OpenGraze self`, slug 예: `open-graze-self`) → **API 키** 발급 후 전체 `og_live_...` 문자열을 복사한다.
