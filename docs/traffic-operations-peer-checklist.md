@@ -12,6 +12,8 @@
 | 대시보드·알림 | 일반 SaaS(관측·에러 트래킹) | 워크스페이스별 쿼터·알림 채널·감사 로그 UI가 흔하다. |
 | APM·트레이싱 | [OpenTelemetry](https://opentelemetry.io/docs/) | 스팬·메트릭·로그 상관관계로 “수집 한 건”을 요청 전후까지 추적하기 쉽다. |
 | 상태·사고 소통 | [statuspage.io](https://statuspage.io) 등 관례 | 한도·장애 시 사용자 기대치를 맞추기 위해 공개 채널이 흔하다. |
+| 합성 모니터링 | [Google SRE — 모니터링](https://sre.google/sre-book/monitoring-distributed-systems/) | 가용성·지연·에러율을 **합성 프로브**로 주기 검증하고, 알림은 사용자 영향이 있을 때만 울리도록 설계한다. |
+| 알림 설계 | [PagerDuty 이벤트 인텔리전스](https://www.pagerduty.com/) 등 관례 | 노이즈 억제·에스컬레이션·온콜 로테이션이 “429 급증” 같은 운영 신호와 연결된다. |
 
 ## 현재 구현 스냅샷(이 레포)
 
@@ -19,6 +21,7 @@
 - `GET /api/workspaces/[slug]/events`(대시보드 세션): **사용자+워크스페이스** 단위 고정 윈도(`DASHBOARD_EVENTS_GET_RATE_LIMIT_PER_WINDOW` / `DASHBOARD_EVENTS_GET_RATE_LIMIT_WINDOW_MS`, `0`이면 비활성). 429 시 `ingest`와 동형의 헤더·JSON `code: rate_limited`, 로그 `dashboard_events_list_rate_limited`.
 - `GET /api/v1/meta/limits`(비인증): 수집·대시보드 목록 조회의 **기본 한도 스냅샷** JSON(비밀 없음).
 - 대시보드 워크스페이스 상세: 수집 POST **HTTP 코드 플레이북 표**, 레이트·로그 키워드, `meta/limits` 링크를 **인앱**으로 안내.
+- `npm run platform:self-test`: 기동 중인 앱에 대해 `GET /api/v1/meta/limits` 스키마 스모크 후 `POST /api/v1/events` 수집을 검증한다.
 - 인메모리 레이트 리밋: **프로세스(또는 인스턴스) 단위**이며, 수평 확장 시 합산 한도는 아니다.
 
 ## 측정 가능한 과제 (`- [ ]`)
@@ -53,6 +56,20 @@
 - [x] **429 클라이언트 가이드(문서)** — `docs/opengraze-llms-guide.md`에 `Retry-After`·지수 백오프·`meta/limits` 링크.
 - [ ] **429 클라이언트 가이드(SDK)** — `ralph-workspace-sdk` 또는 예제 스크립트에 재시도 유틸을 넣는다.
 - [ ] **SLA / 상태 페이지** — 외부 상태 페이지 링크 또는 “베타·무 SLA” 한 줄을 랜딩·README 정책에 맞춘다(루트 README 수정이 필요하면 오케스트레이터 범위로).
+
+### 알림·운영 런북 (수집·대시보드 공통)
+
+- [ ] **합성 헬스** — 운영 환경에서 주기적으로 `GET /api/v1/meta/limits`(200·JSON 스키마)와 (인증된 경우) `GET …/events` 스모크를 돌려 가용성을 외부에서 검증한다.
+- [ ] **429·5xx 알림 규칙** — 로그 싱크 또는 리버스 프록시 메트릭에서 `ingest_rate_limited`·`dashboard_events_list_rate_limited`·`ingest_body_rejected` 카운트가 임계치를 넘으면 온콜·슬랙 등으로 라우팅하고, **연속 알림 억제**(쿨다운)를 둔다.
+- [ ] **워크스페이스별 쿼터 임박 알림** — 일·월 이벤트 건수가 상한의 80%/100%에 도달했을 때 대시보드 배너·이메일·기존 텔레그램 채널 중 무엇을 쓸지 정하고 구현한다.
+- [ ] **수집 실패 DLQ / 재시도 큐** — DB 트랜잭션 실패·일시적 DB 다운 시 클라이언트 재시도와 별도로, 서버 측 **유실 방지**(큐·dead-letter) 여부를 결정한다.
+- [ ] **요청 상관 ID** — `X-Request-Id`(또는 W3C `traceparent`)를 수집·대시보드 API 응답에 넣고, 구조화 로그 필드와 맞춰 지원 문의 시 한 줄로 추적한다.
+- [ ] **비인증 스팸 방어** — `POST /api/v1/events`는 401 이전에 바디를 읽지 않도록 유지하는지, IP 단위 연결 제한을 엣지(WAF·CDN)에서 둘지 검토한다.
+
+### 대시보드 UX·관측
+
+- [ ] **레이트 잔량 표시** — 이벤트 목록 `fetch` 응답 헤더 `X-RateLimit-Remaining`을 읽어, 잔량이 낮을 때만 툴팁·한 줄 경고를 띄운다(과도한 UI는 YAGNI).
+- [ ] **폴링 백오프 가이드(인앱)** — 자동 새로고침 예제가 있다면 지수 백오프·최소 간격을 코드 주석·한도 문서와 맞춘다.
 
 ---
 
