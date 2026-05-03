@@ -1,4 +1,5 @@
 import { loadTimelineFromDb } from "@/lib/timeline-feed";
+import { parseRoleQueryParam } from "ralph-workspace-sdk";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
@@ -7,6 +8,7 @@ export async function GET(req: Request) {
     5000,
     Math.max(1, parseInt(searchParams.get("tail") || "800", 10) || 800),
   );
-  const payload = await loadTimelineFromDb(tail);
+  const role = parseRoleQueryParam(searchParams.get("role"));
+  const payload = await loadTimelineFromDb(tail, role);
   return NextResponse.json(payload);
 }

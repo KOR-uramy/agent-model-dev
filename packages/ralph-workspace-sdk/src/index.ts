@@ -16,6 +16,7 @@ export type {
   WorkspaceFeedEvent,
   CreateRalphEventsHandlerOptions,
 } from "./types";
+export { AGENT_ROLE_KEYS } from "./types";
 export {
   parseUsdPerMillionEstTokens,
   resolveEventsJsonlPath,
@@ -25,11 +26,13 @@ export {
 } from "./paths";
 export {
   buildRalphEventsApiPayloadFromMerged,
+  eventDetailRole,
   loadRalphEventsSnapshot,
   normalizeApplicationEvent,
   normalizeRalphEvent,
   opengrazeEnvTemplate,
   parseEventsJsonl,
+  parseRoleQueryParam,
   ralphEnvTemplate,
 } from "./snapshot";
 export type { LoadRalphEventsSnapshotOptions } from "./snapshot";

@@ -4,10 +4,12 @@ import { AppChrome } from "@/app/components/app-chrome";
 import { disclosureSummary, roleBadgeClass, tableHeaderRow } from "@/lib/ui-tokens";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type {
-  AgentRoleKey,
-  RalphEventsApiPayload,
-  WorkspaceFeedEvent,
+import {
+  AGENT_ROLE_KEYS,
+  eventDetailRole,
+  type AgentRoleKey,
+  type RalphEventsApiPayload,
+  type WorkspaceFeedEvent,
 } from "ralph-workspace-sdk";
 
 type ApiPayload = RalphEventsApiPayload;
@@ -22,15 +24,8 @@ const ROLE_LABEL_KO: Record<AgentRoleKey, string> = {
   test: "테스트",
 };
 
-function parseDetailRole(d: Record<string, unknown> | null): AgentRoleKey | null {
-  if (!d || typeof d !== "object") return null;
-  const r = d.role;
-  if (r === "planning" || r === "design" || r === "implementation" || r === "test") return r;
-  return null;
-}
-
 function RoleTimelineCell({ detail }: { detail: WorkspaceFeedEvent["detail"] }) {
-  const role = parseDetailRole(detail);
+  const role = eventDetailRole(detail);
   if (!role) return <span className="text-muted">—</span>;
   return (
     <span className={roleBadgeClass(role)} title={role}>
@@ -116,11 +111,14 @@ function shortenPath(p: string, max = 42): string {
 export default function Home() {
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [timelineRole, setTimelineRole] = useState<AgentRoleKey | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/ralph/events?tail=1200`);
+      const qs = new URLSearchParams({ tail: "1200" });
+      if (timelineRole) qs.set("role", timelineRole);
+      const r = await fetch(`/api/ralph/events?${qs.toString()}`);
       const j = (await r.json()) as ApiPayload;
       setData(j);
     } catch {
@@ -128,7 +126,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timelineRole]);
 
   useEffect(() => {
     void load();
@@ -408,9 +406,30 @@ export default function Home() {
         </div>
 
         <div className="mx-auto mt-14 max-w-4xl overflow-hidden rounded-[var(--radius-lg)] border border-[var(--list-border)] bg-card shadow-[var(--shadow-card)]">
-          <div className="border-b border-[var(--list-border)] px-5 py-4">
-            <h2 className="font-display text-lg font-semibold text-foreground">활동 타임라인</h2>
-            <p className="mt-1 text-xs text-muted">시간은 UTC · 에이전트와 제품 출처를 구분합니다</p>
+          <div className="flex flex-col gap-3 border-b border-[var(--list-border)] px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-display text-lg font-semibold text-foreground">활동 타임라인</h2>
+              <p className="mt-1 text-xs text-muted">시간은 UTC · 에이전트와 제품 출처를 구분합니다</p>
+            </div>
+            <label className="flex shrink-0 flex-col gap-1 text-left sm:items-end">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">역할 필터</span>
+              <select
+                className="min-w-[10.5rem] rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
+                value={timelineRole ?? ""}
+                onChange={(ev) => {
+                  const v = ev.target.value;
+                  setTimelineRole(v === "" ? null : (v as AgentRoleKey));
+                }}
+                aria-label="타임라인 역할 필터"
+              >
+                <option value="">전체 (모든 역할)</option>
+                {AGENT_ROLE_KEYS.map((key: AgentRoleKey) => (
+                  <option key={key} value={key}>
+                    {ROLE_LABEL_KO[key]}만
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-left text-sm">
@@ -459,7 +478,9 @@ export default function Home() {
             </table>
             {events.length === 0 && !loading ? (
               <p className="px-6 py-14 text-center text-sm leading-relaxed text-muted">
-                아직 기록이 없습니다. 에이전트나 연결된 제품에서 활동이 전달되면 여기에 나타납니다.
+                {data?.hint && !data?.error
+                  ? data.hint
+                  : "아직 기록이 없습니다. 에이전트나 연결된 제품에서 활동이 전달되면 여기에 나타납니다."}
               </p>
             ) : null}
           </div>

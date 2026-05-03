@@ -7,12 +7,49 @@ import {
   resolveTelemetryJsonlPath,
 } from "./paths";
 import type {
+  AgentRoleKey,
   RalphEvent,
   RalphEventsApiPayload,
   RalphPathsOptions,
   RalphTokenBreakdown,
   WorkspaceFeedEvent,
 } from "./types";
+
+/** `WorkspaceFeedEvent.detail.role` — 규약에 맞는 값만 인정 */
+export function eventDetailRole(
+  detail: WorkspaceFeedEvent["detail"],
+): AgentRoleKey | null {
+  if (!detail || typeof detail !== "object") return null;
+  const r = (detail as Record<string, unknown>).role;
+  if (
+    r === "planning" ||
+    r === "design" ||
+    r === "implementation" ||
+    r === "test"
+  ) {
+    return r;
+  }
+  return null;
+}
+
+/**
+ * `GET ?role=` 쿼리 파싱. 빈 값·알 수 없는 값은 null(필터 없음).
+ */
+export function parseRoleQueryParam(
+  value: string | null | undefined,
+): AgentRoleKey | null {
+  if (value == null || value.trim() === "") return null;
+  const v = value.trim();
+  if (
+    v === "planning" ||
+    v === "design" ||
+    v === "implementation" ||
+    v === "test"
+  ) {
+    return v;
+  }
+  return null;
+}
 
 export function parseEventsJsonl(text: string, tail: number): RalphEvent[] {
   const lines = text.split("\n").filter((l) => l.trim().length > 0);

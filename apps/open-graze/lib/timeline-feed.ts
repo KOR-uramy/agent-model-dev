@@ -1,8 +1,13 @@
 import { createHash } from "crypto";
 import { Prisma } from "@prisma/client";
-import type { RalphEventsApiPayload, WorkspaceFeedEvent } from "ralph-workspace-sdk";
+import type {
+  AgentRoleKey,
+  RalphEventsApiPayload,
+  WorkspaceFeedEvent,
+} from "ralph-workspace-sdk";
 import {
   buildRalphEventsApiPayloadFromMerged,
+  eventDetailRole,
   loadRalphEventsSnapshot,
   parseUsdPerMillionEstTokens,
   resolveEventsJsonlPath,
@@ -21,6 +26,9 @@ const pathOpts = {
 const EMPTY_HINT =
   "아직 이 화면에 올라온 활동 기록이 없습니다. 로컬 에이전트·앱에서 쌓인 로그가 동기화되면 여기에 표시됩니다. 연동 설정은 운영 문서를 참고하세요.";
 
+const ROLE_FILTER_EMPTY_HINT =
+  "선택한 역할(detail.role)에 맞는 이벤트가 최근 구간에 없습니다. 전체 보기로 바꾸거나 동기화 범위를 늘려 보세요.";
+
 function timelineWorkspaceKey(): string {
   return (
     resolveOpengrazeWorkspaceKey(pathOpts)?.trim() || "default"
@@ -37,6 +45,7 @@ function lineHash(e: WorkspaceFeedEvent): string {
 
 export async function loadTimelineFromDb(
   tail: number,
+  role: AgentRoleKey | null = null,
 ): Promise<RalphEventsApiPayload> {
   const workspaceKey = timelineWorkspaceKey();
   const workspace = resolveRalphWorkspace(pathOpts);
@@ -44,14 +53,15 @@ export async function loadTimelineFromDb(
   const telemetryPath = resolveTelemetryJsonlPath(pathOpts);
   const usdPerM = parseUsdPerMillionEstTokens(pathOpts);
   const t = Math.min(5000, Math.max(1, tail));
+  const fetchSize = role ? Math.min(5000, Math.max(t, t * 40)) : t;
 
   const rows = await prisma.timelineEvent.findMany({
     where: { workspaceKey },
     orderBy: { ts: "desc" },
-    take: t,
+    take: fetchSize,
   });
 
-  const merged: WorkspaceFeedEvent[] = rows
+  const mergedChrono: WorkspaceFeedEvent[] = rows
     .map((r) => {
       try {
         return JSON.parse(r.payload) as WorkspaceFeedEvent;
@@ -62,7 +72,18 @@ export async function loadTimelineFromDb(
     .filter((x): x is WorkspaceFeedEvent => x != null)
     .reverse();
 
-  const empty = merged.length === 0;
+  const rawEmpty = mergedChrono.length === 0;
+  let merged = mergedChrono;
+  let roleFilterEmpty = false;
+
+  if (role) {
+    const before = merged.length;
+    merged = mergedChrono.filter((e) => eventDetailRole(e.detail) === role);
+    if (before > 0 && merged.length === 0) roleFilterEmpty = true;
+    if (merged.length > t) merged = merged.slice(merged.length - t);
+  }
+
+  const empty = rawEmpty;
   return buildRalphEventsApiPayloadFromMerged({
     workspace,
     eventsPath: ralphPath,
@@ -70,7 +91,7 @@ export async function loadTimelineFromDb(
     usdPerMillionEstTokens: usdPerM,
     merged,
     error: empty ? "TIMELINE_EMPTY" : undefined,
-    hint: empty ? EMPTY_HINT : undefined,
+    hint: empty ? EMPTY_HINT : roleFilterEmpty ? ROLE_FILTER_EMPTY_HINT : undefined,
   });
 }
 

@@ -11,6 +11,14 @@ export type AgentRoleKey =
   | "implementation"
   | "test";
 
+/** UI·API `role` 쿼리에서 허용하는 값과 동일한 순서 */
+export const AGENT_ROLE_KEYS: readonly AgentRoleKey[] = [
+  "planning",
+  "design",
+  "implementation",
+  "test",
+] as const;
+
 /**
  * 대시보드 한 줄 — Ralph `events.jsonl` + 앱 `workspace-telemetry.jsonl` 병합 결과.
  * Ralph 행은 `source: 'ralph'`로 정규화됩니다.
