@@ -184,7 +184,14 @@ export default function WorkspaceDetailPage() {
           <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">Authorization: Bearer &lt;전체 키&gt;</code> 와 JSON
           본문(예: <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">kind</code>,{" "}
           <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">data</code>)을 붙입니다. 성공하면 아래{" "}
-          <strong className="text-zinc-700 dark:text-zinc-300">최근 수집 활동</strong>에 보입니다. 키는 노출·커밋하지 말고 환경 변수 등에만 두세요.
+          <strong className="text-zinc-700 dark:text-zinc-300">최근 수집 활동</strong>에 보입니다. 키는 노출·커밋하지 말고{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">OPENGRAZE_PLATFORM_API_KEY</code> 같은 환경 변수에만
+          두세요.{" "}
+          <Link href="/llms.txt" className="text-zinc-700 underline dark:text-zinc-300">
+            /llms.txt
+          </Link>{" "}
+          (짧은 인덱스) · 레포의{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">docs/opengraze-llms-guide.md</code>
         </p>
         <form onSubmit={createKey} className="mt-3 flex flex-wrap gap-2">
           <input
@@ -203,7 +210,11 @@ export default function WorkspaceDetailPage() {
         </form>
         {newToken ? (
           <p className="mt-3 break-all rounded-md bg-emerald-50 p-3 text-xs text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-100">
-            <strong>지금만 표시됩니다.</strong> 안전한 곳에 복사해 두세요. {newToken}
+            <strong>지금만 표시됩니다.</strong> 복사 후 다른 앱·CI에는{" "}
+            <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_API_KEY</code> 로
+            저장하고, 베이스 URL은 <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">OPENGRAZE_PLATFORM_URL</code>{" "}
+            에 두면 이 레포의 <code className="rounded bg-emerald-100/80 px-1 dark:bg-emerald-900/50">npm run platform:self-test</code> 와
+            문서 예제가 그대로 맞습니다. {newToken}
           </p>
         ) : null}
         <ul className="mt-4 space-y-2 text-sm">
@@ -241,7 +252,12 @@ export default function WorkspaceDetailPage() {
       <section className="mt-10 rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-400">
         <p className="font-medium text-zinc-700 dark:text-zinc-300">연동 예시</p>
         <p className="mt-2">
-          발급한 키로 아래 URL에 본문을 POST하면 수집 목록에 쌓입니다. 상세 스키마는 개발자 문서를 참고하세요.
+          발급한 키로 아래 URL에 본문을 POST하면 수집 목록에 쌓입니다. 타 언어·LLM용 요약은{" "}
+          <Link href="/llms.txt" className="text-zinc-800 underline dark:text-zinc-200">
+            /llms.txt
+          </Link>
+          , 장문 가이드는 저장소 <code className="rounded bg-white px-1 dark:bg-zinc-900">docs/opengraze-llms-guide.md</code> 를
+          참고하세요.
         </p>
         <pre className="mt-2 overflow-x-auto rounded bg-white p-2 text-[11px] dark:bg-zinc-900">
           {`POST ${typeof window !== "undefined" ? window.location.origin : ""}/api/v1/events

@@ -21,7 +21,7 @@
 
 ## Ralph 로그 / 워크스페이스 SDK
 
-npm workspaces로 **`packages/ralph-workspace-sdk`**(연동 라이브러리)와 **`apps/open-graze`**(통합 **OpenGraze** — Ralph 대시보드 + 워크스페이스·수집 API·Auth)가 있습니다. 다른 저장소에서 쓰는 방법은 SDK README를 본다.
+npm workspaces로 **`packages/ralph-workspace-sdk`**(연동 라이브러리)와 **`apps/open-graze`**(패키지名 `open-graze`)가 있습니다. 이 앱이 **OpenGraze**이자 **Workspace Platform**(워크스페이스 플랫폼)이며, 과거 문맥의 **workspace-platform**과 **별개 앱이 아니라 동일**하다. Ralph 대시보드 + 워크스페이스·수집 API·Auth가 한 Next 앱에 있다. 다른 저장소에서 쓰는 방법은 SDK README를 본다.
 
 ```bash
 npm install
@@ -38,13 +38,15 @@ npm run dev
 curl -sS -o /dev/null -w "%{http_code}\n" "http://localhost:3000/api/ralph/events?tail=5"
 ```
 
-OpenGraze 앱 안에 Google 로그인, 워크스페이스, API 키, Stripe 레거시·토스 결제 규범이 들어 있다. 설정은 **`apps/open-graze/README.md`** — 결제 표준은 **[토스페이먼츠 v2 LLMs 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide)**. 결제 키 없이 **로그인 → 워크스페이스 → 키 → ingest**만 재현하려면 같은 파일의 **핵심 플로 (결제 미설정)** 절을 따른다.
+동일 앱(OpenGraze = Workspace Platform) 안에 이메일·비밀번호 로그인, 워크스페이스, API 키, Stripe 레거시·토스 결제 규범이 들어 있다. 설정은 **`apps/open-graze/README.md`** — 결제 표준은 **[토스페이먼츠 v2 LLMs 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide)**. 결제 키 없이 **로그인 → 워크스페이스 → 키 → ingest**만 재현하려면 같은 파일의 **핵심 플로 (결제 미설정)** 절을 따른다.
+
+**OpenGraze 수집 연동(LLM·타 앱)** — 환경 변수 이름과 HTTP 계약은 **`docs/opengraze-llms-guide.md`** 에 모아 두었다. 배포된 OpenGraze 기준 짧은 인덱스는 **`/llms.txt`**(앱 `public/llms.txt`).
 
 ### 자기 연동 테스트(dogfood)
 
 이 레포를 **수집 API의 첫 클라이언트**처럼 등록해 검증한다.
 
-1. `apps/open-graze/.env`에 DB·OAuth를 넣고 `npm run db:migrate -w open-graze` 후 `npm run dev`(포트 3000만 사용).
+1. `apps/open-graze/.env`에 DB·`AUTH_*`를 넣고 `npm run db:migrate -w open-graze` 후 `npm run dev`(포트 3000만 사용).
 2. 브라우저에서 로그인 → 워크스페이스 생성(이름 예: `OpenGraze self`, slug 예: `open-graze-self`) → **API 키** 발급 후 전체 `og_live_...` 문자열을 복사한다.
 3. 루트 `.env`에 `OPENGRAZE_PLATFORM_API_KEY=og_live_...` (및 필요 시 `OPENGRAZE_PLATFORM_URL`)을 넣는다. `.env`가 없으면 셸에 `export`로 같은 변수를 설정해도 된다.
 4. `npm run platform:self-test` — 루트에 `.env`가 있으면 스크립트 실행 전에 자동으로 읽는다. 성공 시 대시보드 해당 워크스페이스 **이벤트**에 `opengraze.self_test`가 보인다.
