@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.cjs",
     "db:studio": "prisma studio",
-    "sync:feed": "sh -c 'set -a; [ -f .env ] && . ./.env; set +a; curl -sS -X POST -H \"Authorization: Bearer ${RALPH_FEED_SYNC_SECRET}\" -H \"Content-Type: application/json\" -d \"{\\\"tail\\\":8000}\" \"http://localhost:${PORT:-3000}/api/ralph/sync-jsonl\"'"
+    "sync:feed": "sh -c 'set -a; [ -f .env ] && . ./.env; set +a; curl -sS -X POST -H \"Authorization: Bearer ${RALPH_FEED_SYNC_SECRET}\" -H \"Content-Type: application/json\" -d \"{\\\"tail\\\":8000}\" \"http://localhost:${PORT:-3000}/api/ralph/sync-jsonl\"'",
+    "runtime:smoke": "node ../../scripts/runtime-smoke.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

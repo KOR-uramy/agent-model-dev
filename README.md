@@ -38,6 +38,14 @@ npm run dev
 
 개발 서버를 띄운 뒤 API가 200인지 한 번 확인하는 것을 권장한다(빌드 통과만으로는 번들러 조합 버그를 놓칠 수 있음). 타임라인은 SQLite라 **처음엔 비어 있을 수 있다** — `npm run sync:feed` 후 다시 확인한다.
 
+**자동 런타임 스모크** — 다른 터미널에서 `npm run dev`로 앱을 켠 상태로 루트에서:
+
+```bash
+npm run runtime:smoke
+```
+
+`GET /api/v1/meta/limits`, `GET /api/ralph/events`, `GET /api/ralph/events/range`, `GET /llms.txt`를 순서대로 두드린다. 다른 베이스 URL이면 `RUNTIME_SMOKE_BASE_URL=... npm run runtime:smoke`.
+
 ```bash
 curl -sS -o /dev/null -w "%{http_code}\n" "http://localhost:3000/api/ralph/events?tail=5"
 ```

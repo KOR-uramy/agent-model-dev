@@ -23,6 +23,7 @@
 | Ralph 스크립트 | `.cursor/ralph-scripts/` — `ralph-loop.sh` 기본 **4역할 순환**(기획·디자인·구현·테스트) + 직전 단계 감시; **기획은 Goal 본질·기획 원칙 우선**. 순환 끄기: `RALPH_ROLE_MODE=mono` |
 | OpenGraze / Workspace Platform | **동일 앱** — `apps/open-graze`(패키지名 `open-graze`). 별도 `workspace-platform` 앱은 없음. **타임라인·역할·수집 규약의 문서 단일 근거는 이 앱의 README·코드**로 둔다(제품 스코프 밖 패키지명은 요구사항 문장에 쓰지 않음). |
 | 자기 연동 테스트 | 루트 `npm run platform:self-test` — `scripts/platform-self-test.mjs`, 루트 `.env.example`의 `OPENGRAZE_PLATFORM_*` · LLM/연동 장문 **`docs/opengraze-llms-guide.md`**, 짧은 인덱스 **`/llms.txt`** |
+| 런타임 스모크(HTTP) | 루트 `npm run runtime:smoke` — `scripts/runtime-smoke.mjs`; 앱 기동 후 공개·타임라인 API·`llms.txt` 형상 검증(`RUNTIME_SMOKE_BASE_URL` 선택) |
 | 결제 연동 규범 | 토스페이먼츠 v2 — [LLMs로 결제 연동하기](https://docs.tosspayments.com/guides/v2/get-started/llms-guide), AI/에이전트용 문서 인덱스 [llms.txt](https://docs.tosspayments.com/llms.txt) |
 | 루프 상태 | 로컬 `.ralph/progress.md`·`.ralph/errors.log`(git 제외), 공유 Signs 는 `docs/ralph-guardrails.md`(추적) |
 | 에이전트·모델 선택 근거 | `docs/agent-model-selection.md` |
@@ -74,6 +75,7 @@
 
 - [x] 루트에서 `npm run build`가 **루트 `package.json`이 빌드하도록 둔 workspaces** 전부 통과한다.
 - [x] `open-graze`는 배포용 `next build`(webpack)로 검증한다(Turbopack 전용 `/_not-found` 수집 버그 회피). 개발 시 `GET /api/ralph/events`는 **실행 스모크**(200·JSON)로 확인한다 — 빌드만으로는 Turbopack+CJS 번들 이슈를 잡지 못한다.
+- [x] **런타임 스모크(자동)** — 루트 `npm run runtime:smoke`가 기동 중인 OpenGraze(기본 `http://127.0.0.1:3000`; 덮어쓰기: `RUNTIME_SMOKE_BASE_URL` 또는 `OPENGRAZE_PLATFORM_URL`)에 대해 `GET /api/v1/meta/limits`, `GET /api/ralph/events`(및 `role=planning`), `GET /api/ralph/events/range`, `GET /llms.txt`를 호출해 **HTTP 200·JSON(또는 텍스트) 형상**을 검증한다. 서버가 없으면 **한 줄 안내**로 종료한다. 에이전트 이터의 **실행 검증** 단계에 `npm run build`와 함께 넣을 것을 권장한다(`scripts/runtime-smoke.mjs`).
 - [x] 에이전트/모델 **선택 근거**(프로바이더·버전·제약·측정)가 `docs/` 또는 루트 마크다운 **한 파일**에 요약되어 있다(추측만으로 적지 않는다).
 
 ### 제품 (로컬 Ralph + OpenGraze)
@@ -145,7 +147,7 @@
 
 1. **읽기** — `RALPH_TASK.md`(미완 `[ ]` 중 우선순위 1개; **기획** 이터면 Goal **본질**·**기획 원칙**에 어긋나지 않는지 먼저 본다), `docs/ralph-guardrails.md`, `.ralph/progress.md`, `.ralph/errors.log`.
 2. **하기** — 그 한 항목(또는 쪼갠 하위 한 덩어리)만 **현재 역할 범위 안에서** 구현·수정한다. 범위 밖 리팩터 금지.
-3. **검증** — 루트 `npm run build` **+** 이번 변경에 해당하는 **실행 검증**(루트 `README.md` 스모크: `npm run dev`는 **3000 포트만** — 열려 있으면 `kill` 후 기동, OpenGraze API `curl`, `npm run platform:self-test` 등). 임의 포트로 서버를 여러 개 띄우지 않는다.
+3. **검증** — 루트 `npm run build` **+** `npm run runtime:smoke`(앱이 **이미** `npm run dev`로 떠 있을 때; Turbopack·API 런타임 오류 조기 발견) **+** 이번 변경에 해당하는 **실행 검증**(루트 `README.md` 스모크: `npm run dev`는 **3000 포트만** — 열려 있으면 `kill` 후 기동, OpenGraze API `curl`, `npm run platform:self-test` 등). 임의 포트로 서버를 여러 개 띄우지 않는다.
 4. **기록** — **`git commit`**(스코프 단위로 자주), `.ralph/progress.md`에 “무엇을 왜 했는지” 한 단락, 해당 기준이 끝났으면 `RALPH_TASK.md`에서 `[x]`.
 5. **검토** — 남은 `[ ]` 중 다음에 가장 본질에 가까운 것을 고른다(가짜 바쁨: 문서만 양산하지 않기). Success가 **전부 `[x]`**이면 **동종 비교**로 **「성장·동종 비교」**에 새 `[ ]`를 붙인 뒤 다음 이터로 넘어간다.
 

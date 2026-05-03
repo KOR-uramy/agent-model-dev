@@ -140,7 +140,7 @@ curl -sS "http://localhost:3000/api/ralph/events/range?from=2026-05-01T00:00:00Z
 | Stripe 레거시 | `STRIPE_*`, `NEXT_PUBLIC_APP_URL` |
 | 텔레그램 | `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_CHAT_WORKSPACE_MAP`, … |
 
-자기 연동 스모크는 저장소 루트 `npm run platform:self-test`와 루트 `.env.example`을 참고하세요.
+자기 연동 스모크는 저장소 루트 `npm run platform:self-test`와 루트 `.env.example`을 참고하세요. 앱을 띄운 뒤 공개 API·타임라인을 HTTP로 점검하려면 루트 **`npm run runtime:smoke`**(`scripts/runtime-smoke.mjs`, 이 워크스페이스에서는 `npm run runtime:smoke -w open-graze`와 동일)를 쓰면 됩니다.
 
 ## 토스페이먼츠 v2 구독(단건) 결제
 
