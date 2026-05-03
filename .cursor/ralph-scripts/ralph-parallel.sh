@@ -869,6 +869,8 @@ run_parallel_tasks() {
           ;;
         *)
           echo "❌"
+          # conflict 외 실패(더티 트리·이전 MERGE 잔류 등)에서도 MERGING 상태를 풀지 않으면 다음 브랜치 병합이 연쇄 실패한다.
+          abort_merge "$original_dir"
           failed_branches+=("$branch_name")
           echo -e "$(date -u '+%Y-%m-%dT%H:%M:%SZ')\tmerge\t${RUN_ID}\t${current_group}\t${job_id}\t${task_id}\t${branch_name}\terror\t${BASE_SHA}\t\t" >> "$manifest"
           ;;
