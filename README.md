@@ -2,6 +2,10 @@
 
 에이전트 **모델·프롬프트·평가** 작업을 모아 두는 저장소입니다. [Ralph (ralph-wiggum-cursor)](https://github.com/agrimsingh/ralph-wiggum-cursor) 스크립트가 포함되어 있습니다.
 
+## OpenGraze(제품) — 왜 쓰는지 한눈에
+
+**OpenGraze**(이 레포의 `apps/open-graze`)는 에이전트 루프 로그와 제품 텔레메트리를 **같은 타임라인**에 올려, 역할(기획·디자인·구현·테스트) 단위로 “무슨 일이 있었는지”를 운영·개발이 함께 읽을 수 있게 합니다. 배포 후에는 브라우저에서 **`/llms.txt`**(HTTP 수집·환경 변수 요약)와 **`apps/open-graze/README.md`**(로그인·워크스페이스·결제·동기화)가 첫 연동의 기준 문서입니다. 자기 검증은 루트 **`npm run platform:self-test`** 로 수집 API까지 한 번에 확인합니다.
+
 ## 요구 사항
 
 - Git

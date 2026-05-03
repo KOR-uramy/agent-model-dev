@@ -42,11 +42,19 @@ function LoginInner() {
   }
 
   return (
-    <AppChrome active="login">
-      <AuthCard>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">로그인</h1>
-        <p className="mt-2 text-sm text-muted">
-          등록된 이메일과 비밀번호로 대시보드에 들어갑니다.
+    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">OpenGraze 로그인</h1>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          워크스페이스·API 키·수집 이벤트를 한곳에서 관리합니다. 아래 이메일·비밀번호로 대시보드에 들어갑니다.
+        </p>
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
+          HTTP 수집 계약 요약은{" "}
+          <Link href="/llms.txt" className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200" target="_blank" rel="noopener noreferrer">
+            /llms.txt
+          </Link>
+          , 앱 설치·마이그레이션은 저장소{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">apps/open-graze/README.md</code> 를 참고하세요.
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
@@ -100,18 +108,15 @@ function LoginInner() {
           </code>
         </p>
 
-        <p className="mt-8 text-center text-sm text-muted">
-          계정이 없나요?{" "}
-          <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
-            가입
-          </Link>
-        </p>
-
-        <Link href="/" className="mt-6 block text-center text-sm text-muted underline-offset-4 hover:text-foreground hover:underline">
-          관측 홈으로
+      <div className="flex flex-col gap-2 text-center text-sm text-zinc-500">
+        <Link href="/" className="hover:underline">
+          타임라인(홈)으로 돌아가기
         </Link>
-      </AuthCard>
-    </AppChrome>
+        <Link href="/dashboard" className="hover:underline">
+          대시보드로 이동
+        </Link>
+      </div>
+    </div>
   );
 }
 

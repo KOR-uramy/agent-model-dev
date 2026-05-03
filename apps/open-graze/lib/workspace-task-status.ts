@@ -1,5 +1,4 @@
-/** `WorkspaceTask.status` 허용 값(RALPH_TASK·API와 동일 집합). */
-
+/** `WorkspaceTask.status` — RALPH_TASK.md / README와 동일 집합 */
 export const WORKSPACE_TASK_STATUSES = [
   "backlog",
   "todo",
