@@ -6,8 +6,8 @@ import {
 import { NextResponse } from "next/server";
 
 /**
- * 동기화된 Ralph/SQLite 타임라인을 `from`·`to`(ISO 8601)로 잘라 **JSON 배열**만 반환합니다.
- * 파일로 저장·공유: `curl -sS "…" -o audit-timeline.json`
+ * 동기화된 Ralph/SQLite 타임라인을 `from`·`to`(ISO 8601)로 잘라 반환합니다.
+ * 본문은 **객체**이며 이벤트 배열은 `events`이고, 행 상한 도달 시 `truncated: true`입니다.
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -22,10 +22,14 @@ export async function GET(req: Request) {
   const limit = Number.isFinite(limitRaw)
     ? Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, limitRaw))
     : TIMELINE_RANGE_MAX_ROWS;
-  const events = await loadTimelineEventsInRange(
+  const { events, truncated } = await loadTimelineEventsInRange(
     parsed.fromIso,
     parsed.toIso,
     limit,
   );
-  return NextResponse.json(events);
+  return NextResponse.json({
+    events,
+    truncated,
+    returnedCount: events.length,
+  });
 }

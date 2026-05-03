@@ -74,11 +74,17 @@ export function parseTimelineRangeParams(
  * SQLite `TimelineEvent`만 읽습니다(JSONL 동기화 후 데이터).
  * 시각 비교는 SQLite `strftime('%s', …)`로 하여 초 단위로 맞춥니다(밀리초 유무 혼재 완화).
  */
+export type TimelineRangeLoadResult = {
+  events: WorkspaceFeedEvent[];
+  /** DB `LIMIT` 행 수에 도달해 같은 구간에 더 있을 수 있음(손상 페이로드로 파싱 실패해도 동일 기준). */
+  truncated: boolean;
+};
+
 export async function loadTimelineEventsInRange(
   fromIso: string,
   toIso: string,
   take: number,
-): Promise<WorkspaceFeedEvent[]> {
+): Promise<TimelineRangeLoadResult> {
   const workspaceKey = timelineWorkspaceKey();
   const capped = Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, take));
   const rows = await prisma.$queryRaw<{ payload: string }[]>`
@@ -90,6 +96,7 @@ export async function loadTimelineEventsInRange(
     ORDER BY "ts" ASC
     LIMIT ${capped}
   `;
+  const truncated = rows.length >= capped;
   const out: WorkspaceFeedEvent[] = [];
   for (const r of rows) {
     try {
@@ -101,7 +108,7 @@ export async function loadTimelineEventsInRange(
       /* skip corrupt payload */
     }
   }
-  return out;
+  return { events: out, truncated };
 }
 
 function timelineWorkspaceKey(): string {
