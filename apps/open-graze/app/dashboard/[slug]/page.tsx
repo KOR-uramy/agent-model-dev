@@ -2,8 +2,12 @@
 
 import { AppChrome, AppMain } from "@/app/components/app-chrome";
 import {
+  btnPrimary,
+  btnSecondary,
+  cardPanel,
   codeInline,
   inputFieldInline,
+  pageTitle,
   proseMutedSm,
   sectionEyebrow,
 } from "@/lib/ui-tokens";
@@ -43,6 +47,8 @@ export default function WorkspaceDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
+  const [publicOrigin, setPublicOrigin] = useState("");
   const load = useCallback(async () => {
     setEventsLoadErr(null);
     setTasksLoadErr(null);
@@ -92,9 +98,14 @@ export default function WorkspaceDetailPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    setPublicOrigin(typeof window !== "undefined" ? window.location.origin : "");
+  }, []);
+
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+    setCopyHint(null);
     setNewToken(null);
     const r = await fetch(`/api/workspaces/${slug}/api-keys`, {
       method: "POST",
@@ -123,6 +134,35 @@ export default function WorkspaceDetailPage() {
       : status;
   }
 
+  async function copyNewTokenOnly() {
+    if (!newToken) return;
+    try {
+      await navigator.clipboard.writeText(newToken);
+      setCopyHint("클립보드에 복사했습니다.");
+      window.setTimeout(() => setCopyHint(null), 2800);
+    } catch {
+      setCopyHint("복사에 실패했습니다. 직접 선택해 주세요.");
+    }
+  }
+
+  async function copyOpenGrazeEnvSnippet() {
+    if (!newToken) return;
+    const base = publicOrigin || "http://localhost:3000";
+    const snippet = `OPENGRAZE_PLATFORM_URL=${base}\nOPENGRAZE_PLATFORM_API_KEY=${newToken}\n`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopyHint("환경 변수 스니펫을 복사했습니다.");
+      window.setTimeout(() => setCopyHint(null), 2800);
+    } catch {
+      setCopyHint("복사에 실패했습니다.");
+    }
+  }
+
+  const ingestPostExample =
+    publicOrigin.length > 0
+      ? `POST ${publicOrigin}/api/v1/events`
+      : "POST ${YOUR_OPENGRAZE_ORIGIN}/api/v1/events";
+
   return (
     <AppChrome active="dashboard">
       <AppMain wide>
@@ -131,16 +171,13 @@ export default function WorkspaceDetailPage() {
             <Link href="/dashboard" className="text-xs text-muted underline-offset-4 hover:text-foreground hover:underline">
               ← 워크스페이스 목록
             </Link>
-            <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-foreground">{slug}</h1>
+            <h1 className={`mt-2 ${pageTitle}`}>{slug}</h1>
             <p className="mt-1 text-sm text-muted">
               이 공간의 <strong className="text-foreground">작업 현황</strong>, API 키, 수집 기록입니다.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            <Link
-              href={`/dashboard/${slug}/billing`}
-              className="rounded-lg border border-[var(--list-border)] bg-card px-3 py-2 text-sm font-medium transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40"
-            >
+            <Link href={`/dashboard/${slug}/billing`} className={`${btnSecondary} px-3 py-2 text-center`}>
               구독 · 결제
             </Link>
             <button
@@ -159,7 +196,7 @@ export default function WorkspaceDetailPage() {
           </p>
         ) : null}
 
-        <section className="mt-10 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm">
+        <section className={`mt-10 ${cardPanel}`}>
           <h2 className={sectionEyebrow}>작업 현황</h2>
           <p className={proseMutedSm}>
             API로 반영된 제목·설명·상태를 표시합니다(이 화면에서는 편집하지 않음).{" "}
@@ -201,7 +238,7 @@ export default function WorkspaceDetailPage() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm">
+        <section className={`mt-8 ${cardPanel}`}>
           <h2 className={sectionEyebrow}>수집용 API 키</h2>
           <p className={proseMutedSm}>
             앱·스크립트·서버에서 이 워크스페이스로 <strong className="text-foreground">이벤트를 넣을 때</strong> 씁니다.{" "}
@@ -301,14 +338,10 @@ export default function WorkspaceDetailPage() {
               onChange={(e) => setKeyName(e.target.value)}
               required
             />
-            <button
-              type="submit"
-              className="rounded-lg bg-cta px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
-            >
+            <button type="submit" className={btnPrimary}>
               새 키 만들기
             </button>
           </form>
-          {copyHint ? <p className="mt-3 text-xs text-muted">{copyHint}</p> : null}
           {newToken ? (
             <div className="mt-4 space-y-2 rounded-xl border border-emerald-200/80 bg-emerald-50 p-4 text-xs text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
               <p className="break-all">
@@ -363,7 +396,7 @@ export default function WorkspaceDetailPage() {
           ) : null}
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm">
+        <section className={`mt-8 ${cardPanel}`}>
           <h2 className={sectionEyebrow}>최근 수집 활동</h2>
           <p className={proseMutedSm}>
             이 워크스페이스로 들어온 <code className={codeInline}>POST /api/v1/events</code> 결과만 보입니다.{" "}
@@ -390,7 +423,7 @@ export default function WorkspaceDetailPage() {
             , 장문 가이드는 저장소 <code className={codeInline}>docs/opengraze-llms-guide.md</code> 를 참고하세요.
           </p>
           <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--list-border)] bg-card p-3 font-mono text-[11px] text-foreground">
-            {`POST ${publicOrigin}/api/v1/events
+            {`${ingestPostExample}
 Authorization: Bearer <발급한_키>
 Content-Type: application/json
 

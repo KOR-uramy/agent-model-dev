@@ -4,9 +4,9 @@ export type AppChromeNav = "home" | "login" | "register" | "dashboard";
 
 const navLinkClass = (active: AppChromeNav | undefined, key: AppChromeNav) =>
   [
-    "transition-colors",
+    "rounded-md px-1.5 py-1 transition-colors",
     active === key
-      ? "font-semibold text-foreground"
+      ? "bg-neutral-100 font-semibold text-foreground dark:bg-neutral-800"
       : "text-muted hover:text-foreground",
   ].join(" ");
 
@@ -30,21 +30,26 @@ export function AppChrome({
           >
             OpenGraze
           </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm sm:gap-x-5">
+          <nav
+            className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-sm sm:gap-x-3"
+            aria-label="주요 내비게이션"
+          >
             <Link href="/" className={navLinkClass(active, "home")}>
               관측
             </Link>
             <Link
               href="/llms.txt"
-              className="text-muted transition-colors hover:text-foreground"
+              className="rounded-md px-1.5 py-1 text-muted transition-colors hover:text-foreground"
               target="_blank"
               rel="noopener noreferrer"
             >
               연동 요약
             </Link>
+            <span className="hidden h-3 w-px shrink-0 bg-[var(--list-border)] sm:block" aria-hidden />
             <Link href="/dashboard" className={navLinkClass(active, "dashboard")}>
               대시보드
             </Link>
+            <span className="hidden h-3 w-px shrink-0 bg-[var(--list-border)] sm:block" aria-hidden />
             <Link href="/login" className={navLinkClass(active, "login")}>
               로그인
             </Link>

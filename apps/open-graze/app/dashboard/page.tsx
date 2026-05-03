@@ -1,7 +1,14 @@
 "use client";
 
 import { AppChrome, AppMain } from "@/app/components/app-chrome";
-import { codeInline, inputField, linkSubtleTight, proseBodyMuted } from "@/lib/ui-tokens";
+import {
+  btnPrimary,
+  cardPanel,
+  inputField,
+  listRowCard,
+  pageLead,
+  pageTitle,
+} from "@/lib/ui-tokens";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -73,8 +80,8 @@ export default function DashboardIndexPage() {
   return (
     <AppChrome active="dashboard">
       <AppMain>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">워크스페이스</h1>
-        <p className="mt-2 text-sm text-muted">
+        <h1 className={pageTitle}>워크스페이스</h1>
+        <p className={pageLead}>
           프로젝트나 팀마다 공간을 나누고, <strong className="font-medium text-foreground">API 키·수집 이벤트·(설정 시) 구독·결제</strong>를 한곳에 묶습니다. 외부 앱은{" "}
           <Link
             href="/llms.txt"
@@ -89,10 +96,7 @@ export default function DashboardIndexPage() {
           참고하세요.
         </p>
 
-        <form
-          onSubmit={create}
-          className="mt-8 space-y-4 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm"
-        >
+        <form onSubmit={create} className={`mt-8 space-y-4 ${cardPanel}`}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">새 워크스페이스</h2>
           <input
             className={inputField}
@@ -109,30 +113,32 @@ export default function DashboardIndexPage() {
             required
           />
           {err ? <p className="text-xs text-red-600 dark:text-red-400">{err}</p> : null}
-          <button
-            type="submit"
-            className="rounded-lg bg-cta px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
-          >
+          <button type="submit" className={btnPrimary}>
             워크스페이스 만들고 계속
           </button>
         </form>
 
-        <ul className="mt-10 space-y-2">
-          {list.map((w) => (
-            <li key={w.id}>
-              <Link
-                href={`/dashboard/${w.slug}`}
-                className="flex flex-col gap-1 rounded-xl border border-[var(--list-border)] px-4 py-3 text-sm transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-              >
-                <span className="font-medium text-foreground">{w.name}</span>
-                <span className="shrink-0 text-xs tabular-nums text-muted sm:text-sm">
-                  {w.slug} · {subscriptionStatusLabel(w.subscriptionStatus)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        </div>
+        {list.length === 0 ? (
+          <div className={`mt-10 ${cardPanel} text-center`}>
+            <p className="text-sm text-muted">
+              아직 워크스페이스가 없습니다. 위 양식으로{" "}
+              <strong className="text-foreground">첫 공간</strong>을 만들면 API 키와 수집 기록을 바로 쓸 수 있습니다.
+            </p>
+          </div>
+        ) : (
+          <ul className="mt-10 space-y-2">
+            {list.map((w) => (
+              <li key={w.id}>
+                <Link href={`/dashboard/${w.slug}`} className={listRowCard}>
+                  <span className="font-medium text-foreground">{w.name}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-muted sm:text-sm">
+                    {w.slug} · {subscriptionStatusLabel(w.subscriptionStatus)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </AppMain>
     </AppChrome>
   );

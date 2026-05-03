@@ -1,6 +1,7 @@
 "use client";
 
-import { AppChrome } from "@/app/components/app-chrome";
+import { AppChrome, AuthCard } from "@/app/components/app-chrome";
+import { btnPrimaryBlock, inputField, pageLead, pageTitle } from "@/lib/ui-tokens";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +11,7 @@ function LoginInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const cb = sp.get("callbackUrl") ?? "/dashboard";
+  const registered = sp.get("registered") === "1";
   const [email, setEmail] = useState("dev@opengraze.local");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -40,8 +42,8 @@ function LoginInner() {
   return (
     <AppChrome active="login">
       <AuthCard>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">OpenGraze 로그인</h1>
-        <p className="mt-2 text-sm text-muted">
+        <h1 className={pageTitle}>OpenGraze 로그인</h1>
+        <p className={pageLead}>
           대시보드에서 <strong className="font-medium text-foreground">워크스페이스·API 키·수집 이벤트</strong>를 한곳에서 관리합니다.
         </p>
         <p className="mt-3 text-xs leading-relaxed text-muted">
@@ -98,11 +100,7 @@ function LoginInner() {
             />
           </div>
           {err ? <p className="text-sm text-red-600 dark:text-red-400">{err}</p> : null}
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-lg bg-cta py-3 text-sm font-semibold text-white transition hover:bg-cta-hover disabled:opacity-60 dark:text-neutral-900"
-          >
+          <button type="submit" disabled={pending} className={btnPrimaryBlock}>
             {pending ? "확인 중…" : "대시보드로 로그인"}
           </button>
         </form>
