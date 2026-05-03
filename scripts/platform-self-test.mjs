@@ -25,6 +25,34 @@ if (!token) {
   process.exit(1);
 }
 
+const limitsUrl = `${base}/api/v1/meta/limits`;
+const limitsRes = await fetch(limitsUrl);
+if (!limitsRes.ok) {
+  const t = await limitsRes.text();
+  console.error(`GET /api/v1/meta/limits HTTP ${limitsRes.status}`, t);
+  process.exit(1);
+}
+const limitsJson = await limitsRes.json();
+const ingestOk =
+  limitsJson?.ingest?.postEvents &&
+  typeof limitsJson.ingest.postEvents.maxBodyBytes === "number" &&
+  Object.prototype.hasOwnProperty.call(limitsJson.ingest.postEvents, "rateLimitDisabled");
+const dashOk =
+  limitsJson?.dashboard?.getWorkspaceEvents &&
+  Object.prototype.hasOwnProperty.call(
+    limitsJson.dashboard.getWorkspaceEvents,
+    "rateLimitDisabled",
+  );
+if (!ingestOk || !dashOk) {
+  console.error("GET /api/v1/meta/limits 응답 형식이 예상과 다릅니다:", limitsJson);
+  process.exit(1);
+}
+console.log("공개 한도 스냅샷(meta/limits) 확인:", {
+  maxBodyBytes: limitsJson.ingest.postEvents.maxBodyBytes,
+  ingestRateDisabled: limitsJson.ingest.postEvents.rateLimitDisabled,
+  dashboardEventsRateDisabled: limitsJson.dashboard.getWorkspaceEvents.rateLimitDisabled,
+});
+
 const url = `${base}/api/v1/events`;
 const body = {
   kind: "opengraze.self_test",

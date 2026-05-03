@@ -43,6 +43,37 @@ export default function WorkspaceDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
+  const [publicOrigin, setPublicOrigin] = useState("");
+
+  useEffect(() => {
+    setPublicOrigin(window.location.origin);
+  }, []);
+
+  async function copyNewTokenOnly() {
+    if (!newToken) return;
+    try {
+      await navigator.clipboard.writeText(newToken);
+      setCopyHint("키를 클립보드에 복사했습니다.");
+    } catch {
+      setCopyHint("클립보드 복사에 실패했습니다. 키를 수동으로 복사하세요.");
+    }
+    window.setTimeout(() => setCopyHint(null), 4500);
+  }
+
+  async function copyOpenGrazeEnvSnippet() {
+    if (!newToken) return;
+    const origin = window.location.origin;
+    const snippet = `OPENGRAZE_PLATFORM_URL=${origin}\nOPENGRAZE_PLATFORM_API_KEY=${newToken}\n`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setCopyHint(".env용 스니펫을 복사했습니다.");
+    } catch {
+      setCopyHint("클립보드 복사에 실패했습니다.");
+    }
+    window.setTimeout(() => setCopyHint(null), 4500);
+  }
+
   const load = useCallback(async () => {
     setEventsLoadErr(null);
     setTasksLoadErr(null);
@@ -308,7 +339,6 @@ export default function WorkspaceDetailPage() {
               새 키 만들기
             </button>
           </form>
-          {copyHint ? <p className="mt-3 text-xs text-muted">{copyHint}</p> : null}
           {newToken ? (
             <div className="mt-4 space-y-2 rounded-xl border border-emerald-200/80 bg-emerald-50 p-4 text-xs text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
               <p className="break-all">
