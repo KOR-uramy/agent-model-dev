@@ -166,7 +166,7 @@ export default function Home() {
             className="font-display text-lg font-semibold tracking-tight text-foreground"
           >
             OpenGraze
-          </span>
+          </Link>
           <nav className="flex items-center gap-5 text-sm text-foreground">
             <Link
               href="/llms.txt"

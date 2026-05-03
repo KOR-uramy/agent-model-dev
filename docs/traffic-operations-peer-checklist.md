@@ -10,11 +10,15 @@
 | API 한도·헤더 | [GitHub REST rate limit](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28) | `X-RateLimit-*`·`Retry-After`·secondary limit 개념이 문서화되어 클라이언트가 기대 동작을 맞출 수 있다. |
 | 웹훅 남용 | [GitHub Webhooks](https://docs.github.com/en/webhooks) | 서명·재시도·실패 시 상태 코드 규약이 명확하다. |
 | 대시보드·알림 | 일반 SaaS(관측·에러 트래킹) | 워크스페이스별 쿼터·알림 채널·감사 로그 UI가 흔하다. |
+| APM·트레이싱 | [OpenTelemetry](https://opentelemetry.io/docs/) | 스팬·메트릭·로그 상관관계로 “수집 한 건”을 요청 전후까지 추적하기 쉽다. |
+| 상태·사고 소통 | [statuspage.io](https://statuspage.io) 등 관례 | 한도·장애 시 사용자 기대치를 맞추기 위해 공개 채널이 흔하다. |
 
 ## 현재 구현 스냅샷(이 레포)
 
 - `POST /api/v1/events`: 본문 상한(`INGEST_MAX_BODY_BYTES`), **API 키별** 고정 윈도 레이트 리밋(`INGEST_RATE_LIMIT_PER_WINDOW` / `INGEST_RATE_LIMIT_WINDOW_MS`, `0`이면 비활성), 성공·거절 시 `X-RateLimit-*`, 429 시 `Retry-After` 및 JSON `retryAfterSeconds`·`code: rate_limited`. 429·대형 본문 거절 시 서버 `console`에 JSON 한 줄(`ingest_rate_limited`, `ingest_body_rejected`). 선택 `INGEST_LOG_EACH_REQUEST=1`으로 성공 로그.
-- 대시보드 워크스페이스 상세: 위 한도·429 대응·로그 이벤트명을 **인앱 한 블록**으로 안내.
+- `GET /api/workspaces/[slug]/events`(대시보드 세션): **사용자+워크스페이스** 단위 고정 윈도(`DASHBOARD_EVENTS_GET_RATE_LIMIT_PER_WINDOW` / `DASHBOARD_EVENTS_GET_RATE_LIMIT_WINDOW_MS`, `0`이면 비활성). 429 시 `ingest`와 동형의 헤더·JSON `code: rate_limited`, 로그 `dashboard_events_list_rate_limited`.
+- `GET /api/v1/meta/limits`(비인증): 수집·대시보드 목록 조회의 **기본 한도 스냅샷** JSON(비밀 없음).
+- 대시보드 워크스페이스 상세: 수집 POST **HTTP 코드 플레이북 표**, 레이트·로그 키워드, `meta/limits` 링크를 **인앱**으로 안내.
 - 인메모리 레이트 리밋: **프로세스(또는 인스턴스) 단위**이며, 수평 확장 시 합산 한도는 아니다.
 
 ## 측정 가능한 과제 (`- [ ]`)
@@ -35,15 +39,19 @@
 
 ### 대시보드 — 관측·알림
 
-- [ ] **수집 실패 UX** — self-test·CI에서 429·413·401 응답을 구분해 대시보드 **연동 예시** 옆에 “자주 나는 코드” 표를 둔다(`docs/ux-friction-scenarios.md` ingest 플레이북과 연계).
-- [ ] **대시보드 API 레이트** — `GET …/events` 등 세션 API에 사용자·워크스페이스 단위 레이트를 두어 스크래핑·실수 폴링을 완화한다.
+- [x] **수집 실패 UX(요약 표)** — 워크스페이스 상세에 401·400·413·429 한 줄 플레이북 표(키 노출 없음). 심화: self-test·CI가 응답 코드별 힌트를 출력(`docs/ux-friction-scenarios.md` S11 ingest 과제와 연계).
+- [x] **대시보드 API 레이트(기본)** — `GET …/workspaces/[slug]/events`에 사용자+워크스페이스 단위 인메모리 윈도, 429·`X-RateLimit-*`·`dashboard_events_list_rate_limited` 로그.
+- [ ] **대시보드 API 레이트(분산·전 엔드포인트)** — Redis 등으로 인스턴스 간 공유하고, `api-keys`·`tasks` 등 다른 세션 GET에도 동일 패턴 적용 여부를 정한다.
 - [ ] **알림 채널** — 워크스페이스별 “일일 수집 N건 초과·429 급증”을 이메일·웹훅·텔레그램으로 보낼지 정책을 정한다.
 - [ ] **감사 로그** — API 키 생성·삭제·이름 변경을 시간순으로 보여 규제·보안 질문에 답할 수 있게 한다.
+- [ ] **대시보드 오류 대시보드** — 워크스페이스별 429·413 비율을 집계해 UI에 스파크라인(또는 24h 카운트)으로 노출한다.
 
 ### 쿼터·안내·문서
 
-- [ ] **공개 쿼터 페이지** — 로그인 없이 읽을 수 있는 “기본 한도 표”(수치·리셋 주기) 또는 `GET /api/v1/meta/limits` 같은 읽기 전용 엔드포인트.
-- [ ] **429 클라이언트 가이드** — SDK·`docs/opengraze-llms-guide.md`에 지수 백오프 의사코드와 `Retry-After` 준수를 명시한다.
+- [x] **공개 한도 JSON** — 비인증 `GET /api/v1/meta/limits`로 수치·윈도(비활성 시 `null`) 스냅샷.
+- [ ] **공개 쿼터 페이지(HTML)** — 로그인 없이 읽는 “한도 표” 랜딩 또는 `/limits` 정적 페이지(브랜딩·SEO).
+- [x] **429 클라이언트 가이드(문서)** — `docs/opengraze-llms-guide.md`에 `Retry-After`·지수 백오프·`meta/limits` 링크.
+- [ ] **429 클라이언트 가이드(SDK)** — `ralph-workspace-sdk` 또는 예제 스크립트에 재시도 유틸을 넣는다.
 - [ ] **SLA / 상태 페이지** — 외부 상태 페이지 링크 또는 “베타·무 SLA” 한 줄을 랜딩·README 정책에 맞춘다(루트 README 수정이 필요하면 오케스트레이터 범위로).
 
 ---

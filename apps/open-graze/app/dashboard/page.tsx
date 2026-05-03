@@ -73,7 +73,9 @@ export default function DashboardIndexPage() {
     "w-full rounded-lg border border-[var(--list-border)] bg-background px-3 py-2.5 text-sm shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600";
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <AppChrome active="dashboard">
+      <AppMain>
+        <div className="mx-auto max-w-2xl px-6 py-10">
       <h1 className="text-2xl font-semibold">워크스페이스</h1>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
         프로젝트나 팀마다 공간을 나누고, API 키·수집 이벤트·(설정 시) 구독·결제를 함께 묶습니다. 외부 앱에서 보내는 이벤트는{" "}
@@ -128,6 +130,7 @@ export default function DashboardIndexPage() {
             </li>
           ))}
         </ul>
+        </div>
       </AppMain>
     </AppChrome>
   );
