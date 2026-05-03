@@ -90,10 +90,17 @@ export type TimelineRangeLoadResult = {
   truncated: boolean;
 };
 
+/** `GET /api/ralph/events/range` — `GET /api/ralph/events`와 동일한 `role`·`sessionId` 의미 */
+export type TimelineRangeFilters = {
+  role?: AgentRoleKey | null;
+  sessionId?: string | null;
+};
+
 export async function loadTimelineEventsInRange(
   fromIso: string,
   toIso: string,
   take: number,
+  opts?: TimelineRangeFilters | null,
 ): Promise<TimelineRangeLoadResult> {
   const workspaceKey = timelineWorkspaceKey();
   const capped = Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, take));
