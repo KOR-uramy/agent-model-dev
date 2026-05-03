@@ -3,8 +3,8 @@ import {
   TIMELINE_RANGE_MAX_ROWS,
   loadTimelineEventsInRange,
   parseSessionIdQueryParam,
-  parseTimelineRangeParams,
 } from "@/lib/timeline-feed";
+import { parseTimelineRangeParams } from "@/lib/timeline-query-params";
 import { parseRoleQueryParam } from "ralph-workspace-sdk";
 import { NextResponse } from "next/server";
 

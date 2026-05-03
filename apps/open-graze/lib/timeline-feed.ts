@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { Prisma } from "@prisma/client";
 import type {
   AgentRoleKey,
+  EventSource,
   RalphEventsApiPayload,
   WorkspaceFeedEvent,
 } from "ralph-workspace-sdk";
@@ -32,6 +33,9 @@ const ROLE_FILTER_EMPTY_HINT =
 const SESSION_FILTER_EMPTY_HINT =
   "해당 세션 ID로 동기화된 이벤트가 없습니다. 식별자를 확인하거나 동기화를 실행해 보세요.";
 
+const SOURCE_FILTER_EMPTY_HINT =
+  "선택한 채널(에이전트·제품)에 맞는 행이 없습니다. 채널 필터를 해제하거나 구간·세션을 조정해 보세요.";
+
 /** `GET /api/ralph/events/range` 한 번에 돌려줄 최대 행 수 */
 export const TIMELINE_RANGE_MAX_ROWS = 10_000;
 
@@ -39,45 +43,14 @@ export const TIMELINE_RANGE_MAX_ROWS = 10_000;
 export const RALPH_EVENTS_ROLE_QUERY_ERROR =
   "쿼리 `role`은 planning, design, implementation, test 중 하나이거나 생략·빈 값이어야 합니다.";
 
+/** `GET /api/ralph/events` — 비어 있지 않은 `source`가 허용 집합이 아닐 때 */
+export const RALPH_EVENTS_SOURCE_QUERY_ERROR =
+  "쿼리 `source`는 ralph, application 중 하나이거나 생략·빈 값이어야 합니다.";
+
 export function parseSessionIdQueryParam(raw: string | null): string | null {
   if (raw == null) return null;
   const t = raw.trim();
   return t === "" ? null : t;
-}
-
-export type TimelineRangeParseResult =
-  | { ok: true; fromIso: string; toIso: string }
-  | { ok: false; message: string };
-
-export function parseTimelineRangeParams(
-  fromRaw: string | null,
-  toRaw: string | null,
-): TimelineRangeParseResult {
-  const fromTrim = fromRaw?.trim() ?? "";
-  const toTrim = toRaw?.trim() ?? "";
-  if (!fromTrim || !toTrim) {
-    return {
-      ok: false,
-      message:
-        "쿼리 `from`·`to`는 필수입니다(ISO 8601, 예: 2026-05-03T00:00:00Z).",
-    };
-  }
-  const fromMs = Date.parse(fromTrim);
-  const toMs = Date.parse(toTrim);
-  if (Number.isNaN(fromMs) || Number.isNaN(toMs)) {
-    return {
-      ok: false,
-      message: "`from`·`to`는 파싱 가능한 ISO 8601 날짜·시각이어야 합니다.",
-    };
-  }
-  if (fromMs > toMs) {
-    return { ok: false, message: "`from`은 `to`보다 이전이거나 같아야 합니다." };
-  }
-  return {
-    ok: true,
-    fromIso: new Date(fromMs).toISOString(),
-    toIso: new Date(toMs).toISOString(),
-  };
 }
 
 /**
@@ -94,6 +67,11 @@ export type TimelineRangeLoadResult = {
 export type TimelineRangeLoadOpts = {
   role: AgentRoleKey | null;
   sessionId: string | null;
+  /**
+   * true면 구간 안에서 시각 내림차순으로 잘라 최근 건부터 가져온 뒤, 반환 배열은 시각 오름차순으로 맞춘다(홈 타임라인).
+   * false면 구간 안 오름차순으로 앞에서부터(기본, range API).
+   */
+  newestFirst?: boolean;
 };
 
 export async function loadTimelineEventsInRange(
@@ -106,6 +84,8 @@ export async function loadTimelineEventsInRange(
   const capped = Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, take));
   const role = opts.role;
   const sessionId = opts.sessionId;
+  const newestFirst = opts.newestFirst === true;
+  const orderDir = newestFirst ? Prisma.raw("DESC") : Prisma.raw("ASC");
 
   const rows =
     role && sessionId
@@ -117,7 +97,7 @@ export async function loadTimelineEventsInRange(
           AND strftime('%s', "ts") <= strftime('%s', ${toIso})
           AND json_extract("payload", '$.sessionId') = ${sessionId}
           AND json_extract("payload", '$.detail.role') = ${role}
-        ORDER BY "ts" ASC
+        ORDER BY "ts" ${orderDir}
         LIMIT ${capped}
       `
       : sessionId
@@ -128,7 +108,7 @@ export async function loadTimelineEventsInRange(
           AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
           AND strftime('%s', "ts") <= strftime('%s', ${toIso})
           AND json_extract("payload", '$.sessionId') = ${sessionId}
-        ORDER BY "ts" ASC
+        ORDER BY "ts" ${orderDir}
         LIMIT ${capped}
       `
         : role
@@ -139,7 +119,7 @@ export async function loadTimelineEventsInRange(
           AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
           AND strftime('%s', "ts") <= strftime('%s', ${toIso})
           AND json_extract("payload", '$.detail.role') = ${role}
-        ORDER BY "ts" ASC
+        ORDER BY "ts" ${orderDir}
         LIMIT ${capped}
       `
           : await prisma.$queryRaw<{ payload: string }[]>`
@@ -148,7 +128,7 @@ export async function loadTimelineEventsInRange(
     WHERE "workspaceKey" = ${workspaceKey}
       AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
       AND strftime('%s', "ts") <= strftime('%s', ${toIso})
-    ORDER BY "ts" ASC
+    ORDER BY "ts" ${orderDir}
     LIMIT ${capped}
   `;
   const truncated = rows.length >= capped;
@@ -163,6 +143,7 @@ export async function loadTimelineEventsInRange(
       /* skip corrupt payload */
     }
   }
+  if (newestFirst) out.reverse();
   return { events: out, truncated };
 }
 
@@ -184,6 +165,8 @@ export async function loadTimelineFromDb(
   tail: number,
   role: AgentRoleKey | null = null,
   sessionId: string | null = null,
+  source: EventSource | null = null,
+  range: { fromIso: string; toIso: string } | null = null,
 ): Promise<RalphEventsApiPayload> {
   const workspaceKey = timelineWorkspaceKey();
   const workspace = resolveRalphWorkspace(pathOpts);
@@ -191,6 +174,44 @@ export async function loadTimelineFromDb(
   const telemetryPath = resolveTelemetryJsonlPath(pathOpts);
   const usdPerM = parseUsdPerMillionEstTokens(pathOpts);
   const t = Math.min(5000, Math.max(1, tail));
+
+  if (range) {
+    const { events } = await loadTimelineEventsInRange(
+      range.fromIso,
+      range.toIso,
+      t,
+      { role, sessionId, newestFirst: true },
+    );
+    let merged = events;
+    let sourceFilterEmpty = false;
+    if (source) {
+      const before = merged.length;
+      merged = merged.filter((e) => e.source === source);
+      if (before > 0 && merged.length === 0) sourceFilterEmpty = true;
+    }
+    const rawEmpty = events.length === 0;
+    const empty = rawEmpty;
+    const sessionFilterMiss = Boolean(sessionId && empty);
+    const timelineGloballyEmpty = empty && !sessionId && !role;
+    return buildRalphEventsApiPayloadFromMerged({
+      workspace,
+      eventsPath: ralphPath,
+      telemetryPath,
+      usdPerMillionEstTokens: usdPerM,
+      merged,
+      error: timelineGloballyEmpty ? "TIMELINE_EMPTY" : undefined,
+      hint: timelineGloballyEmpty
+        ? EMPTY_HINT
+        : sessionFilterMiss
+          ? SESSION_FILTER_EMPTY_HINT
+          : sourceFilterEmpty
+            ? SOURCE_FILTER_EMPTY_HINT
+            : role && empty
+              ? ROLE_FILTER_EMPTY_HINT
+              : undefined,
+    });
+  }
+
   const fetchSize =
     role || sessionId ? Math.min(5000, Math.max(t, t * 40)) : t;
 
@@ -223,6 +244,12 @@ export async function loadTimelineFromDb(
 
   const rawEmpty = mergedChrono.length === 0;
   let merged = mergedChrono;
+  let sourceFilterEmpty = false;
+  if (source) {
+    const before = merged.length;
+    merged = merged.filter((e) => e.source === source);
+    if (before > 0 && merged.length === 0) sourceFilterEmpty = true;
+  }
   let roleFilterEmpty = false;
 
   if (role) {
@@ -250,9 +277,11 @@ export async function loadTimelineFromDb(
       ? EMPTY_HINT
       : sessionFilterMiss
         ? SESSION_FILTER_EMPTY_HINT
-        : roleFilterEmpty
-          ? ROLE_FILTER_EMPTY_HINT
-          : undefined,
+        : sourceFilterEmpty
+          ? SOURCE_FILTER_EMPTY_HINT
+          : roleFilterEmpty
+            ? ROLE_FILTER_EMPTY_HINT
+            : undefined,
   });
 }
 
