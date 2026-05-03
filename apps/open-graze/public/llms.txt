@@ -9,6 +9,8 @@ Content-Type: application/json
 {"kind":"string_1_to_120_chars","data":{}}  # data 생략 가능
 
 성공: HTTP 200, 본문에 ok:true 가량.
+429/413/401 등: docs/opengraze-llms-guide.md 의 오류 표·재시도 절 참고.
+공개 한도 스냅샷(JSON, 비인증): GET {BASE_URL}/api/v1/meta/limits
 BASE_URL 기본: http://localhost:3000 (개발)
 
 ## 환경 변수 (권장 이름 — 어떤 앱·CI에서도 동일)

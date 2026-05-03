@@ -65,7 +65,18 @@ export default function WorkspaceDetailPage() {
     } else {
       const raw = await re.text();
       setEvents([]);
-      setEventsLoadErr(`수집 목록을 불러오지 못했습니다 (HTTP ${re.status}). ${raw.slice(0, 240)}`);
+      let msg = `수집 목록을 불러오지 못했습니다 (HTTP ${re.status}). ${raw.slice(0, 240)}`;
+      if (re.status === 429) {
+        try {
+          const j = JSON.parse(raw) as { retryAfterSeconds?: number };
+          if (typeof j.retryAfterSeconds === "number") {
+            msg = `이 화면의 목록 조회가 너무 잦습니다(HTTP 429). 약 ${j.retryAfterSeconds}초 뒤에 새로고침하거나, 자동 새로고침 스크립트의 간격을 늘려 주세요.`;
+          }
+        } catch {
+          /* keep msg */
+        }
+      }
+      setEventsLoadErr(msg);
     }
     if (rt.ok) {
       const j = (await rt.json()) as { tasks: TaskRow[] };
@@ -204,17 +215,84 @@ export default function WorkspaceDetailPage() {
             </Link>{" "}
             (짧은 인덱스) · 레포의 <code className={codeInline}>docs/opengraze-llms-guide.md</code>
           </p>
-          <p className="mt-3 rounded-lg border border-[var(--list-border)] bg-neutral-50/80 px-3 py-2.5 text-xs leading-relaxed text-muted dark:bg-neutral-900/40">
-            <span className="font-medium text-foreground">운영·남용 방어</span>
-            {" — "}
-            키마다 윈도 단위 요청 한도가 걸릴 수 있습니다(기본 분당 120회·60초 윈도,{" "}
-            <code className={codeInline}>INGEST_RATE_LIMIT_PER_WINDOW</code>·
-            <code className={codeInline}>INGEST_RATE_LIMIT_WINDOW_MS</code>, <code className={codeInline}>0</code>이면 비활성). 초과 시 HTTP{" "}
-            <code className={codeInline}>429</code>와 본문 <code className={codeInline}>retryAfterSeconds</code>, 헤더{" "}
-            <code className={codeInline}>Retry-After</code>·<code className={codeInline}>X-RateLimit-*</code>를 확인하세요. 본문 크기는{" "}
-            <code className={codeInline}>INGEST_MAX_BODY_BYTES</code> 상한이 있습니다. 서버 로그에는{" "}
-            <code className={codeInline}>ingest_rate_limited</code> 등 JSON 한 줄이 남을 수 있습니다.
-          </p>
+          <div className="mt-4 rounded-xl border border-[var(--list-border)] bg-neutral-50/80 p-4 text-xs leading-relaxed text-muted dark:bg-neutral-950/50">
+            <p className="font-semibold text-foreground">운영·남용 방어·관측</p>
+            <ul className="mt-2 list-disc space-y-1 pl-4">
+              <li>
+                수집 <code className={codeInline}>POST /api/v1/events</code>는 키별 윈도 레이트·본문 상한이 있습니다(
+                <code className={codeInline}>INGEST_RATE_LIMIT_PER_WINDOW</code>,{" "}
+                <code className={codeInline}>INGEST_RATE_LIMIT_WINDOW_MS</code>,{" "}
+                <code className={codeInline}>INGEST_MAX_BODY_BYTES</code>, <code className={codeInline}>0</code>이면 해당
+                레이트 비활성). 초과 시 <code className={codeInline}>429</code>·<code className={codeInline}>413</code>과{" "}
+                <code className={codeInline}>Retry-After</code>·<code className={codeInline}>X-RateLimit-*</code>를
+                확인하세요. 서버 로그에는 <code className={codeInline}>ingest_rate_limited</code> 등 JSON 한 줄이 남을 수
+                있습니다.
+              </li>
+              <li>
+                이 페이지의 수집 목록 조회(<code className={codeInline}>GET …/api/workspaces/…/events</code>)는 세션
+                사용자·워크스페이스 단위로 별도 레이트가 걸릴 수 있습니다(
+                <code className={codeInline}>DASHBOARD_EVENTS_GET_RATE_LIMIT_PER_WINDOW</code>,{" "}
+                <code className={codeInline}>DASHBOARD_EVENTS_GET_RATE_LIMIT_WINDOW_MS</code>). 과도한 새로고침·폴링 시
+                HTTP <code className={codeInline}>429</code>와 로그{" "}
+                <code className={codeInline}>dashboard_events_list_rate_limited</code>가 나올 수 있습니다.
+              </li>
+              <li>
+                배포 환경의 숫자 한도 스냅샷(비밀 없음):{" "}
+                <Link
+                  href="/api/v1/meta/limits"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  GET /api/v1/meta/limits
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--list-border)]">
+            <table className="w-full min-w-[28rem] border-collapse text-left text-xs">
+              <caption className="border-b border-[var(--list-border)] bg-neutral-50/80 px-3 py-2 text-left font-semibold text-foreground dark:bg-neutral-900/50">
+                수집 POST 자주 나는 HTTP 코드(플레이북 요약)
+              </caption>
+              <thead className="border-b border-[var(--list-border)] bg-neutral-50/60 text-[10px] font-medium uppercase tracking-wide text-muted dark:bg-neutral-900/40">
+                <tr>
+                  <th className="px-3 py-2">코드</th>
+                  <th className="px-3 py-2">의미·조치</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--list-border)] text-muted">
+                <tr>
+                  <td className="whitespace-nowrap px-3 py-2 font-mono text-foreground">401</td>
+                  <td className="px-3 py-2">
+                    Bearer 없음·키 불일치. 대시보드에서 키를 다시 복사했는지, 환경 변수 이름이{" "}
+                    <code className={codeInline}>OPENGRAZE_PLATFORM_API_KEY</code> 인지 확인합니다.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="whitespace-nowrap px-3 py-2 font-mono text-foreground">400</td>
+                  <td className="px-3 py-2">
+                    JSON 파싱 실패 또는 <code className={codeInline}>kind</code> 스키마 불일치.{" "}
+                    <code className={codeInline}>kind</code>는 1~120자 문자열, <code className={codeInline}>data</code>는
+                    객체 권장입니다.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="whitespace-nowrap px-3 py-2 font-mono text-foreground">413</td>
+                  <td className="px-3 py-2">
+                    본문이 <code className={codeInline}>INGEST_MAX_BODY_BYTES</code> 를 초과했습니다. 페이로드를 줄이거나
+                    청크 전송을 피합니다.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="whitespace-nowrap px-3 py-2 font-mono text-foreground">429</td>
+                  <td className="px-3 py-2">
+                    키별 레이트 초과. 응답 <code className={codeInline}>retryAfterSeconds</code>·헤더{" "}
+                    <code className={codeInline}>Retry-After</code>를 지키고 지수 백오프로 재시도합니다.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <form onSubmit={createKey} className="mt-4 flex flex-wrap gap-2">
             <input
               className={inputFieldInline}
@@ -232,8 +310,8 @@ export default function WorkspaceDetailPage() {
           </form>
           {copyHint ? <p className="mt-3 text-xs text-muted">{copyHint}</p> : null}
           {newToken ? (
-            <div className="mt-4 space-y-3">
-              <p className="break-all rounded-xl border border-emerald-200/80 bg-emerald-50 p-4 text-xs text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
+            <div className="mt-4 space-y-2 rounded-xl border border-emerald-200/80 bg-emerald-50 p-4 text-xs text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
+              <p className="break-all">
                 <strong>지금만 표시됩니다.</strong> 복사 후 다른 앱·CI에는{" "}
                 <code className="rounded bg-emerald-100/90 px-1 dark:bg-emerald-900/60">OPENGRAZE_PLATFORM_API_KEY</code> 로 저장하고,
                 베이스 URL은{" "}
@@ -244,43 +322,35 @@ export default function WorkspaceDetailPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="rounded-lg border border-[var(--list-border)] bg-card px-3 py-2 text-xs font-medium text-foreground transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40"
+                  className="rounded-lg border border-emerald-300/80 bg-emerald-100/80 px-3 py-1.5 text-[11px] font-medium text-emerald-950 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-50"
                   onClick={() => void copyNewTokenOnly()}
                 >
                   키만 복사
                 </button>
                 <button
                   type="button"
-                  className="rounded-lg border border-[var(--list-border)] bg-card px-3 py-2 text-xs font-medium text-foreground transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40"
+                  className="rounded-lg border border-emerald-300/80 bg-emerald-100/80 px-3 py-1.5 text-[11px] font-medium text-emerald-950 dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-50"
                   onClick={() => void copyOpenGrazeEnvSnippet()}
                 >
                   .env 스니펫 복사
                 </button>
               </div>
+              {copyHint ? <p className="text-[11px] text-emerald-900 dark:text-emerald-200">{copyHint}</p> : null}
             </div>
           ) : null}
-          <p className="mt-4 rounded-xl border border-[var(--list-border)] bg-surface-subtle px-4 py-3 text-xs leading-relaxed text-muted">
-            <span className="font-semibold text-foreground">운영·남용 방어</span> — 키마다 윈도 단위 요청 한도가 걸릴 수 있습니다(기본
-            분당 120회·60초 윈도, <code className={codeInline}>INGEST_RATE_LIMIT_PER_WINDOW</code>·
-            <code className={codeInline}>INGEST_RATE_LIMIT_WINDOW_MS</code>, <code className={codeInline}>0</code>이면 비활성). 초과 시
-            HTTP <code className={codeInline}>429</code>와 본문 <code className={codeInline}>retryAfterSeconds</code>, 헤더{" "}
-            <code className={codeInline}>Retry-After</code>·<code className={codeInline}>X-RateLimit-*</code>를 확인하세요. 본문 크기는{" "}
-            <code className={codeInline}>INGEST_MAX_BODY_BYTES</code> 상한이 있습니다. 서버 로그에는{" "}
-            <code className={codeInline}>ingest_rate_limited</code> 등 JSON 한 줄이 남을 수 있습니다.
-          </p>
-          <ul className="mt-6 space-y-2 text-sm">
+          <ul className="mt-4 space-y-2 text-sm">
             {keys.map((k) => (
               <li
                 key={k.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--list-border)] px-4 py-3 transition hover:bg-neutral-50/60 dark:hover:bg-neutral-900/30"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--list-border)] px-3 py-2.5"
               >
-                <span className="min-w-0 truncate">
+                <span className="min-w-0">
                   <span className="font-medium text-foreground">{k.name}</span>{" "}
                   <code className={codeInline}>{k.prefix}…</code>
                 </span>
                 <button
                   type="button"
-                  className="shrink-0 text-xs text-red-600 hover:underline dark:text-red-400"
+                  className="shrink-0 text-xs text-red-600 underline-offset-4 hover:underline dark:text-red-400"
                   onClick={() => delKey(k.id)}
                 >
                   삭제

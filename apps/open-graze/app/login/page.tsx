@@ -1,7 +1,6 @@
 "use client";
 
-import { AppChrome, AuthCard } from "@/app/components/app-chrome";
-import { codeInline, inputField, linkSubtleTight, proseBodyMuted } from "@/lib/ui-tokens";
+import { AppChrome } from "@/app/components/app-chrome";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -45,7 +44,12 @@ function LoginInner() {
         <p className={proseBodyMuted}>
           워크스페이스·API 키·수집 이벤트를 한곳에서 관리합니다. 아래 이메일·비밀번호로 대시보드에 들어갑니다.
         </p>
-        <p className="mt-3 text-xs text-muted">
+        {registered ? (
+          <p className="mt-2 rounded-lg border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-xs text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
+            가입이 완료되었습니다. 같은 비밀번호로 로그인해 주세요.
+          </p>
+        ) : null}
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
           HTTP 수집 계약 요약은{" "}
           <Link
             href="/llms.txt"
@@ -109,6 +113,7 @@ function LoginInner() {
             opengraze-dev
           </code>
         </p>
+      </div>
 
         <div className="mt-8 flex flex-col gap-2 text-center text-sm text-muted">
           <Link href="/" className={linkSubtleTight}>

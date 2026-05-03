@@ -64,6 +64,11 @@ export OPENGRAZE_WORKSPACE_SLUG="open-graze-self"
 | 401 | `Authorization` 없음, `Bearer` 형식 아님, 토큰 무효·삭제됨 |
 | 400 | JSON/Zod 검증 실패(`kind` 누락 등) |
 | 413 | 본문 크기 초과(앱 상한은 기본 256KiB 근처, `INGEST_MAX_BODY_BYTES`로 조정 가능) |
+| 429 | 키별 레이트 제한. 본문 `retryAfterSeconds`·헤더 `Retry-After`·`X-RateLimit-*`를 따른다 |
+
+**한도 스냅샷(비인증)** — 배포 인스턴스가 적용 중인 기본 수치를 JSON으로 보려면 `GET {BASE}/api/v1/meta/limits` 를 호출한다(비밀·워크스페이스 데이터 없음).
+
+**429 재시도(권장)** — 응답 헤더 `Retry-After`(초)를 읽을 수 있으면 그 시간만큼 대기한 뒤 한 번 재시도한다. 없으면 JSON의 `retryAfterSeconds`를 사용한다. 연속 실패에는 지수 백오프(예: 1s → 2s → 4s …)에 상한(예: 60s)을 둔다.
 
 **검증 절차(로컬)**
 

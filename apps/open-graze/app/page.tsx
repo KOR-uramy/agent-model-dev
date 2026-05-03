@@ -167,7 +167,7 @@ export default function Home() {
           >
             OpenGraze
           </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm text-muted">
+          <nav className="flex items-center gap-5 text-sm text-foreground">
             <Link
               href="/llms.txt"
               className="underline-offset-4 hover:text-foreground hover:underline"
