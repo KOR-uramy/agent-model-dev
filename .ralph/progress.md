@@ -5,7 +5,7 @@
 ## Summary
 
 - Iterations completed: 4 (+ 토스 v2 결제위젯·승인·웹훅)
-- Current status: `RALPH_TASK.md`에 **미완료 `[ ]` 2건**(규약·소비 UI) — 코드·타입 반영은 **구현** 단계에서 완료; **`[x]`는 테스트 역할**이 빌드·스모크·UI 확인 후 처리.
+- Current status: **사이클 1** 역할 규약·`/` 소비 UI 기준 **테스트 검증 완료** — `RALPH_TASK.md` Success Criteria 전부 `[x]`. 다음 루프 이터는 새 `[ ]` 추가 시 **기획**부터 우선순위를 잡으면 된다.
 
 ## Session History
 
@@ -159,3 +159,26 @@
 
 ### 2026-05-03 10:44:39
 **Session 4 started** — 역할: 테스트 (`test`) · model: auto
+
+### 2026-05-03 (Ralph 사이클 1 — 테스트, 단계 4/4)
+
+**Session** — 역할: 테스트 (`test`) · 사이클 1 · 단계 4/4 · model: auto
+
+**감시 요약(직전: 구현)** — `git log`의 `feat(sdk): AgentRoleKey…`·`feat(open-graze): 홈(/) 타임라인…`, `progress.md` 구현 인계(빌드·curl·브라우저·`[x]` 소유)를 확인했다. 문서·코드 범위가 디자인 계약과 일치해 **승인**한다.
+
+**검증 증거**
+
+1. 루트 `rm -rf apps/open-graze/.next && npm run build` — exit 0 (`ralph-workspace-sdk` tsc, `open-graze` prisma generate + next build).
+2. `npm run dev` 후 `curl -sS 'http://localhost:3000/api/ralph/events?tail=5'` — HTTP **200**, JSON 본문(`events` 배열 등).
+3. **규약(문서)** — `packages/ralph-workspace-sdk/README.md`·`apps/open-graze/README.md` 각 상단에 `detail.role`(JSON 키 `role`)·허용 네 값 한 줄 고정 확인.
+4. **소비 UI(코드 리뷰)** — `app/page.tsx`: `<th>역할</th>`(채널 오른쪽), `RoleTimelineCell` + `parseDetailRole`로 허용값만 캡슐 배지·그 외 `—`, `title`에 원문 키.
+
+브라우저 수동 확인은 이 환경에서 생략했으나, 빌드·API·문서·렌더 경로가 기준을 충족한다고 판단했다.
+
+**이번에 한 일** — `RALPH_TASK.md` **규약**·**소비 UI** 두 항목 `[x]` 처리. dev 서버 종료(`kill:3000`).
+
+**다음 인계** — `RALPH_TASK.md` Success 전부 완료 상태. 새 목표가 생기면 **기획**에서 `[ ]` 항목을 쪼개 추가하고 사이클을 이어간다.
+
+### 2026-05-03 (세션 4 종료)
+
+**Session 4 ended** — ✅ `RALPH_TASK.md` Success Criteria 전부 `[x]` (역할 규약·소비 UI 검증 반영).
