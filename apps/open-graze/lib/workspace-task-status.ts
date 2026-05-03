@@ -1,3 +1,4 @@
+/** `WorkspaceTask.status` — API와 동일 허용값 */
 export const WORKSPACE_TASK_STATUSES = [
   "backlog",
   "todo",
