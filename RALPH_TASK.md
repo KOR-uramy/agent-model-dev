@@ -141,6 +141,14 @@
 - [x] **API·감사 — `range`에 `role`·`sessionId`** — `GET /api/ralph/events/range`가 `from`·`to` 외에 선택 쿼리 **`role`**, **`sessionId`(정확 일치)** 를 지원하고, `GET /api/ralph/events`와 **동일한 허용값·400 규칙**을 적용한다. README에 **필터를 넣은 `curl` 한 줄**과 파라미터 의미 표(최소: `from`·`to`·`role`·`sessionId`·상한)가 있다.
 - [x] **운영 — range 상한·잘림 신호** — `events/range` 응답이 행 상한에 도달하면 **JSON 최상위**에 기계 판독 가능한 필드(예: `truncated: true`, `returnedCount`)를 포함하거나 **413** 등으로 거절하는 규칙을 **한 가지로 고정**하고, README에 그 응답을 확인하는 **절차 한 줄**이 있다.
 
+**성장 루프 확장 (Ralph 사이클 4 · 2026-05-03 병렬 스윕 직후 기획)** — `?role=`·`?sessionId=`·`range` 필터는 맞췄지만 **홈 타임라인의 절대 시간 구간**이 주소줄에 없어 “같은 순간의 같은 표”를 URL만으로 완전히 복원하기 어렵고, 피드 **`source`(랄프 vs 앱 등 채널)** 를 API·UI에서 한 축으로 거르는 기능이 없다. *(본질: 운영자가 링크·스크립트만으로 **동일 시간·동일 채널·동일 역할·동일 세션** 뷰를 재현·감사할 수 있어야 한다.)*
+
+- **동종(참고)** — [Grafana Explore](https://grafana.com/docs/grafana/latest/explore/)(URL에 **절대 시간 범위**가 들어가 동일 탐색 상태 복원), [Sentry Discover](https://docs.sentry.io/product/discover-queries/)(**환경·release** 등 축 필터로 채널 유사 신호 분리). 우리는 SQLite 타임라인이므로 **`from`/`to`를 홈 URL에 올리고** `source`를 목록·range와 같은 쿼리 언어로 통일하는 편이 유리하다.
+
+- [ ] **URL·재현 — `from`·`to` 쿼리 동기화** — `/`에서 사용자가 고른 **시간 구간**(또는 `tail`과 배타적으로 동작하는 모드가 있으면 그 모드)이 **`?from=`·`?to=`**(ISO 8601, UTC `Z` 권장)와 **양방향** 동기화되고, `GET /api/ralph/events` 또는 `GET /api/ralph/events/range`와 **동일한 의미**(AND 조합: `role`·`sessionId`·기간)로 맞춘다. `apps/open-graze/README.md`에 **`?role=`·`?sessionId=`·`?from=`·`?to=` 를 모두 고정한 복사 가능한 예시 URL 한 줄**이 있다.
+- [ ] **API·UI — `source` 필터** — `GET /api/ralph/events`와 `GET /api/ralph/events/range`에 선택 쿼리 **`source`**(타임라인 페이로드의 `source` 값과 **동일 집합**으로 허용값을 고정)가 있으며, `/`에서 동일 값으로 필터할 수 있다. README에 **필터 유·무 응답 건수를 비교하는 `curl` 한 줄**이 있다.
+- [ ] **운영·감사 — “현재 뷰 복사”** — `/`에 **현재 적용 중인 `role`·`sessionId`·`from`·`to`·`source`(적용 시)** 를 모두 담은 **절대 URL**을 클립보드로 복사하는 컨트롤(버튼 등)이 있고, README에 **복사 후 시크릿 창에서 동일 필터가 적용됐는지** 확인하는 검증 절차 **한 줄**이 있다.
+
 ## 24시간 연속 루프 (Ralph 운영 규약)
 
 목표는 “한 번에 다 끝내기”가 아니라 **같은 본질 축에 대한 반복**이다. 매 **에이전트 이터**는 현재 **역할**(기획·디자인·구현·테스트 중 하나; 루프가 순서대로 부여)에 맞게 아래를 **순서대로** 끝낸다. 직전 이터가 남긴 커밋·`.ralph/progress.md`를 먼저 **감시 요약**한다.
