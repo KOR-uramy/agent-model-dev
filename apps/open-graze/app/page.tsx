@@ -2,12 +2,55 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type { RalphEventsApiPayload, WorkspaceFeedEvent } from "ralph-workspace-sdk";
+import type {
+  AgentRoleKey,
+  RalphEventsApiPayload,
+  WorkspaceFeedEvent,
+} from "ralph-workspace-sdk";
 
 type ApiPayload = RalphEventsApiPayload;
 
 /** 이메일 로그인을 숨기려면 `false`로 둔다. */
 const SHOW_LOGIN_LINKS = true;
+
+const ROLE_LABEL_KO: Record<AgentRoleKey, string> = {
+  planning: "기획",
+  design: "디자인",
+  implementation: "구현",
+  test: "테스트",
+};
+
+function roleBadgeClass(role: AgentRoleKey): string {
+  const base =
+    "inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ring-1";
+  switch (role) {
+    case "planning":
+      return `${base} bg-slate-100 text-slate-800 ring-slate-200 dark:bg-slate-900/50 dark:text-slate-200 dark:ring-slate-700`;
+    case "design":
+      return `${base} bg-violet-100 text-violet-900 ring-violet-200 dark:bg-violet-950/50 dark:text-violet-100 dark:ring-violet-800`;
+    case "implementation":
+      return `${base} bg-emerald-100 text-emerald-900 ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-100 dark:ring-emerald-800`;
+    case "test":
+      return `${base} bg-amber-100 text-amber-950 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-800`;
+  }
+}
+
+function parseDetailRole(d: Record<string, unknown> | null): AgentRoleKey | null {
+  if (!d || typeof d !== "object") return null;
+  const r = d.role;
+  if (r === "planning" || r === "design" || r === "implementation" || r === "test") return r;
+  return null;
+}
+
+function RoleTimelineCell({ detail }: { detail: WorkspaceFeedEvent["detail"] }) {
+  const role = parseDetailRole(detail);
+  if (!role) return <span className="text-muted">—</span>;
+  return (
+    <span className={roleBadgeClass(role)} title={role}>
+      {ROLE_LABEL_KO[role]}
+    </span>
+  );
+}
 
 const KIND_LABEL: Record<string, string> = {
   session_start: "세션 시작",
@@ -294,11 +337,12 @@ export default function Home() {
             <p className="mt-1 text-xs text-muted">시간은 UTC · 에이전트와 제품 출처를 구분합니다</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] text-left text-sm">
+            <table className="w-full min-w-[960px] text-left text-sm">
               <thead className="border-b border-[var(--list-border)] bg-neutral-50/80 text-[11px] font-medium uppercase tracking-wide text-muted dark:bg-neutral-900/50">
                 <tr>
                   <th className="px-3 py-3">시각</th>
                   <th className="px-3 py-3">채널</th>
+                  <th className="min-w-[5.5rem] px-3 py-3">역할</th>
                   <th className="px-3 py-3">반복</th>
                   <th className="px-3 py-3">유형</th>
                   <th className="px-3 py-3">소요</th>
@@ -314,6 +358,9 @@ export default function Home() {
                   <tr key={`${e.ts}-${e.source}-${e.kind}-${i}`} className="transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40">
                     <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted">{e.ts}</td>
                     <td className="px-3 py-2.5">{e.source === "ralph" ? "에이전트" : "제품"}</td>
+                    <td className="px-3 py-2.5 align-middle">
+                      <RoleTimelineCell detail={e.detail} />
+                    </td>
                     <td className="px-3 py-2.5 text-muted">{e.source === "ralph" ? (e.iteration ?? "—") : "—"}</td>
                     <td className="px-3 py-2.5">{KIND_LABEL[e.kind] ?? e.kind}</td>
                     <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-muted">{durationCell(e)}</td>

@@ -5,7 +5,7 @@
 ## Summary
 
 - Iterations completed: 4 (+ 토스 v2 결제위젯·승인·웹훅)
-- Current status: `RALPH_TASK.md`에 **미완료 `[ ]` 2건**(규약·소비 UI). 디자인 단계에서 요구사항+SDK·앱 README에 **역할 필드(`detail.role`)** 규약 문구를 반영함; SDK 타입·`/` 테이블 UI는 **구현** 예정.
+- Current status: `RALPH_TASK.md`에 **미완료 `[ ]` 2건**(규약·소비 UI) — 코드·타입 반영은 **구현** 단계에서 완료; **`[x]`는 테스트 역할**이 빌드·스모크·UI 확인 후 처리.
 
 ## Session History
 
@@ -141,3 +141,15 @@
 
 ### 2026-05-03 10:41:46
 **Session 3 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-03 (Ralph 사이클 1 — 구현, 단계 3/4)
+
+**Session** — 역할: 구현 (`implementation`) · 사이클 1 · 단계 3/4 · model: auto
+
+**감시 요약(직전: 디자인)** — `progress.md` 디자인 블록(데이터 계약·UI 와이어·터치 리스트)·`git log`의 `docs(design): 역할 detail.role 규약 고정…`(5459d61)을 확인했다. JSON 키 `role`·허용 네 값·배지 색·`GET /api/ralph/events` 추가 필드 불필요가 명확해 **승인**한다. 문서 규약은 이미 커밋되어 있어 보완 요청 없음.
+
+**이번에 한 일** — `packages/ralph-workspace-sdk`: `AgentRoleKey` export, `ApplicationTelemetryDetail.role?` 및 `RALPH_TASK.md` 규약 주석. `apps/open-graze/app/page.tsx`: 활동 타임라인 테이블에 **역할** 열(채널 오른쪽), `detail.role`(JSON `role`) 파싱·허용값만 캡슐 배지(한글 라벨·`title`에 키)·그 외 `—`, `min-w-[960px]`, 슬레이트/바이올렛/에메랄드/앰버 톤. 루트 `npm run build` 성공(선행 `rm -rf apps/open-graze/.next` — Turbopack 잔여 캐시 이슈 회피).
+
+**다음 인계 — 테스트** — ① 루트 `npm run build`(필요 시 동일 `.next` 삭제). ② dev + `curl -sS 'http://localhost:3000/api/ralph/events?tail=5'` → JSON 200. ③ 브라우저 `/`에서 역할 열·배지·`—` 표시 확인. ④ 통과 시 `RALPH_TASK.md` **규약**·**소비 UI** 두 줄을 `[x]`로 바꾸고 커밋.
+
+**Session 3 ended** — 구현 산출물 커밋됨; 성공 기준 체크는 테스트 역할 소유.
