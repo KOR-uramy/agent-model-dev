@@ -97,6 +97,28 @@ npm run sync:feed -w open-graze
 
 Ralph 루프·`appendWorkspaceTelemetryEvent`는 **여전히 JSONL에 기록**합니다. 대시보드에 반영하려면 루프/작업 후 위 동기화를 주기적으로 실행하거나(또는 나중에 훅으로 자동화) 하면 됩니다.
 
+### 기간보내기 (`GET /api/ralph/events/range`)
+
+동기화된 SQLite 타임라인만 읽습니다. 응답 본문은 **이벤트 객체의 JSON 배열**이며, 대시보드 `GET /api/ralph/events`와 동일한 `WorkspaceFeedEvent` 형태입니다.
+
+- **쿼리**: `from`, `to` — 필수, ISO 8601(예: `2026-05-01T00:00:00Z`, `2026-05-03T23:59:59.999Z`). `limit` — 선택, 기본 10000, 상한 10000.
+- **파일 저장 예**:
+
+```bash
+curl -sS "http://localhost:3000/api/ralph/events/range?from=2026-05-01T00:00:00Z&to=2026-05-03T23:59:59Z" -o ralph-timeline-slice.json
+```
+
+#### 응답 배열에 포함되는 주요 필드(재현·감사)
+
+| 필드 | 의미 |
+|------|------|
+| `ts` | **시각**(ISO 8601 문자열, JSONL 동기화 시점과 동일) |
+| `kind` | **유형**(예: `session_start`, `token_snapshot`, `application_work_completed` 등) |
+| `detail` | 부가 정보 객체. 역할은 문서 규약대로 선택 필드 **`detail.role`**(JSON 키 이름은 `role`) |
+| `sessionId` | Ralph·텔레메트리 **세션 식별자**(없을 수 있음; 앱 이벤트는 종종 생략) |
+| `source` | `ralph` 또는 `application` |
+| `iteration` | Ralph 이터 번호(선택) |
+
 ## 환경 변수 요약
 
 | 구간 | 변수 |
