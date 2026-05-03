@@ -46,10 +46,6 @@ export const formLabel =
 export const surfaceCard =
   "rounded-[var(--radius-xl)] border border-[var(--list-border)] bg-card p-5 shadow-[var(--shadow-card)]";
 
-/** 주요 CTA — 전체 너비 */
-export const btnPrimary =
-  "w-full rounded-[var(--radius-md)] bg-cta py-3 text-sm font-semibold text-white transition hover:bg-cta-hover disabled:opacity-60 dark:text-neutral-900";
-
 /** 주요 CTA — 인라인(키 발급·워크스페이스 생성 등) */
 export const btnPrimarySm =
   "rounded-[var(--radius-md)] bg-cta px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900";

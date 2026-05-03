@@ -3,7 +3,7 @@
 import { AppChrome } from "@/app/components/app-chrome";
 import { disclosureSummary, roleBadgeClass, tableHeaderRow } from "@/lib/ui-tokens";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AGENT_ROLE_KEYS,
   eventDetailRole,
@@ -112,12 +112,22 @@ export default function Home() {
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [timelineRole, setTimelineRole] = useState<AgentRoleKey | null>(null);
+  const [timelineSessionId, setTimelineSessionId] = useState<string | null>(null);
+  const [knownSessionIds, setKnownSessionIds] = useState<string[]>([]);
+  const [sessionManual, setSessionManual] = useState("");
+
+  const sessionSelectChoices = useMemo(() => {
+    const s = new Set(knownSessionIds);
+    if (timelineSessionId) s.add(timelineSessionId);
+    return [...s].sort((a, b) => a.localeCompare(b));
+  }, [knownSessionIds, timelineSessionId]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const qs = new URLSearchParams({ tail: "1200" });
       if (timelineRole) qs.set("role", timelineRole);
+      if (timelineSessionId) qs.set("sessionId", timelineSessionId);
       const r = await fetch(`/api/ralph/events?${qs.toString()}`);
       const j = (await r.json()) as ApiPayload;
       setData(j);
@@ -126,13 +136,25 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [timelineRole]);
+  }, [timelineRole, timelineSessionId]);
 
   useEffect(() => {
     void load();
     const id = setInterval(() => void load(), 4000);
     return () => clearInterval(id);
   }, [load]);
+
+  useEffect(() => {
+    if (timelineSessionId != null) return;
+    if (!data?.events) return;
+    const ids = new Set<string>();
+    for (const e of data.events) {
+      if (typeof e.sessionId === "string" && e.sessionId.trim() !== "") {
+        ids.add(e.sessionId);
+      }
+    }
+    setKnownSessionIds([...ids].sort((a, b) => a.localeCompare(b)));
+  }, [data, timelineSessionId]);
 
   const events = data?.events ?? [];
   const s = data?.summary;
@@ -363,6 +385,11 @@ export default function Home() {
             ) : null}
             {data.hint ? <p className="mt-2 text-sm leading-relaxed opacity-90">{data.hint}</p> : null}
           </div>
+        ) : data?.hint && !data?.error && events.length === 0 && timelineSessionId ? (
+          <div className="mx-auto mt-8 rounded-xl border border-[var(--list-border)] bg-card px-5 py-4 text-left text-sm text-muted">
+            <p className="font-semibold text-foreground">이 세션에는 아직 표시할 행이 없어요</p>
+            <p className="mt-2 text-sm leading-relaxed opacity-90">{data.hint}</p>
+          </div>
         ) : null}
 
         <details className="mx-auto mt-12">
@@ -411,25 +438,72 @@ export default function Home() {
               <h2 className="font-display text-lg font-semibold text-foreground">활동 타임라인</h2>
               <p className="mt-1 text-xs text-muted">시간은 UTC · 에이전트와 제품 출처를 구분합니다</p>
             </div>
-            <label className="flex shrink-0 flex-col gap-1 text-left sm:items-end">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">역할 필터</span>
-              <select
-                className="min-w-[10.5rem] rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
-                value={timelineRole ?? ""}
-                onChange={(ev) => {
-                  const v = ev.target.value;
-                  setTimelineRole(v === "" ? null : (v as AgentRoleKey));
-                }}
-                aria-label="타임라인 역할 필터"
-              >
-                <option value="">전체 (모든 역할)</option>
-                {AGENT_ROLE_KEYS.map((key: AgentRoleKey) => (
-                  <option key={key} value={key}>
-                    {ROLE_LABEL_KO[key]}만
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="flex w-full max-w-xl flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:flex-wrap sm:items-end sm:justify-end">
+              <label className="flex min-w-0 flex-1 flex-col gap-1 text-left sm:max-w-[14rem] sm:flex-initial sm:items-end">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">세션</span>
+                <select
+                  className="w-full min-w-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
+                  value={timelineSessionId ?? ""}
+                  onChange={(ev) => {
+                    const v = ev.target.value;
+                    setTimelineSessionId(v === "" ? null : v);
+                    setSessionManual("");
+                  }}
+                  aria-label="타임라인 세션 선택"
+                >
+                  <option value="">전체 세션</option>
+                  {sessionSelectChoices.map((sid) => (
+                    <option key={sid} value={sid}>
+                      {shortenPath(sid, 48)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-[18rem] sm:flex-initial">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted sm:text-right">
+                  세션 ID 직접 입력
+                </span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={sessionManual}
+                    onChange={(ev) => setSessionManual(ev.target.value)}
+                    placeholder="동기화된 sessionId"
+                    className="min-w-0 flex-1 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 font-mono text-xs text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
+                    aria-label="세션 ID 직접 입력"
+                  />
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-sm transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                    onClick={() => {
+                      const v = sessionManual.trim();
+                      setTimelineSessionId(v === "" ? null : v);
+                    }}
+                  >
+                    적용
+                  </button>
+                </div>
+              </div>
+              <label className="flex min-w-0 flex-1 flex-col gap-1 text-left sm:max-w-[12rem] sm:flex-initial sm:items-end">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">역할 필터</span>
+                <select
+                  className="w-full min-w-[10.5rem] rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
+                  value={timelineRole ?? ""}
+                  onChange={(ev) => {
+                    const v = ev.target.value;
+                    setTimelineRole(v === "" ? null : (v as AgentRoleKey));
+                  }}
+                  aria-label="타임라인 역할 필터"
+                >
+                  <option value="">전체 (모든 역할)</option>
+                  {AGENT_ROLE_KEYS.map((key: AgentRoleKey) => (
+                    <option key={key} value={key}>
+                      {ROLE_LABEL_KO[key]}만
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-left text-sm">

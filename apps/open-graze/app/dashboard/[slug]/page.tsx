@@ -51,8 +51,6 @@ export default function WorkspaceDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
-  const [copyHint, setCopyHint] = useState<string | null>(null);
-  const [publicOrigin, setPublicOrigin] = useState("");
 
   useEffect(() => {
     setPublicOrigin(window.location.origin);

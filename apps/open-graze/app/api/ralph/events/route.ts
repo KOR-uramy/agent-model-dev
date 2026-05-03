@@ -2,18 +2,10 @@ import { loadTimelineFromDb } from "@/lib/timeline-feed";
 import { parseRoleQueryParam } from "ralph-workspace-sdk";
 import { NextResponse } from "next/server";
 
-const AGENT_ROLES: readonly AgentRoleKey[] = [
-  "planning",
-  "design",
-  "implementation",
-  "test",
-] as const;
-
-function parseRoleParam(raw: string | null): AgentRoleKey | undefined {
-  if (raw == null || raw === "") return undefined;
-  return (AGENT_ROLES as readonly string[]).includes(raw)
-    ? (raw as AgentRoleKey)
-    : undefined;
+function parseSessionIdQueryParam(raw: string | null): string | null {
+  if (raw == null) return null;
+  const t = raw.trim();
+  return t === "" ? null : t;
 }
 
 export async function GET(req: Request) {
@@ -23,6 +15,7 @@ export async function GET(req: Request) {
     Math.max(1, parseInt(searchParams.get("tail") || "800", 10) || 800),
   );
   const role = parseRoleQueryParam(searchParams.get("role"));
-  const payload = await loadTimelineFromDb(tail, role);
+  const sessionId = parseSessionIdQueryParam(searchParams.get("sessionId"));
+  const payload = await loadTimelineFromDb(tail, role, sessionId);
   return NextResponse.json(payload);
 }
