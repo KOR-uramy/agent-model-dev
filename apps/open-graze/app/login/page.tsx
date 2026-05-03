@@ -42,19 +42,27 @@ function LoginInner() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">OpenGraze 로그인</h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+    <AppChrome active="login">
+      <AuthCard>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">OpenGraze 로그인</h1>
+        <p className="mt-2 text-sm text-muted">
           워크스페이스·API 키·수집 이벤트를 한곳에서 관리합니다. 아래 이메일·비밀번호로 대시보드에 들어갑니다.
         </p>
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
+        {registered ? (
+          <p className="mt-3 rounded-lg border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100">
+            가입이 완료되었습니다. 비밀번호를 입력하고 로그인해 주세요.
+          </p>
+        ) : null}
+        <p className="mt-3 text-xs text-muted">
           HTTP 수집 계약 요약은{" "}
-          <Link href="/llms.txt" className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200" target="_blank" rel="noopener noreferrer">
+          <Link href="/llms.txt" className="font-medium text-foreground underline underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">
             /llms.txt
           </Link>
           , 앱 설치·마이그레이션은 저장소{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">apps/open-graze/README.md</code> 를 참고하세요.
+          <code className="rounded-md bg-neutral-100 px-1 py-0.5 font-mono text-[11px] text-foreground dark:bg-neutral-900">
+            apps/open-graze/README.md
+          </code>{" "}
+          를 참고하세요.
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
@@ -108,15 +116,23 @@ function LoginInner() {
           </code>
         </p>
 
-      <div className="flex flex-col gap-2 text-center text-sm text-zinc-500">
-        <Link href="/" className="hover:underline">
-          타임라인(홈)으로 돌아가기
-        </Link>
-        <Link href="/dashboard" className="hover:underline">
-          대시보드로 이동
-        </Link>
-      </div>
-    </div>
+        <p className="mt-6 text-center text-sm text-muted">
+          아직 계정이 없나요?{" "}
+          <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
+            회원가입
+          </Link>
+        </p>
+
+        <div className="mt-6 flex flex-col gap-2 border-t border-[var(--list-border)] pt-6 text-center text-sm text-muted">
+          <Link href="/" className="hover:text-foreground hover:underline">
+            관측 타임라인(홈)
+          </Link>
+          <Link href="/dashboard" className="hover:text-foreground hover:underline">
+            워크스페이스 목록
+          </Link>
+        </div>
+      </AuthCard>
+    </AppChrome>
   );
 }
 
@@ -124,8 +140,10 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <AppChrome>
-          <div className="p-8 text-center text-sm text-muted">불러오는 중…</div>
+        <AppChrome active="login">
+          <AuthCard>
+            <div className="py-4 text-center text-sm text-muted">불러오는 중…</div>
+          </AuthCard>
         </AppChrome>
       }
     >
