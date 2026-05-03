@@ -16,6 +16,7 @@ import {
   resolveTelemetryJsonlPath,
 } from "ralph-workspace-sdk";
 import { prisma } from "@/lib/prisma";
+import { TIMELINE_RANGE_MAX_ROWS } from "@/lib/timeline-constants";
 
 const pathOpts = {
   env: process.env,
@@ -32,8 +33,7 @@ const ROLE_FILTER_EMPTY_HINT =
 const SESSION_FILTER_EMPTY_HINT =
   "해당 세션 ID로 동기화된 이벤트가 없습니다. 식별자를 확인하거나 동기화를 실행해 보세요.";
 
-/** `GET /api/ralph/events/range` 한 번에 돌려줄 최대 행 수 */
-export const TIMELINE_RANGE_MAX_ROWS = 10_000;
+export { TIMELINE_RANGE_MAX_ROWS } from "@/lib/timeline-constants";
 
 /** `GET /api/ralph/events`·`GET /api/ralph/events/range` 공통 — 비어 있지 않은 `role`이 네 가지가 아닐 때 */
 export const RALPH_EVENTS_ROLE_QUERY_ERROR =
@@ -45,40 +45,8 @@ export function parseSessionIdQueryParam(raw: string | null): string | null {
   return t === "" ? null : t;
 }
 
-export type TimelineRangeParseResult =
-  | { ok: true; fromIso: string; toIso: string }
-  | { ok: false; message: string };
-
-export function parseTimelineRangeParams(
-  fromRaw: string | null,
-  toRaw: string | null,
-): TimelineRangeParseResult {
-  const fromTrim = fromRaw?.trim() ?? "";
-  const toTrim = toRaw?.trim() ?? "";
-  if (!fromTrim || !toTrim) {
-    return {
-      ok: false,
-      message:
-        "쿼리 `from`·`to`는 필수입니다(ISO 8601, 예: 2026-05-03T00:00:00Z).",
-    };
-  }
-  const fromMs = Date.parse(fromTrim);
-  const toMs = Date.parse(toTrim);
-  if (Number.isNaN(fromMs) || Number.isNaN(toMs)) {
-    return {
-      ok: false,
-      message: "`from`·`to`는 파싱 가능한 ISO 8601 날짜·시각이어야 합니다.",
-    };
-  }
-  if (fromMs > toMs) {
-    return { ok: false, message: "`from`은 `to`보다 이전이거나 같아야 합니다." };
-  }
-  return {
-    ok: true,
-    fromIso: new Date(fromMs).toISOString(),
-    toIso: new Date(toMs).toISOString(),
-  };
-}
+export type { TimelineRangeParseResult } from "@/lib/timeline-query-params";
+export { parseTimelineRangeParams } from "@/lib/timeline-query-params";
 
 /**
  * SQLite `TimelineEvent`만 읽습니다(JSONL 동기화 후 데이터).
