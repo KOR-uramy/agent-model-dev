@@ -68,7 +68,13 @@ export default function DashboardIndexPage() {
     <div className="mx-auto max-w-2xl px-6 py-10">
       <h1 className="text-2xl font-semibold">워크스페이스</h1>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        프로젝트나 팀마다 공간을 나누고, 수집 API·구독·멤버를 함께 관리합니다.
+        프로젝트나 팀마다 공간을 나누고, API 키·수집 이벤트·(설정 시) 구독·결제를 함께 묶습니다. 외부 앱에서 보내는 이벤트는{" "}
+        <Link href="/llms.txt" className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100" target="_blank" rel="noopener noreferrer">
+          /llms.txt
+        </Link>{" "}
+        요약과 저장소{" "}
+        <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-900">docs/opengraze-llms-guide.md</code>{" "}
+        를 따르세요.
       </p>
 
       <form onSubmit={create} className="mt-8 space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">

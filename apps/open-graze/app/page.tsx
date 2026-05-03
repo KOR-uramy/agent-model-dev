@@ -165,6 +165,14 @@ export default function Home() {
             OpenGraze
           </span>
           <nav className="flex items-center gap-5 text-sm text-foreground">
+            <Link
+              href="/llms.txt"
+              className="text-muted underline-offset-4 hover:text-foreground hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              연동 요약
+            </Link>
             {SHOW_LOGIN_LINKS ? (
               <Link href="/login" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
                 로그인
@@ -193,8 +201,10 @@ export default function Home() {
             OpenGraze
           </h1>
 
-          <p className="mt-4 text-base font-medium text-muted">
-            {data?.workspace ? shortenPath(data.workspace, 44) : "에이전트 · 제품 활동을 한눈에"}
+          <p className="mt-4 max-w-[26rem] text-pretty text-base font-medium leading-snug text-muted">
+            {data?.workspace
+              ? shortenPath(data.workspace, 44)
+              : "운영·구매 담당자도 읽을 수 있게: 에이전트 루프와 제품이 같은 타임라인에 남습니다."}
           </p>
 
           <p className="mt-6 text-3xl font-semibold tracking-tight text-foreground sm:text-[2rem]">
@@ -219,7 +229,7 @@ export default function Home() {
               href="/dashboard"
               className="rounded-full bg-cta px-8 py-3 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
             >
-              대시보드 열기
+              지금 대시보드 열기
             </Link>
             {SHOW_LOGIN_LINKS ? (
               <Link
@@ -229,7 +239,48 @@ export default function Home() {
                 로그인
               </Link>
             ) : null}
+            <Link
+              href="/llms.txt"
+              className="rounded-full border border-dashed border-neutral-400 px-6 py-3 text-sm font-semibold text-muted transition hover:border-neutral-500 hover:text-foreground dark:border-neutral-600 dark:hover:border-neutral-500"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              HTTP 수집 요약
+            </Link>
           </div>
+
+          <ul className="mx-auto mt-10 max-w-md space-y-2 text-left text-sm text-muted">
+            <li className="flex gap-2">
+              <span className="shrink-0 text-foreground" aria-hidden>
+                ·
+              </span>
+              <span>
+                <strong className="text-foreground">역할 구분</strong> — 기획·디자인·구현·테스트가 타임라인 배지로
+                구분됩니다.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="shrink-0 text-foreground" aria-hidden>
+                ·
+              </span>
+              <span>
+                <strong className="text-foreground">재현 가능</strong> — 저장소에서{" "}
+                <code className="rounded bg-neutral-100 px-1 text-xs dark:bg-neutral-800">platform:self-test</code>로
+                수집 파이프를 바로 검증합니다.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="shrink-0 text-foreground" aria-hidden>
+                ·
+              </span>
+              <span>
+                <strong className="text-foreground">문서</strong> — 장문 가이드는 저장소{" "}
+                <code className="rounded bg-neutral-100 px-1 text-xs dark:bg-neutral-800">docs/opengraze-llms-guide.md</code>
+                , 요약은 위 <strong className="text-foreground">HTTP 수집 요약</strong> 링크(
+                <code className="rounded bg-neutral-100 px-1 text-xs dark:bg-neutral-800">/llms.txt</code>)입니다.
+              </span>
+            </li>
+          </ul>
         </div>
 
         {/* Product-style rows — logo tile + title + right rail */}
@@ -390,7 +441,25 @@ export default function Home() {
         </div>
 
         <footer className="mx-auto mt-16 max-w-lg border-t border-[var(--list-border)] pt-10 text-center text-[11px] leading-relaxed text-muted">
-          <p className="break-all">
+          <p className="text-[12px] font-medium text-foreground">신뢰·연동</p>
+          <p className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <Link href="/llms.txt" className="underline underline-offset-4 hover:text-foreground" target="_blank" rel="noopener noreferrer">
+              /llms.txt
+            </Link>
+            <span aria-hidden className="text-neutral-300 dark:text-neutral-600">
+              |
+            </span>
+            <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
+              로그인
+            </Link>
+            <span aria-hidden className="text-neutral-300 dark:text-neutral-600">
+              |
+            </span>
+            <Link href="/dashboard" className="underline underline-offset-4 hover:text-foreground">
+              워크스페이스
+            </Link>
+          </p>
+          <p className="mt-6 break-all">
             에이전트 로그 연결: {data?.eventsPath ? shortenPath(data.eventsPath, 52) : "—"}
           </p>
           <p className="mt-1 break-all">

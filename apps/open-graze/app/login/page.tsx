@@ -41,7 +41,15 @@ function LoginInner() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">OpenGraze 로그인</h1>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          등록된 이메일과 비밀번호로 대시보드에 들어갑니다.
+          워크스페이스·API 키·수집 이벤트를 한곳에서 관리합니다. 아래 이메일·비밀번호로 대시보드에 들어갑니다.
+        </p>
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
+          HTTP 수집 계약 요약은{" "}
+          <Link href="/llms.txt" className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200" target="_blank" rel="noopener noreferrer">
+            /llms.txt
+          </Link>
+          , 앱 설치·마이그레이션은 저장소{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">apps/open-graze/README.md</code> 를 참고하세요.
         </p>
       </div>
 
@@ -90,9 +98,14 @@ function LoginInner() {
         비밀번호 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">opengraze-dev</code>
       </p>
 
-      <Link href="/" className="text-center text-sm text-zinc-500 hover:underline">
-        홈으로 돌아가기
-      </Link>
+      <div className="flex flex-col gap-2 text-center text-sm text-zinc-500">
+        <Link href="/" className="hover:underline">
+          타임라인(홈)으로 돌아가기
+        </Link>
+        <Link href="/dashboard" className="hover:underline">
+          대시보드로 이동
+        </Link>
+      </div>
     </div>
   );
 }
