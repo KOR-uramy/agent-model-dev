@@ -1,14 +1,7 @@
 "use client";
 
 import { AppChrome, AppMain } from "@/app/components/app-chrome";
-import {
-  btnPrimary,
-  cardPanel,
-  inputField,
-  listRowCard,
-  pageLead,
-  pageTitle,
-} from "@/lib/ui-tokens";
+import { btnPrimarySm, inputField, surfaceCard, textErrorXs } from "@/lib/ui-tokens";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -96,7 +89,7 @@ export default function DashboardIndexPage() {
           참고하세요.
         </p>
 
-        <form onSubmit={create} className={`mt-8 space-y-4 ${cardPanel}`}>
+        <form onSubmit={create} className={`mt-8 space-y-4 ${surfaceCard}`}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">새 워크스페이스</h2>
           <input
             className={inputField}
@@ -112,33 +105,27 @@ export default function DashboardIndexPage() {
             onChange={(e) => setSlug(e.target.value)}
             required
           />
-          {err ? <p className="text-xs text-red-600 dark:text-red-400">{err}</p> : null}
-          <button type="submit" className={btnPrimary}>
+          {err ? <p className={textErrorXs}>{err}</p> : null}
+          <button type="submit" className={btnPrimarySm}>
             워크스페이스 만들고 계속
           </button>
         </form>
 
-        {list.length === 0 ? (
-          <div className={`mt-10 ${cardPanel} text-center`}>
-            <p className="text-sm text-muted">
-              아직 워크스페이스가 없습니다. 위 양식으로{" "}
-              <strong className="text-foreground">첫 공간</strong>을 만들면 API 키와 수집 기록을 바로 쓸 수 있습니다.
-            </p>
-          </div>
-        ) : (
-          <ul className="mt-10 space-y-2">
-            {list.map((w) => (
-              <li key={w.id}>
-                <Link href={`/dashboard/${w.slug}`} className={listRowCard}>
-                  <span className="font-medium text-foreground">{w.name}</span>
-                  <span className="shrink-0 text-xs tabular-nums text-muted sm:text-sm">
-                    {w.slug} · {subscriptionStatusLabel(w.subscriptionStatus)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ul className="mt-10 space-y-2">
+          {list.map((w) => (
+            <li key={w.id}>
+              <Link
+                href={`/dashboard/${w.slug}`}
+                className="flex flex-col gap-1 rounded-xl border border-[var(--list-border)] px-4 py-3 text-sm transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              >
+                <span className="font-medium text-foreground">{w.name}</span>
+                <span className="shrink-0 text-xs tabular-nums text-muted sm:text-sm">
+                  {w.slug} · {subscriptionStatusLabel(w.subscriptionStatus)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </AppMain>
     </AppChrome>
   );

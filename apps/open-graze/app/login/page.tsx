@@ -1,7 +1,7 @@
 "use client";
 
 import { AppChrome, AuthCard } from "@/app/components/app-chrome";
-import { btnPrimaryBlock, inputField, pageLead, pageTitle } from "@/lib/ui-tokens";
+import { btnPrimary, formLabel, inputField, textError } from "@/lib/ui-tokens";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -71,7 +71,7 @@ function LoginInner() {
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <div>
-            <label htmlFor="email" className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">
+            <label htmlFor="email" className={formLabel}>
               이메일
             </label>
             <input
@@ -85,7 +85,7 @@ function LoginInner() {
             />
           </div>
           <div>
-            <label htmlFor="password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">
+            <label htmlFor="password" className={formLabel}>
               비밀번호
             </label>
             <input
@@ -99,8 +99,8 @@ function LoginInner() {
               placeholder="시드 계정 비밀번호"
             />
           </div>
-          {err ? <p className="text-sm text-red-600 dark:text-red-400">{err}</p> : null}
-          <button type="submit" disabled={pending} className={btnPrimaryBlock}>
+          {err ? <p className={textError}>{err}</p> : null}
+          <button type="submit" disabled={pending} className={btnPrimary}>
             {pending ? "확인 중…" : "대시보드로 로그인"}
           </button>
         </form>
