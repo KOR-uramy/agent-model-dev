@@ -159,25 +159,29 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground antialiased">
-      <header className="border-b border-neutral-200 dark:border-neutral-800">
-        <div className="mx-auto flex max-w-xl items-center justify-between px-5 py-5 sm:max-w-lg">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
+      <header className="sticky top-0 z-20 border-b border-[var(--list-border)] bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+          <Link
+            href="/"
+            className="font-display text-lg font-semibold tracking-tight text-foreground"
+          >
             OpenGraze
-          </span>
-          <nav className="flex items-center gap-5 text-sm text-foreground">
-            {SHOW_LOGIN_LINKS ? (
-              <>
-                <Link href="/register" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
-                  회원가입
-                </Link>
-                <Link href="/login" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
-                  로그인
-                </Link>
-              </>
-            ) : null}
+          </Link>
+          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm sm:gap-x-5">
+            <span className="text-muted max-sm:hidden">관측</span>
             <Link href="/dashboard" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
               대시보드
             </Link>
+            {SHOW_LOGIN_LINKS ? (
+              <>
+                <Link href="/login" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+                  로그인
+                </Link>
+                <Link href="/register" className="text-muted underline-offset-4 hover:text-foreground hover:underline">
+                  가입
+                </Link>
+              </>
+            ) : null}
           </nav>
         </div>
       </header>

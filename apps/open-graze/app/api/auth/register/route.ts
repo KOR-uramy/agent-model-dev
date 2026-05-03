@@ -3,44 +3,46 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-const registerSchema = z.object({
-  email: z.string().trim().email().max(320),
-  password: z.string().min(8).max(200),
-  name: z.string().trim().max(120).optional(),
+const MIN_PASSWORD_LEN = 8;
+const BCRYPT_ROUNDS = 12;
+
+const registerBody = z.object({
+  email: z.string().trim().email({ message: "유효한 이메일 주소를 입력하세요." }),
+  password: z
+    .string()
+    .min(MIN_PASSWORD_LEN, { message: `비밀번호는 ${MIN_PASSWORD_LEN}자 이상이어야 합니다.` }),
+  name: z.string().trim().max(120).optional().transform((s) => (s === "" ? undefined : s)),
 });
 
 export async function POST(req: Request) {
-  let body: unknown;
+  let json: unknown;
   try {
-    body = await req.json();
+    json = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "JSON 본문이 필요합니다." }, { status: 400 });
   }
 
-  const parsed = registerSchema.safeParse(body);
+  const parsed = registerBody.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.flatten().fieldErrors },
-      { status: 400 },
-    );
+    const msg = parsed.error.flatten().fieldErrors.email?.[0]
+      ?? parsed.error.flatten().fieldErrors.password?.[0]
+      ?? "입력값을 확인해 주세요.";
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  const email = parsed.data.email.toLowerCase();
-  const taken = await prisma.user.findUnique({ where: { email } });
-  if (taken) {
-    return NextResponse.json(
-      { error: "이미 사용 중인 이메일입니다." },
-      { status: 409 },
-    );
+  const { email, password, name } = parsed.data;
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return NextResponse.json({ error: "이미 사용 중인 이메일입니다." }, { status: 409 });
   }
 
-  const passwordHash = bcrypt.hashSync(parsed.data.password, 12);
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
   await prisma.user.create({
     data: {
       email,
-      name: parsed.data.name?.length ? parsed.data.name : null,
       passwordHash,
-      emailVerified: new Date(),
+      name: name ?? null,
     },
   });
 

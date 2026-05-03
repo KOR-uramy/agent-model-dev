@@ -1,8 +1,9 @@
 "use client";
 
+import { AppChrome, AppMain } from "@/app/components/app-chrome";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 
 type Ws = {
   id: string;
@@ -60,57 +61,69 @@ export default function DashboardIndexPage() {
 
   if (list === null) {
     return (
-      <div className="p-8 text-sm text-zinc-500">워크스페이스 목록을 불러오는 중입니다…</div>
+      <AppChrome active="dashboard">
+        <AppMain>
+          <p className="text-sm text-muted">워크스페이스 목록을 불러오는 중입니다…</p>
+        </AppMain>
+      </AppChrome>
     );
   }
 
+  const fieldClass =
+    "w-full rounded-lg border border-[var(--list-border)] bg-background px-3 py-2.5 text-sm shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600";
+
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">워크스페이스</h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        프로젝트나 팀마다 공간을 나누고, 수집 API·구독·멤버를 함께 관리합니다.
-      </p>
+    <AppChrome active="dashboard">
+      <AppMain>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">워크스페이스</h1>
+        <p className="mt-2 text-sm text-muted">
+          프로젝트나 팀마다 공간을 나누고, 수집 API·구독·멤버를 함께 관리합니다.
+        </p>
 
-      <form onSubmit={create} className="mt-8 space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-        <h2 className="text-sm font-medium">새 워크스페이스 만들기</h2>
-        <input
-          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-          placeholder="표시 이름 · 예: 프로덕션 모니터링"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-        <input
-          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-          placeholder="주소에 쓰는 ID · 소문자, 숫자, 하이픈만 · 예: acme-prod"
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          required
-        />
-        {err ? <p className="text-xs text-red-600">{err}</p> : null}
-        <button
-          type="submit"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900"
+        <form
+          onSubmit={create}
+          className="mt-8 space-y-4 rounded-2xl border border-[var(--list-border)] bg-card p-5 shadow-sm"
         >
-          만들기
-        </button>
-      </form>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">새 워크스페이스</h2>
+          <input
+            className={fieldClass}
+            placeholder="표시 이름 · 예: 프로덕션 모니터링"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <input
+            className={fieldClass}
+            placeholder="주소 ID · 소문자·숫자·하이픈 · 예: acme-prod"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            required
+          />
+          {err ? <p className="text-xs text-red-600 dark:text-red-400">{err}</p> : null}
+          <button
+            type="submit"
+            className="rounded-lg bg-cta px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cta-hover dark:text-neutral-900"
+          >
+            만들기
+          </button>
+        </form>
 
-      <ul className="mt-10 space-y-2">
-        {list.map((w) => (
-          <li key={w.id}>
-            <Link
-              href={`/dashboard/${w.slug}`}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900/50"
-            >
-              <span className="font-medium">{w.name}</span>
-              <span className="text-zinc-500">
-                {w.slug} · {subscriptionStatusLabel(w.subscriptionStatus)}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <ul className="mt-10 space-y-2">
+          {list.map((w) => (
+            <li key={w.id}>
+              <Link
+                href={`/dashboard/${w.slug}`}
+                className="flex flex-col gap-1 rounded-xl border border-[var(--list-border)] px-4 py-3 text-sm transition hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              >
+                <span className="font-medium text-foreground">{w.name}</span>
+                <span className="shrink-0 text-xs tabular-nums text-muted sm:text-sm">
+                  {w.slug} · {subscriptionStatusLabel(w.subscriptionStatus)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </AppMain>
+    </AppChrome>
   );
 }
