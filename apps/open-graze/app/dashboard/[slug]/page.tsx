@@ -34,8 +34,12 @@ export default function WorkspaceDetailPage() {
   const [keyName, setKeyName] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
+  const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setEventsLoadErr(null);
+    setTasksLoadErr(null);
     const [rk, re, rt] = await Promise.all([
       fetch(`/api/workspaces/${slug}/api-keys`),
       fetch(`/api/workspaces/${slug}/events`),
@@ -52,10 +56,18 @@ export default function WorkspaceDetailPage() {
     if (re.ok) {
       const j = (await re.json()) as { events: EvRow[] };
       setEvents(j.events);
+    } else {
+      const raw = await re.text();
+      setEvents([]);
+      setEventsLoadErr(`수집 목록을 불러오지 못했습니다 (HTTP ${re.status}). ${raw.slice(0, 240)}`);
     }
     if (rt.ok) {
       const j = (await rt.json()) as { tasks: TaskRow[] };
       setTasks(j.tasks);
+    } else {
+      const raw = await rt.text();
+      setTasks([]);
+      setTasksLoadErr(`작업 목록을 불러오지 못했습니다 (HTTP ${rt.status}). ${raw.slice(0, 240)}`);
     }
   }, [slug, router]);
 
@@ -134,11 +146,15 @@ export default function WorkspaceDetailPage() {
           작업 현황
         </h2>
         <p className="mt-1 text-xs text-zinc-500">
-          API로 반영된 제목·설명·상태를 표시합니다(이 화면에서는 편집하지 않음). 연동 방법은 이 앱{" "}
-          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">README.md</code>의 워크스페이스 Task API를
-          참고하세요. 로컬 시드 시 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">opengraze-monitoring</code>{" "}
-          워크스페이스에 샘플 작업이 들어갈 수 있습니다.
+          API로 반영된 제목·설명·상태를 표시합니다(이 화면에서는 편집하지 않음).{" "}
+          <strong className="text-zinc-700 dark:text-zinc-300">코드만 고친다고 여기가 자동으로 채워지지는 않습니다</strong> —{" "}
+          DB에 들어간 작업만 보입니다. 넣는 방법은 이 앱{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">README.md</code>의 워크스페이스 Task API 또는 로컬{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">npm run db:seed -w open-graze</code> 입니다.
         </p>
+        {tasksLoadErr ? (
+          <p className="mt-2 text-xs text-red-600 dark:text-red-400">{tasksLoadErr}</p>
+        ) : null}
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
             <thead>
@@ -243,7 +259,16 @@ export default function WorkspaceDetailPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
           최근 수집 활동
         </h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          이 워크스페이스로 들어온 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">POST /api/v1/events</code> 결과만
+          보입니다. <strong className="text-zinc-700 dark:text-zinc-300">지금 편집 중인 UI·코드 변경은 여기에 나타나지 않습니다.</strong>{" "}
+          아래가 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">[]</code>이면 아직 이벤트를 한 번도 안 보낸 것이거나, 이
+          키가 아닌 다른 키로 보냈을 수 있습니다. 터미널에서 한 번 보낸 뒤 이 페이지를 새로고침해 보세요.
+        </p>
         <p className="mt-1 text-xs text-zinc-500">최대 100건까지 표시합니다.</p>
+        {eventsLoadErr ? (
+          <p className="mt-2 text-xs text-red-600 dark:text-red-400">{eventsLoadErr}</p>
+        ) : null}
         <pre className="mt-3 max-h-80 overflow-auto rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs dark:border-zinc-800 dark:bg-zinc-950">
           {JSON.stringify(events, null, 2)}
         </pre>
