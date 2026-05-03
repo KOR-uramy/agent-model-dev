@@ -137,6 +137,12 @@ acquire_parallel_lock() {
   return 1
 }
 
+# Remove parallel lock (call when run_parallel_tasks finishes; EXIT trap alone does not run on function return).
+release_parallel_lock() {
+  local workspace="${1:-.}"
+  rm -rf "$workspace/$PARALLEL_LOCK_DIR" 2>/dev/null || true
+}
+
 init_parallel_run_dir() {
   local workspace="${1:-.}"
   local run_id="$2"
@@ -527,6 +533,7 @@ run_parallel_tasks() {
   local base_sha
   base_sha=$(git -C "$workspace" rev-parse "$base_branch" 2>/dev/null) || {
     echo "❌ Failed to resolve base branch: $base_branch" >&2
+    release_parallel_lock "$workspace"
     return 1
   }
 
@@ -544,6 +551,7 @@ run_parallel_tasks() {
   # Check if worktrees are usable
   if ! can_use_worktrees "$workspace"; then
     echo "❌ Cannot use worktrees (already in a worktree or no .git directory)"
+    release_parallel_lock "$workspace"
     return 1
   fi
   
@@ -574,6 +582,7 @@ run_parallel_tasks() {
     echo ""
     echo "   (Optional: also add .cursor/ralph-scripts if present)"
     echo ""
+    release_parallel_lock "$workspace"
     return 1
   fi
   
@@ -614,6 +623,7 @@ run_parallel_tasks() {
   
   if [[ ${#groups[@]} -eq 0 ]]; then
     echo "✅ No pending tasks!"
+    release_parallel_lock "$workspace"
     return 0
   fi
   
@@ -645,6 +655,7 @@ run_parallel_tasks() {
   if [[ "$merge_target" != "$base_branch" ]]; then
     git -C "$original_dir" checkout -B "$merge_target" "$BASE_SHA" 2>/dev/null || {
       echo "❌ Failed to create/reset integration branch: $merge_target" >&2
+      release_parallel_lock "$workspace"
       return 1
     }
     echo "🔀 Integration branch: $merge_target (from $base_branch)"
@@ -1191,6 +1202,7 @@ $commit_body"
 
   ralph_try_push_workspace "$original_dir"
 
+  release_parallel_lock "$workspace"
   return 0
 }
 
