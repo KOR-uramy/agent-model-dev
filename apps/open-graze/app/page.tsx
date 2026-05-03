@@ -9,13 +9,15 @@ import { buildApiPayloadFromMetaAndRangeEvents } from "@/lib/timeline-client-pay
 import { TIMELINE_RANGE_MAX_ROWS } from "@/lib/timeline-constants";
 import {
   AGENT_ROLE_KEYS,
+  EVENT_SOURCE_KEYS,
   eventDetailRole,
   parseRoleQueryParam,
   parseSessionIdQueryParam,
-  parseTimelineRangeParams,
+  parseSourceQueryParam,
 } from "@/lib/timeline-query-params";
 import type {
   AgentRoleKey,
+  EventSource,
   RalphEventsApiPayload,
   WorkspaceFeedEvent,
 } from "ralph-workspace-sdk";
@@ -30,6 +32,11 @@ const ROLE_LABEL_KO: Record<AgentRoleKey, string> = {
   design: "디자인",
   implementation: "구현",
   test: "테스트",
+};
+
+const SOURCE_LABEL_KO: Record<EventSource, string> = {
+  ralph: "에이전트",
+  application: "제품",
 };
 
 function RoleTimelineCell({ detail }: { detail: WorkspaceFeedEvent["detail"] }) {
@@ -149,42 +156,10 @@ function Home() {
     [searchParams],
   );
 
-  const rangeParsed = useMemo(
-    () =>
-      parseTimelineRangeParams(
-        searchParams.get("from"),
-        searchParams.get("to"),
-      ),
+  const sourceFilter = useMemo(
+    () => parseSourceQueryParam(searchParams.get("source")),
     [searchParams],
   );
-
-  const rangeMode = rangeParsed.ok;
-
-  const [rangeDraftFrom, setRangeDraftFrom] = useState("");
-  const [rangeDraftTo, setRangeDraftTo] = useState("");
-
-  useEffect(() => {
-    if (rangeParsed.ok) {
-      setRangeDraftFrom(rangeParsed.fromIso);
-      setRangeDraftTo(rangeParsed.toIso);
-    } else {
-      setRangeDraftFrom("");
-      setRangeDraftTo("");
-    }
-  }, [rangeParsed]);
-
-  /** `from`·`to` 중 하나만 있거나 파싱 실패 시 API와 같게 구간 모드를 쓰지 않고 둘 다 제거한다. */
-  useEffect(() => {
-    const fr = searchParams.get("from");
-    const tr = searchParams.get("to");
-    if (fr === null && tr === null) return;
-    if (rangeParsed.ok) return;
-    const next = new URLSearchParams(searchParams.toString());
-    next.delete("from");
-    next.delete("to");
-    const q = next.toString();
-    router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
-  }, [pathname, rangeParsed.ok, router, searchParams]);
 
   /** `role` 키는 있으나 API와 동일 규칙으로 인정되지 않는 값이면 주소에서 제거한다. */
   useEffect(() => {
@@ -204,6 +179,17 @@ function Home() {
     if (parseSessionIdQueryParam(raw) !== null) return;
     const next = new URLSearchParams(searchParams.toString());
     next.delete("sessionId");
+    const q = next.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  /** `source` 키는 있으나 API와 동일 규칙으로 인정되지 않는 값이면 주소에서 제거한다. */
+  useEffect(() => {
+    const raw = searchParams.get("source");
+    if (raw === null) return;
+    if (parseSourceQueryParam(raw) !== null) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("source");
     const q = next.toString();
     router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
   }, [pathname, router, searchParams]);
@@ -231,16 +217,11 @@ function Home() {
     [pathname, router, searchParams],
   );
 
-  const setFromToQuery = useCallback(
-    (fromIso: string | null, toIso: string | null) => {
+  const setSourceQuery = useCallback(
+    (src: EventSource | null) => {
       const next = new URLSearchParams(searchParams.toString());
-      if (fromIso == null || toIso == null) {
-        next.delete("from");
-        next.delete("to");
-      } else {
-        next.set("from", fromIso);
-        next.set("to", toIso);
-      }
+      if (src == null) next.delete("source");
+      else next.set("source", src);
       const q = next.toString();
       router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
     },
@@ -261,57 +242,19 @@ function Home() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      if (rangeParsed.ok) {
-        const qsRange = new URLSearchParams({
-          from: rangeParsed.fromIso,
-          to: rangeParsed.toIso,
-          limit: String(TIMELINE_RANGE_MAX_ROWS),
-        });
-        if (roleFilter) qsRange.set("role", roleFilter);
-        if (sessionIdFilter) qsRange.set("sessionId", sessionIdFilter);
-
-        const [metaRes, rangeRes] = await Promise.all([
-          fetch(`/api/ralph/events?tail=1`),
-          fetch(`/api/ralph/events/range?${qsRange.toString()}`),
-        ]);
-        const meta = (await metaRes.json()) as ApiPayload;
-        const rangeJson = (await rangeRes.json()) as {
-          events?: WorkspaceFeedEvent[];
-          truncated?: boolean;
-          error?: string;
-        };
-        if (!rangeRes.ok) {
-          setData({
-            ...meta,
-            events: [],
-            summary: { ...meta.summary, rowCount: 0 },
-            error: "RANGE_QUERY_ERROR",
-            hint:
-              typeof rangeJson.error === "string"
-                ? rangeJson.error
-                : "기간 요청을 처리하지 못했습니다.",
-          });
-          return;
-        }
-        const events = Array.isArray(rangeJson.events) ? rangeJson.events : [];
-        const truncated = Boolean(rangeJson.truncated);
-        setData(
-          buildApiPayloadFromMetaAndRangeEvents(meta, events, { truncated }),
-        );
-      } else {
-        const qs = new URLSearchParams({ tail: "1200" });
-        if (roleFilter) qs.set("role", roleFilter);
-        if (sessionIdFilter) qs.set("sessionId", sessionIdFilter);
-        const r = await fetch(`/api/ralph/events?${qs.toString()}`);
-        const j = (await r.json()) as ApiPayload;
-        setData(j);
-      }
+      const qs = new URLSearchParams({ tail: "1200" });
+      if (roleFilter) qs.set("role", roleFilter);
+      if (sessionIdFilter) qs.set("sessionId", sessionIdFilter);
+      if (sourceFilter) qs.set("source", sourceFilter);
+      const r = await fetch(`/api/ralph/events?${qs.toString()}`);
+      const j = (await r.json()) as ApiPayload;
+      setData(j);
     } catch {
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, [rangeParsed, roleFilter, sessionIdFilter]);
+  }, [roleFilter, sessionIdFilter, sourceFilter]);
 
   useEffect(() => {
     void load();
@@ -678,6 +621,25 @@ function Home() {
                   {AGENT_ROLE_KEYS.map((key: AgentRoleKey) => (
                     <option key={key} value={key}>
                       {ROLE_LABEL_KO[key]}만
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-w-0 flex-1 flex-col gap-1 text-left sm:max-w-[11rem] sm:flex-initial sm:items-end">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">출처</span>
+                <select
+                  className="w-full min-w-[9.5rem] rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-neutral-400/40 dark:focus:ring-neutral-500/30"
+                  value={sourceFilter ?? ""}
+                  onChange={(ev) => {
+                    const v = ev.target.value;
+                    setSourceQuery(v === "" ? null : (v as EventSource));
+                  }}
+                  aria-label="타임라인 출처 필터"
+                >
+                  <option value="">전체 출처</option>
+                  {EVENT_SOURCE_KEYS.map((key: EventSource) => (
+                    <option key={key} value={key}>
+                      {SOURCE_LABEL_KO[key]}만
                     </option>
                   ))}
                 </select>

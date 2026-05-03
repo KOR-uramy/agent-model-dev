@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { Prisma } from "@prisma/client";
 import type {
   AgentRoleKey,
+  EventSource,
   RalphEventsApiPayload,
   WorkspaceFeedEvent,
 } from "ralph-workspace-sdk";
@@ -33,11 +34,19 @@ const ROLE_FILTER_EMPTY_HINT =
 const SESSION_FILTER_EMPTY_HINT =
   "해당 세션 ID로 동기화된 이벤트가 없습니다. 식별자를 확인하거나 동기화를 실행해 보세요.";
 
-export { TIMELINE_RANGE_MAX_ROWS } from "@/lib/timeline-constants";
+const SOURCE_FILTER_EMPTY_HINT =
+  "선택한 출처(에이전트·제품)에 맞는 최근 이벤트가 없습니다. 필터를 해제하거나 tail 값을 늘려 보세요.";
+
+/** `GET /api/ralph/events/range` 한 번에 돌려줄 최대 행 수 */
+export const TIMELINE_RANGE_MAX_ROWS = 10_000;
 
 /** `GET /api/ralph/events`·`GET /api/ralph/events/range` 공통 — 비어 있지 않은 `role`이 네 가지가 아닐 때 */
 export const RALPH_EVENTS_ROLE_QUERY_ERROR =
   "쿼리 `role`은 planning, design, implementation, test 중 하나이거나 생략·빈 값이어야 합니다.";
+
+/** `GET /api/ralph/events`·`GET /api/ralph/events/range` 공통 — 비어 있지 않은 `source`가 페이로드 집합이 아닐 때 */
+export const RALPH_EVENTS_SOURCE_QUERY_ERROR =
+  "쿼리 `source`는 ralph, application 중 하나이거나 생략·빈 값이어야 합니다.";
 
 export function parseSessionIdQueryParam(raw: string | null): string | null {
   if (raw == null) return null;
@@ -58,64 +67,49 @@ export type TimelineRangeLoadResult = {
   truncated: boolean;
 };
 
-/** `GET /api/ralph/events/range`와 동일한 선택 필터(역할·세션). */
+/** `GET /api/ralph/events/range`와 동일한 선택 필터(역할·세션·출처). */
 export type TimelineRangeLoadOpts = {
   role: AgentRoleKey | null;
   sessionId: string | null;
+  source: EventSource | null;
 };
 
 export async function loadTimelineEventsInRange(
   fromIso: string,
   toIso: string,
   take: number,
-  opts: TimelineRangeLoadOpts = { role: null, sessionId: null },
+  opts: TimelineRangeLoadOpts = { role: null, sessionId: null, source: null },
 ): Promise<TimelineRangeLoadResult> {
   const workspaceKey = timelineWorkspaceKey();
   const capped = Math.min(TIMELINE_RANGE_MAX_ROWS, Math.max(1, take));
   const role = opts.role;
   const sessionId = opts.sessionId;
+  const source = opts.source;
 
-  const rows =
-    role && sessionId
-      ? await prisma.$queryRaw<{ payload: string }[]>`
-        SELECT "payload"
-        FROM "TimelineEvent"
-        WHERE "workspaceKey" = ${workspaceKey}
-          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
-          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
-          AND json_extract("payload", '$.sessionId') = ${sessionId}
-          AND json_extract("payload", '$.detail.role') = ${role}
-        ORDER BY "ts" ASC
-        LIMIT ${capped}
-      `
-      : sessionId
-        ? await prisma.$queryRaw<{ payload: string }[]>`
-        SELECT "payload"
-        FROM "TimelineEvent"
-        WHERE "workspaceKey" = ${workspaceKey}
-          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
-          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
-          AND json_extract("payload", '$.sessionId') = ${sessionId}
-        ORDER BY "ts" ASC
-        LIMIT ${capped}
-      `
-        : role
-          ? await prisma.$queryRaw<{ payload: string }[]>`
-        SELECT "payload"
-        FROM "TimelineEvent"
-        WHERE "workspaceKey" = ${workspaceKey}
-          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
-          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
-          AND json_extract("payload", '$.detail.role') = ${role}
-        ORDER BY "ts" ASC
-        LIMIT ${capped}
-      `
-          : await prisma.$queryRaw<{ payload: string }[]>`
+  const whereParts: Prisma.Sql[] = [
+    Prisma.sql`"workspaceKey" = ${workspaceKey}`,
+    Prisma.sql`strftime('%s', "ts") >= strftime('%s', ${fromIso})`,
+    Prisma.sql`strftime('%s', "ts") <= strftime('%s', ${toIso})`,
+  ];
+  if (sessionId) {
+    whereParts.push(
+      Prisma.sql`json_extract("payload", '$.sessionId') = ${sessionId}`,
+    );
+  }
+  if (role) {
+    whereParts.push(
+      Prisma.sql`json_extract("payload", '$.detail.role') = ${role}`,
+    );
+  }
+  if (source) {
+    whereParts.push(Prisma.sql`"source" = ${source}`);
+  }
+  const whereSql = Prisma.join(whereParts, " AND ");
+
+  const rows = await prisma.$queryRaw<{ payload: string }[]>`
     SELECT "payload"
     FROM "TimelineEvent"
-    WHERE "workspaceKey" = ${workspaceKey}
-      AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
-      AND strftime('%s', "ts") <= strftime('%s', ${toIso})
+    WHERE ${whereSql}
     ORDER BY "ts" ASC
     LIMIT ${capped}
   `;
@@ -152,6 +146,7 @@ export async function loadTimelineFromDb(
   tail: number,
   role: AgentRoleKey | null = null,
   sessionId: string | null = null,
+  source: EventSource | null = null,
 ): Promise<RalphEventsApiPayload> {
   const workspaceKey = timelineWorkspaceKey();
   const workspace = resolveRalphWorkspace(pathOpts);
@@ -160,23 +155,34 @@ export async function loadTimelineFromDb(
   const usdPerM = parseUsdPerMillionEstTokens(pathOpts);
   const t = Math.min(5000, Math.max(1, tail));
   const fetchSize =
-    role || sessionId ? Math.min(5000, Math.max(t, t * 40)) : t;
+    role || sessionId || source ? Math.min(5000, Math.max(t, t * 40)) : t;
 
-  const rows = sessionId
-    ? await prisma.$queryRaw<{ payload: string }[]>`
-        SELECT "payload"
-        FROM "TimelineEvent"
-        WHERE "workspaceKey" = ${workspaceKey}
-          AND json_extract("payload", '$.sessionId') = ${sessionId}
-        ORDER BY "ts" DESC
-        LIMIT ${fetchSize}
-      `
-    : await prisma.timelineEvent.findMany({
-        where: { workspaceKey },
-        orderBy: { ts: "desc" },
-        take: fetchSize,
-        select: { payload: true },
-      });
+  let rows: { payload: string }[];
+  if (sessionId) {
+    const sessionWhereParts: Prisma.Sql[] = [
+      Prisma.sql`"workspaceKey" = ${workspaceKey}`,
+      Prisma.sql`json_extract("payload", '$.sessionId') = ${sessionId}`,
+    ];
+    if (source) sessionWhereParts.push(Prisma.sql`"source" = ${source}`);
+    const sessionWhereSql = Prisma.join(sessionWhereParts, " AND ");
+    rows = await prisma.$queryRaw<{ payload: string }[]>`
+      SELECT "payload"
+      FROM "TimelineEvent"
+      WHERE ${sessionWhereSql}
+      ORDER BY "ts" DESC
+      LIMIT ${fetchSize}
+    `;
+  } else {
+    rows = await prisma.timelineEvent.findMany({
+      where: {
+        workspaceKey,
+        ...(source ? { source } : {}),
+      },
+      orderBy: { ts: "desc" },
+      take: fetchSize,
+      select: { payload: true },
+    });
+  }
 
   const mergedChrono: WorkspaceFeedEvent[] = rows
     .map((r) => {
@@ -205,7 +211,8 @@ export async function loadTimelineFromDb(
 
   const empty = rawEmpty;
   const sessionFilterMiss = Boolean(sessionId && empty);
-  const timelineGloballyEmpty = empty && !sessionId;
+  const timelineGloballyEmpty = empty && !sessionId && !source;
+  const sourceFilterEmptyHint = Boolean(source && empty && !sessionId);
 
   return buildRalphEventsApiPayloadFromMerged({
     workspace,
@@ -218,9 +225,11 @@ export async function loadTimelineFromDb(
       ? EMPTY_HINT
       : sessionFilterMiss
         ? SESSION_FILTER_EMPTY_HINT
-        : roleFilterEmpty
-          ? ROLE_FILTER_EMPTY_HINT
-          : undefined,
+        : sourceFilterEmptyHint
+          ? SOURCE_FILTER_EMPTY_HINT
+          : roleFilterEmpty
+            ? ROLE_FILTER_EMPTY_HINT
+            : undefined,
   });
 }
 

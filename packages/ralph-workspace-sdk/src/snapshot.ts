@@ -8,6 +8,7 @@ import {
 } from "./paths";
 import type {
   AgentRoleKey,
+  EventSource,
   RalphEvent,
   RalphEventsApiPayload,
   RalphPathsOptions,
@@ -48,6 +49,19 @@ export function parseRoleQueryParam(
   ) {
     return v;
   }
+  return null;
+}
+
+/**
+ * `GET ?source=` 쿼리 파싱. 빈 값·알 수 없는 값은 null(필터 없음).
+ * 허용값은 `WorkspaceFeedEvent.source`와 동일(`ralph` \| `application`).
+ */
+export function parseSourceQueryParam(
+  value: string | null | undefined,
+): EventSource | null {
+  if (value == null || value.trim() === "") return null;
+  const v = value.trim();
+  if (v === "ralph" || v === "application") return v;
   return null;
 }
 
