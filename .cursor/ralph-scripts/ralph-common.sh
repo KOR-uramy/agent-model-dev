@@ -386,6 +386,40 @@ refresh_task_cache() {
   fi
 }
 
+# Best-effort: push current branch to origin (never fails the caller). Skip if RALPH_SKIP_POST_PUSH=1.
+# Args: workspace (repo root)
+ralph_try_push_workspace() {
+  local ws="${1:-.}"
+  if [[ "${RALPH_SKIP_POST_PUSH:-0}" == "1" ]]; then
+    return 0
+  fi
+  if ! git -C "$ws" rev-parse --git-dir >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! git -C "$ws" remote get-url origin >/dev/null 2>&1; then
+    echo "ℹ️  origin 원격 없음 — git push 생략" >&2
+    return 0
+  fi
+  local cur rc
+  cur="$(git -C "$ws" symbolic-ref -q --short HEAD 2>/dev/null || true)"
+  if [[ -z "$cur" ]]; then
+    echo "ℹ️  detached HEAD — git push 생략" >&2
+    return 0
+  fi
+  rc=0
+  if git -C "$ws" rev-parse --verify "${cur}@{upstream}" >/dev/null 2>&1; then
+    git -C "$ws" push 2>&1 || rc=$?
+  else
+    git -C "$ws" push -u origin "$cur" 2>&1 || rc=$?
+  fi
+  if [[ "$rc" -eq 0 ]]; then
+    echo "📤 $cur → origin push 완료" >&2
+  else
+    echo "⚠️  git push 실패(rc=$rc). 인증·브랜치 보호·network 확인." >&2
+  fi
+  return 0
+}
+
 # =============================================================================
 # ROLE PIPELINE (기획 → 디자인 → 구현 → 테스트, 순환)
 # =============================================================================
@@ -474,9 +508,9 @@ Ralph's strength is state-in-git, not LLM memory. Commit early and often:
    Always describe what you actually did - never use placeholders like '<description>'
 2. After any significant code change (even partial): commit with descriptive message
 3. Before any risky refactor: commit current state as checkpoint
-4. Push after every 2-3 commits: \`git push\`
+4. **Push is mandatory when \`origin\` exists**: after each commit (or tight batch), run \`git push\` (or \`git push -u origin <branch>\` if no upstream yet). Do **not** end the iteration with commits that exist only locally — the next agent or host must see them on the remote.
 
-If you get rotated, the next agent picks up from your last commit. Your commits ARE your memory.
+If you get rotated, the next agent picks up from your last commit **on the remote if you pushed**. Your commits ARE your memory only after \`git push\`.
 
 ## Task Execution
 
@@ -556,6 +590,14 @@ EOF
 - Prefer short, checkable bullets the **디자인** role can turn into contracts/sketches.
 
 EOF
+      if [[ "${RALPH_PLANNING_EXPAND_ONLY:-0}" == "1" ]]; then
+        cat << 'EOF'
+## 병렬 스윕 직후(성장 루프)
+
+에이전트 배치 병합으로 `RALPH_TASK.md` 목록이 **전부 `[x]`**일 수 있다. 문서 **「체크가 가득 찬 뒤」**·**성장 루프**·**동종 비교 → 체크 확장**에 따라, 이번 이터는 **측정 가능한 새 `- [ ]` 항목**을 최소 1개 이상 추가하고(필요 시 한 줄 맥락), 변경을 **커밋한 뒤 `git push`**까지 수행한다(`origin` 원격이 있을 때). 빈 백로그로 종료하지 않는다.
+
+EOF
+      fi
       ;;
     design)
       cat << EOF
@@ -641,7 +683,10 @@ run_iteration() {
   local script_dir="${4:-$(dirname "${BASH_SOURCE[0]}")}"
 
   local role_key=""
-  if [[ "${RALPH_ROLE_MODE:-cycle}" != "mono" ]]; then
+  if [[ -n "${RALPH_ROLE_OVERRIDE:-}" ]]; then
+    role_key="$RALPH_ROLE_OVERRIDE"
+    export RALPH_ROLE="$role_key"
+  elif [[ "${RALPH_ROLE_MODE:-cycle}" != "mono" ]]; then
     role_key=$(ralph_role_for_iteration "$iteration")
     export RALPH_ROLE="$role_key"
   else

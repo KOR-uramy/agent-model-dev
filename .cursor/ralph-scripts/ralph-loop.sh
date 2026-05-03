@@ -12,7 +12,7 @@
 #   ./ralph-loop.sh -n 50 -m opus-4.5-thinking   # Custom iterations and model (default model: auto)
 #   ./ralph-loop.sh --branch feature/foo --pr   # Create branch and PR
 #   ./ralph-loop.sh -y                           # Skip confirmation (for scripting)
-#   ./ralph-loop.sh -y --infinite                # No iteration cap (until all [x] or GUTTER / Ctrl-C)
+#   ./ralph-loop.sh -y --infinite                # No iteration cap (until GUTTER / Ctrl-C; 병렬+무한은 전부 [x]일 때 기획 확장 후 재개)
 #   ./ralph-loop.sh -y --infinite --force        # Same, but run even when every checkbox is already [x]
 #
 # Flags:
@@ -64,7 +64,7 @@ Options:
   --branch NAME          Sequential: create/work on branch; Parallel: integration branch name
   --pr                   Sequential: open PR (requires --branch); Parallel: open ONE integration PR (branch optional)
   --parallel             Run tasks in parallel with worktrees
-  --max-parallel N       Max parallel agents (default: 3)
+  --max-parallel N       Max parallel agents (default: 3). With --infinite: after a batch, if no unchecked items, one planning pass adds new - [ ] then parallel resumes (growth loop).
   --no-merge             Skip auto-merge in parallel mode
   -y, --yes              Skip confirmation prompt
   --force, -f            RALPH_TASK.md 체크가 모두 [x]여도 루프·병렬 진입(기본은 즉시 종료)
@@ -85,9 +85,19 @@ Environment:
   FORCE_RALPH_TASK_GUARD 1 이면 --force와 동일(전부 [x]여도 조기 종료 안 함)
   RALPH_MERGE_AUTOCOMMIT 병렬·병합: 미설정이면 기본 1(병합 전 git add -A 스냅샷 커밋). 0=끔.
   RALPH_MERGE_AUTOSTASH  병합 전 stash(-u). 둘 다 미설정일 때만 AUTOCOMMIT 기본 적용.
+  RALPH_SKIP_POST_PUSH   1이면 병렬 배치·기획 확장 직후 자동 git push 를 하지 않음.
 
 For interactive setup with a beautiful UI, use ralph-setup.sh instead.
 EOF
+}
+
+# stdout: total_criteria done_criteria remaining (same grep rules as Progress in main)
+ralph_checkbox_stats() {
+  local tf="$1"
+  local tc dc
+  tc=$(grep -cE '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[(x| )\]' "$tf" 2>/dev/null) || tc=0
+  dc=$(grep -cE '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[x\]' "$tf" 2>/dev/null) || dc=0
+  echo "$tc $dc $((tc - dc))"
 }
 
 # Parallel mode settings
@@ -222,12 +232,9 @@ main() {
   echo "─────────────────────────────────────────────────────────────────"
   echo ""
   
-  # Count criteria
+  # Count criteria (목록 체크박스만; - [ ], * [x], 1. [ ], 등)
   local total_criteria done_criteria remaining
-  # Only count actual checkbox list items (- [ ], * [x], 1. [ ], etc.)
-  total_criteria=$(grep -cE '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[(x| )\]' "$task_file" 2>/dev/null) || total_criteria=0
-  done_criteria=$(grep -cE '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[x\]' "$task_file" 2>/dev/null) || done_criteria=0
-  remaining=$((total_criteria - done_criteria))
+  read -r total_criteria done_criteria remaining <<< "$(ralph_checkbox_stats "$task_file")"
   
   echo "Progress: $done_criteria / $total_criteria criteria complete ($remaining remaining)"
   echo "Model:    $MODEL"
@@ -243,16 +250,20 @@ main() {
   echo ""
   
   if [[ "$remaining" -eq 0 ]] && [[ "$total_criteria" -gt 0 ]] && [[ "${FORCE_RALPH_TASK_GUARD:-0}" != "1" ]]; then
-    echo "🎉 Task already complete! All criteria are checked."
-    echo "   (한국어) RALPH_TASK.md 목록 체크가 모두 [x]라 에이전트를 띄우지 않고 종료합니다."
-    echo ""
-    echo "집계: RALPH_TASK.md 안에서 줄 시작이 «- [ ]» 또는 «- [x]»(또는 «*», «1.»)인 목록만 센다."
-    echo "그래도 루프를 돌리려면: ./ralph-loop.sh --force …  또는  FORCE_RALPH_TASK_GUARD=1 ./ralph-loop.sh …"
-    if [[ "$PARALLEL_MODE" == "true" ]]; then
-      echo "병렬(--parallel / --max-parallel): 미완 «- [ ]»가 없으면 에이전트를 띄우지 않고 여기서 종료한다."
-      echo "이어 돌리려면 새 기준을 «- [ ]»로 추가하거나, 검증 전 항목을 «[ ]»로 되돌린 뒤 다시 실행하라."
+    if [[ "$PARALLEL_MODE" == "true" ]] && [[ "${RALPH_INFINITE_LOOP:-0}" == "1" ]]; then
+      echo "♾️  병렬+무한: 체크가 모두 [x]여도 여기서 끝내지 않고, 성장 루프(기획으로 새 «- [ ]» 추가 → 병렬 재개)로 이어집니다." >&2
+      echo "" >&2
+    else
+      echo "🎉 Task already complete! All criteria are checked."
+      echo "   (한국어) RALPH_TASK.md 목록 체크가 모두 [x]라 에이전트를 띄우지 않고 종료합니다."
+      echo ""
+      echo "집계: RALPH_TASK.md 안에서 줄 시작이 «- [ ]» 또는 «- [x]»(또는 «*», «1.»)인 목록만 센다."
+      echo "그래도 루프를 돌리려면: ./ralph-loop.sh --force …  또는  FORCE_RALPH_TASK_GUARD=1 ./ralph-loop.sh …"
+      if [[ "$PARALLEL_MODE" == "true" ]]; then
+        echo "병렬 (--parallel): 미완 «- [ ]»가 없으면 한 번에 종료한다. 끊김 없이 확장하려면 --infinite 를 함께 쓴다."
+      fi
+      exit 0
     fi
-    exit 0
   fi
 
   if [[ "$remaining" -eq 0 ]] && [[ "$total_criteria" -gt 0 ]] && [[ "${FORCE_RALPH_TASK_GUARD:-0}" == "1" ]]; then
@@ -303,9 +314,64 @@ main() {
     local base_branch
     base_branch="$(git -C "$WORKSPACE" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
 
-    # Args: workspace, max_parallel, base_branch, integration_branch(optional)
-    run_parallel_tasks "$WORKSPACE" "$MAX_PARALLEL" "$base_branch" "$USE_BRANCH"
-    exit $?
+    local _expand_noop_streak=0
+    while true; do
+      refresh_task_cache "$WORKSPACE"
+      read -r total_criteria done_criteria remaining <<< "$(ralph_checkbox_stats "$task_file")"
+
+      if [[ "$remaining" -eq 0 ]]; then
+        if [[ "$total_criteria" -le 0 ]]; then
+          echo "ℹ️  RALPH_TASK.md에 목록 체크박스가 없어 병렬 루프를 종료합니다." >&2
+          exit 0
+        fi
+        if [[ "${RALPH_INFINITE_LOOP:-0}" != "1" ]]; then
+          echo ""
+          echo "═══════════════════════════════════════════════════════════════════"
+          echo "🎉 RALPH 병렬 배치 완료: 미완 «- [ ]» 없음 (무한 모드 아님 → 종료)"
+          echo "═══════════════════════════════════════════════════════════════════"
+          exit 0
+        fi
+
+        echo ""
+        echo "───────────────────────────────────────────────────────────────────"
+        echo "♾️  성장 루프: 미완 «- [ ]»가 없습니다. 기획(planning)으로 체크리스트 확장 1회 실행…"
+        echo "───────────────────────────────────────────────────────────────────"
+
+        export RALPH_ROLE_OVERRIDE=planning
+        export RALPH_PLANNING_EXPAND_ONLY=1
+        local exp_it=1
+        if [[ -f "$WORKSPACE/.ralph/.iteration" ]]; then
+          local _it_raw
+          _it_raw="$(tr -d ' \n' < "$WORKSPACE/.ralph/.iteration" 2>/dev/null || echo 0)"
+          if [[ "$_it_raw" =~ ^[0-9]+$ ]]; then
+            exp_it=$((_it_raw + 1))
+          fi
+        fi
+        local _exp_sig=""
+        _exp_sig="$(run_iteration "$WORKSPACE" "$exp_it" "" "$SCRIPT_DIR")" || true
+        unset RALPH_ROLE_OVERRIDE RALPH_PLANNING_EXPAND_ONLY
+        ralph_try_push_workspace "$WORKSPACE"
+
+        refresh_task_cache "$WORKSPACE"
+        read -r total_criteria done_criteria remaining <<< "$(ralph_checkbox_stats "$task_file")"
+
+        if [[ "$remaining" -eq 0 ]]; then
+          _expand_noop_streak=$((_expand_noop_streak + 1))
+          if [[ "$_expand_noop_streak" -ge 5 ]]; then
+            echo "❌ 기획 확장 5회 연속으로도 새 «- [ ]»가 추가되지 않았습니다. RALPH_TASK.md를 수동으로 보완한 뒤 다시 실행하세요." >&2
+            exit 0
+          fi
+          echo "⚠️  확장 후에도 미완 항목 없음 — ${_expand_noop_streak}/5 회. 잠시 뒤 재시도합니다…" >&2
+          sleep 8
+        else
+          _expand_noop_streak=0
+        fi
+        continue
+      fi
+
+      _expand_noop_streak=0
+      run_parallel_tasks "$WORKSPACE" "$MAX_PARALLEL" "$base_branch" "$USE_BRANCH" || exit $?
+    done
   else
     # Run the sequential loop
     run_ralph_loop "$WORKSPACE" "$SCRIPT_DIR"

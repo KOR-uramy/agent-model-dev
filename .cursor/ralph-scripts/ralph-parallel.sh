@@ -1188,7 +1188,9 @@ $commit_body"
   echo "  Agent runs failed:                     $total_failed"
   echo "  Run dir:   $RUN_DIR"
   echo ""
-  
+
+  ralph_try_push_workspace "$original_dir"
+
   return 0
 }
 
