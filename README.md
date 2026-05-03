@@ -55,6 +55,12 @@ curl -sS -o /dev/null -w "%{http_code}\n" "http://localhost:3000/api/ralph/event
 3. 루트 `.env`에 `OPENGRAZE_PLATFORM_API_KEY=og_live_...` (및 필요 시 `OPENGRAZE_PLATFORM_URL`)을 넣는다. `.env`가 없으면 셸에 `export`로 같은 변수를 설정해도 된다.
 4. `npm run platform:self-test` — 루트에 `.env`가 있으면 스크립트 실행 전에 자동으로 읽는다. 성공 시 대시보드 해당 워크스페이스 **이벤트**에 `opengraze.self_test`가 보인다.
 
+**수집 한도(429) 응답 확인** — OpenGraze를 `INGEST_RATE_LIMIT_PER_WINDOW=1`(및 필요 시 `INGEST_RATE_LIMIT_WINDOW_MS`)으로 기동한 뒤, 같은 API 키로 연속 `POST`하면 두 번째 요청이 429이며 `Retry-After`·본문 JSON(`code`, `retryAfterSeconds`, `retryableAt`)을 돌려준다. 아래 한 줄로 상태줄과 본문을 함께 볼 수 있다.
+
+```bash
+curl -sS -o /dev/null -X POST "${OPENGRAZE_PLATFORM_URL:-http://localhost:3000}/api/v1/events" -H "Authorization: Bearer $OPENGRAZE_PLATFORM_API_KEY" -H "Content-Type: application/json" -d '{"kind":"rl-probe"}' && curl -sS -i -X POST "${OPENGRAZE_PLATFORM_URL:-http://localhost:3000}/api/v1/events" -H "Authorization: Bearer $OPENGRAZE_PLATFORM_API_KEY" -H "Content-Type: application/json" -d '{"kind":"rl-probe"}'
+```
+
 ## 앱 코드와의 관계
 
 MyAgent 등 앱 저장소와 **같은 머신에서 별도 디렉터리**로 두고, 필요할 때 경로를 명시해 작업한다. 이 레포는 앱 전체를 복제하지 않는 것을 권장한다.

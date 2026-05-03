@@ -54,6 +54,7 @@ export async function POST(req: Request) {
         error: "Too many requests",
         code: "rate_limited",
         retryAfterSeconds: rl.retryAfterSec,
+        retryableAt: new Date(rl.resetAtMs).toISOString(),
         limitPerWindow: rl.limit,
       },
       { status: 429, headers },

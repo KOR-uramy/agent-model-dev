@@ -40,6 +40,7 @@ export async function GET(_req: Request, ctx: Ctx) {
         error: "Too many requests",
         code: "rate_limited",
         retryAfterSeconds: rl.retryAfterSec,
+        retryableAt: new Date(rl.resetAtMs).toISOString(),
         limitPerWindow: rl.limit,
       },
       { status: 429, headers },
