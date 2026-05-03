@@ -1,9 +1,11 @@
-# OpenGraze (통합 앱)
+# OpenGraze / Workspace Platform (동일 앱)
+
+**Workspace Platform**(워크스페이스 플랫폼)과 **OpenGraze**는 같은 제품이다. 예전에 `workspace-platform`으로 부르던 통합 앱이 여기 한 곳으로 모였다. **npm 워크스페이스·폴더명**은 `open-graze`이다.
 
 **한 Next 앱**에서 다음을 제공합니다.
 
 - **`/`** — SQLite **`TimelineEvent`** 타임라인(원본은 `.ralph/*.jsonl` → 동기화 API로 적재). 타임라인 JSON 한 줄의 `detail`이 객체일 때 **선택** 필드 **`role`**(`detail.role`)에 `planning` \| `design` \| `implementation` \| `test` 만 온다(`RALPH_TASK.md` 규약).
-- **`/login`**, **`/dashboard`** — 이메일·비밀번호 로그인(Auth.js Credentials + DB), 워크스페이스, API 키, 수집 이벤트
+- **`/register`**, **`/login`**, **`/dashboard`** — 회원가입(`POST /api/auth/register`), 이메일·비밀번호 로그인(Credentials + DB), 워크스페이스, **작업 현황**(`WorkspaceTask` — 대시보드는 **조회만**; 생성·상태 변경은 `POST`/`PATCH` **`/api/workspaces/[slug]/tasks`** 등 API), API 키, 수집 이벤트
 - **`POST /api/v1/events`** — Bearer API 키로 클라우드 수집
 - **웹훅** — `/api/webhooks/toss`(토스 v2), `/api/webhooks/stripe`(레거시), `/api/webhooks/telegram`
 
@@ -11,6 +13,16 @@
 
 - **앱**: 요청 본문은 기본 **256KiB** 상한이다. `INGEST_MAX_BODY_BYTES`로 덮어쓸 수 있으며(상한 10MiB), 초과 시 **413**과 `Request body too large` 메시지를 반환한다. `Content-Length`가 본문보다 크면 선제 거절한다.
 - **운영**: 프로덕션 앞단(nginx, Cloudflare, API Gateway 등)에서 **클라이언트별 레이트 리밋**과 `client_max_body_size` / 동등 설정을 두는 것을 권장한다. 앱 단일 인스턴스만으로는 분산 남용을 막기 어렵다.
+
+### 워크스페이스 작업 API (`WorkspaceTask`)
+
+`/dashboard/{slug}` 화면은 **조회만** 한다. 제목·설명·상태를 바꾸려면 **로그인 세션**(대시보드와 동일 출처)으로 아래를 호출하면 된다(연동 스크립트·백오피스·자동화 등).
+
+- `GET /api/workspaces/{slug}/tasks` — 목록
+- `POST /api/workspaces/{slug}/tasks` — 본문 `{"title":"…","description?":"…","status?":"todo"}` (`status` 생략 시 `todo`; 허용값: `backlog` \| `todo` \| `in_progress` \| `blocked` \| `done`)
+- `PATCH /api/workspaces/{slug}/tasks/{taskId}` — 본문 `{"status":"in_progress"}` 등
+
+세션이 없으면 **401**이다. `slug`는 워크스페이스 URL slug와 같다.
 
 기본 포트 **3000**만 사용한다. 루트에서 `npm run dev` 시 이미 `3000`이 쓰이 중이면 먼저 종료 후 기동(`scripts/dev-open-graze.sh`).
 

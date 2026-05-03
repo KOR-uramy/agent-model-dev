@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  WORKSPACE_TASK_STATUS_LABEL,
+  isWorkspaceTaskStatus,
+} from "@/lib/workspace-task-status";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -12,22 +16,32 @@ type EvRow = {
   createdAt: string;
   data: unknown;
 };
+type TaskRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export default function WorkspaceDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
   const [keys, setKeys] = useState<KeyRow[]>([]);
   const [events, setEvents] = useState<EvRow[]>([]);
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [keyName, setKeyName] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [rk, re] = await Promise.all([
+    const [rk, re, rt] = await Promise.all([
       fetch(`/api/workspaces/${slug}/api-keys`),
       fetch(`/api/workspaces/${slug}/events`),
+      fetch(`/api/workspaces/${slug}/tasks`),
     ]);
-    if (rk.status === 401 || re.status === 401) {
+    if (rk.status === 401 || re.status === 401 || rt.status === 401) {
       router.replace("/login");
       return;
     }
@@ -38,6 +52,10 @@ export default function WorkspaceDetailPage() {
     if (re.ok) {
       const j = (await re.json()) as { events: EvRow[] };
       setEvents(j.events);
+    }
+    if (rt.ok) {
+      const j = (await rt.json()) as { tasks: TaskRow[] };
+      setTasks(j.tasks);
     }
   }, [slug, router]);
 
@@ -70,6 +88,12 @@ export default function WorkspaceDetailPage() {
     await load();
   }
 
+  function taskStatusLabel(status: string) {
+    return isWorkspaceTaskStatus(status)
+      ? WORKSPACE_TASK_STATUS_LABEL[status]
+      : status;
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -78,7 +102,9 @@ export default function WorkspaceDetailPage() {
             워크스페이스 목록
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">{slug}</h1>
-          <p className="mt-1 text-sm text-zinc-500">이 공간의 API 키와 수집 기록입니다.</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            이 공간의 <strong className="text-zinc-700 dark:text-zinc-300">작업 현황</strong>, API 키, 수집 기록입니다.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -102,6 +128,51 @@ export default function WorkspaceDetailPage() {
           {err}
         </p>
       ) : null}
+
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+          작업 현황
+        </h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          API로 반영된 제목·설명·상태를 표시합니다(이 화면에서는 편집하지 않음). 연동 방법은 이 앱{" "}
+          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">README.md</code>의 워크스페이스 Task API를
+          참고하세요. 로컬 시드 시 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">opengraze-monitoring</code>{" "}
+          워크스페이스에 샘플 작업이 들어갈 수 있습니다.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-zinc-200 text-xs uppercase text-zinc-500 dark:border-zinc-800">
+                <th className="py-2 pr-4 font-medium">제목</th>
+                <th className="py-2 pr-4 font-medium">설명</th>
+                <th className="py-2 pr-4 font-medium">상태</th>
+                <th className="py-2 font-medium">갱신</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((t) => (
+                <tr key={t.id} className="border-b border-zinc-100 dark:border-zinc-900">
+                  <td className="max-w-[14rem] py-2 pr-4 font-medium">{t.title}</td>
+                  <td className="max-w-[16rem] truncate py-2 pr-4 text-zinc-600 dark:text-zinc-400">
+                    {t.description ?? "—"}
+                  </td>
+                  <td className="py-2 pr-4 text-zinc-800 dark:text-zinc-200">
+                    {taskStatusLabel(t.status)}
+                  </td>
+                  <td className="whitespace-nowrap py-2 text-xs text-zinc-500">
+                    {new Date(t.updatedAt).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {tasks.length === 0 ? (
+            <p className="mt-3 text-xs text-zinc-500">
+              아직 표시할 작업이 없습니다. API로 작업을 넣거나, 로컬 시드·연동 스크립트를 실행해 보세요.
+            </p>
+          ) : null}
+        </div>
+      </section>
 
       <section className="mt-10">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
@@ -165,7 +236,7 @@ export default function WorkspaceDetailPage() {
       <section className="mt-10 rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-400">
         <p className="font-medium text-zinc-700 dark:text-zinc-300">연동 예시</p>
         <p className="mt-2">
-          발급한 키로 HTTPS POST를 보내면 아래 목록에 쌓입니다. 상세 스키마는 개발자 문서를 참고하세요.
+          발급한 키로 아래 URL에 본문을 POST하면 수집 목록에 쌓입니다. 상세 스키마는 개발자 문서를 참고하세요.
         </p>
         <pre className="mt-2 overflow-x-auto rounded bg-white p-2 text-[11px] dark:bg-zinc-900">
           {`POST ${typeof window !== "undefined" ? window.location.origin : ""}/api/v1/events

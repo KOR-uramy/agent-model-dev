@@ -9,7 +9,7 @@
 **성장 루프** — 체크리스트가 채워질수록 끝이 아니라, **기획이 잘 나가는 동종 앱**(워크스페이스·관측·과금 흐름이 비슷한 SaaS 등)과 비교해 **UI·UX·디자인·수익화·트래픽·마케팅** 관점에서 부족한 점을 찾아 **새 `[ ]` 항목**으로 이 문서에 계속 싣는다(비교 대상·날짜는 `.ralph/progress.md`에 한 줄이라도 남긴다).
 
 1. **로컬·Ralph** — 루프는 `events.jsonl`·`workspace-telemetry.jsonl`에 쓰고, OpenGraze **`/`** 대시보드·`GET /api/ralph/events`는 **SQLite `TimelineEvent`**만 읽는다(동기화: `POST /api/ralph/sync-jsonl` 또는 `npm run sync:feed -w open-graze`). **역할 메타**는 이 파이프(JSONL → 동기화 → 타임라인·API)를 따라 끊기지 않게 전달하는 것을 목표로 한다.
-2. **대외·SaaS(동일 앱)** — **Workspace Platform**(워크스페이스 플랫폼)과 **OpenGraze**는 **같은 앱**이다(과거 문맥의 `workspace-platform` 통합본). npm·디렉터리 워크스페이스 이름만 **`open-graze`**이며 코드는 전부 `apps/open-graze` 한 Next 앱에 있다. 그 안에서 **회원가입·DB 이메일·비밀번호 로그인**(Credentials·JWT), 워크스페이스, **워크스페이스 단위 작업(제목·설명·상태) 등록·현황 모니터링**, API 토큰, 수집·웹훅, (설정 시) **토스페이먼츠 v2** 결제·구독 경로가 있다. (Stripe 스캐폴드는 토스 전환 전 임시·참고용.)
+2. **대외·SaaS(동일 앱)** — **Workspace Platform**(워크스페이스 플랫폼)과 **OpenGraze**는 **같은 앱**이다(과거 문맥의 `workspace-platform` 통합본). npm·디렉터리 워크스페이스 이름만 **`open-graze`**이며 코드는 전부 `apps/open-graze` 한 Next 앱에 있다. 그 안에서 **회원가입·DB 이메일·비밀번호 로그인**(Credentials·JWT), 워크스페이스, **워크스페이스 단위 작업 현황**(제목·설명·상태는 **API 연동으로 반영**하고 대시보드는 **조회 전용**), API 토큰, 수집·웹훅, (설정 시) **토스페이먼츠 v2** 결제·구독 경로가 있다. (Stripe 스캐폴드는 토스 전환 전 임시·참고용.)
 3. **반복** — `ralph-loop.sh`는 기본 **역할 파이프**(기획→디자인→구현→테스트)로 이터를 돌린다. 각 이터는 직전 역할의 산출물(git·`.ralph/progress.md`)을 **감시**한 뒤 본 역할만 수행한다. 한 사이클 끝에는 루트 `npm run build` 등 검증·커밋·기준 `[x]`·`.ralph/progress.md` 요약이 이어진다. 단일 프롬프트만 쓰려면 `RALPH_ROLE_MODE=mono`를 본다.
 
 **기획 원칙** — **기획(planning)** 은 위 **본질**(다중 에이전트·역할별 모니터링, 관측·신뢰·재현, 워크스페이스 플랫폼의 측정 가능한 Success)에서 출발한다. 유행·기능 나열·“완성도”를 위한 확장은 **본질에 직접 닿을 때만** 다루고, 닿지 않으면 **거절하거나 `RALPH_TASK.md`에 `[ ]`로 남길 가치**가 있는지 먼저 적는다. 동종 비교·성장 루프도 **같은 본질을 강화하는 갭**에 한정한다.
@@ -27,7 +27,7 @@
 | 루프 상태 | `.ralph/progress.md`, `.ralph/guardrails.md`, `.ralph/errors.log` |
 | 에이전트·모델 선택 근거 | `docs/agent-model-selection.md` |
 | 역할별 모니터링 규약 | 이벤트·텔레메트리 `detail.role` 등 — 아래 Success **역할별 다중 에이전트** 절(구현 완료) |
-| 회원가입·작업 현황 | `/register`, `POST /api/auth/register`, 워크스페이스 `WorkspaceTask` API·대시보드 — 아래 Success **제품 (OpenGraze 내 SaaS)** 절 |
+| 회원가입·작업 현황 | `/register`, `POST /api/auth/register`, 워크스페이스 `WorkspaceTask` **API로 반영·갱신**, 대시보드는 **조회** — 아래 Success **제품 (OpenGraze 내 SaaS)** 절 |
 | 병렬 루프 캐시 | `.ralph/tasks.yaml` — `RALPH_TASK.md`에서 자동 생성(`task-parser.sh`). 내용이 옛날이면 캐시 삭제 후 `parse_tasks` 또는 루프 1회로 재생성 |
 
 연속 작업은 `ralph-loop.sh`(또는 `ralph-setup.sh`) + `cursor-agent`. **기준은 항상 이 파일**이며, 코드가 앞서가면 **먼저 여기를 고친 뒤** 구현한다.
@@ -40,7 +40,7 @@
 - **앱 정체** — **OpenGraze = Workspace Platform** 동일 앱; 코드 경로는 **`apps/open-graze`**(패키지名 `open-graze`)뿐, 별도 `workspace-platform` 앱 없음.
 - **Ralph 루프 역할** — 이터마다 **기획 → 디자인 → 구현 → 테스트** 순환(`RALPH_ROLE_MODE=cycle` 기본). 각 이터는 **직전 역할 산출물을 감시**한 뒤 본 역할만 수행(`ralph-common.sh` 프롬프트). 단일 프롬프트만 쓸 때는 `RALPH_ROLE_MODE=mono`.
 - **기획** — Goal **본질**·Success **북극성**에 맞춰 범위·우선순위·수용 힌트를 세운다. 본질과 무관한 기능·유행안은 **차단**하거나, 정말 필요하면 **본질과의 연결 한 줄**을 적은 뒤에만 `RALPH_TASK.md`에 `[ ]` 후보로 올린다.
-- **플랫폼 작업 추적** — 워크스페이스 안 **`WorkspaceTask`**(제목·설명·`status`: backlog \| todo \| in_progress \| blocked \| done)로 **등록·상태 변경·대시보드에서 현황** 확인. 시드: 워크스페이스 slug 기본 `opengraze-monitoring`, 샘플 작업 제목 **「회원가입·작업 등록·상태 모니터링 (시드 테스트)」** 등.
+- **플랫폼 작업 추적** — 워크스페이스 안 **`WorkspaceTask`**(제목·설명·`status`: backlog \| todo \| in_progress \| blocked \| done). **생성·상태 변경은 API**(`POST/PATCH …/api/workspaces/[slug]/tasks` 등, 멤버 세션)로 하고, **대시보드 `/dashboard/[slug]`는 표시만** 한다. 시드: 워크스페이스 slug 기본 `opengraze-monitoring`, 샘플 작업 1건(제목·설명은 시드 스크립트 기본값) 등.
 - **역할 메타(타임라인)** — JSON `detail` 객체에 선택 **`role`**(문서상 `detail.role`), 값은 `planning` \| `design` \| `implementation` \| `test`; `/` 타임라인·`stream-parser` `session_start`와 정합.
 - **`ralph-loop.sh` 표시** — 시작 시 `RALPH_TASK.md` **앞 55줄** 요약. `Progress`는 파일 안 **목록 체크박스**만 집계. **`--max-parallel` / `--parallel`** 은 **미완 `[ ]`가 있을 때만** `ralph-parallel.sh` 경로로 에이전트를 띄움; 전부 `[x]`면 병렬 옵션이 켜져 보여도 **즉시 종료**하는 것이 맞다.
 - **체크가 가득 찬 뒤** — Success 목록이 **모두 `[x]`**가 되면, 그 세션(또는 다음 이터 시작 전)에 **동종 앱 대비 갭 검토**를 하고 아래 **「성장·동종 비교」** 축에서 **새 `[ ]`를 최소 1개 이상** 추가한 뒤에만 “스프린트 종료”로 본다. 빈 완료 상태로 루프를 멈추지 않는다.
@@ -95,7 +95,7 @@
 ### 제품 (OpenGraze 내 SaaS·수집)
 
 - [x] **회원가입**(공개 `/register` + `POST /api/auth/register`)으로 이메일·비밀번호 계정을 만들 수 있다(중복 이메일 거절, 비밀번호 bcrypt).
-- [x] **워크스페이스 작업 현황** — 멤버가 `WorkspaceTask`(제목·설명·`status`: backlog·todo·in_progress·blocked·done)를 등록·조회·상태 변경할 수 있고, 워크스페이스 대시보드에서 한눈에 본다. 로컬 시드는 테스트 워크스페이스에 본 요구 기능을 반영한 **샘플 작업 1건**을 넣는다.
+- [x] **워크스페이스 작업 현황** — `WorkspaceTask`(제목·설명·`status`: backlog·todo·in_progress·blocked·done)를 **API**로 생성·갱신·조회할 수 있고, 워크스페이스 **대시보드는 조회 전용**으로 한눈에 본다(폼으로 수동 등록하지 않음). 로컬 시드는 테스트 워크스페이스에 **샘플 작업 1건**을 넣는다.
 - [x] 이메일·비밀번호(DB) 로그인, 워크스페이스, API 키 발급이 동작 가능한 형태로 존재한다.
 - [x] **결제**는 [토스페이먼츠 LLMs 연동 가이드](https://docs.tosspayments.com/guides/v2/get-started/llms-guide) 및 [llms.txt](https://docs.tosspayments.com/llms.txt)를 따른다(결제위젯 v2·승인 API·웹훅 등). Cursor 연동 시 가이드에 안내된 **토스페이먼츠 MCP** 활용을 우선한다.
 - [x] 레거시 **Stripe** Checkout/Webhook 스캐폴드는 코드에 남아 있으나, 제품 기준 결제 수단은 아니다(토스 연동 후 정리).
