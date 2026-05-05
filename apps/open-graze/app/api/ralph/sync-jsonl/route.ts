@@ -3,6 +3,8 @@ import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const bodySchema = z.object({
   tail: z.number().int().min(1).max(20_000).optional(),
 });

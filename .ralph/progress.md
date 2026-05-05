@@ -939,3 +939,14 @@
 
 ### 2026-05-05 23:41:44
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:43:55
+**역할: 구현 (implementation)**
+
+- **감시 요약 (직전 구현 검증)**: `.ralph/progress.md`를 아래에서부터 읽어 최신 구현 엔트리(23:59:55 KST)를 기준으로 점검했고, `git log -5`/현재 워크트리와 대조했다. 직전 handoff가 지시한 “활성 에러 우선 재현” 절차는 유효했으므로 **승인**한다.
+- **갭/보완 필요 사항**: 상태 파일 지시의 `decisions` 문서는 현재 레포 `.ralph/`에 없다(이전 이터와 동일). 이번 구현에는 blocker가 아니지만, 다음 기획/디자인 루프에서 파일명 합의가 필요하다.
+- **오류 우선 재현 결과**: `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test` 직렬 실행에서 `npm test` 내부 `next build`가 `/api/ralph/sync-jsonl` page data 수집 단계에서 `Cannot find module for page`로 실제 실패 재현됐다.
+- **이번 구현 작업**: `apps/open-graze/app/api/ralph/sync-jsonl/route.ts`에 `export const dynamic = "force-dynamic";`를 추가해 로그/DB 의존 라우트를 정적 수집 대상에서 제외했다(기존 guardrail “DB/log-backed handler는 force-dynamic” 준수).
+- **검증**: 같은 직렬 검증(`npm run kill:3000 && npm run build && npm run runtime:smoke && npm test`) 재실행에서 build/test가 모두 통과했다. `runtime:smoke`는 서버 미기동 환경에서 기존 계약대로 안내 후 skip(exit 0) 동작을 유지했다.
+- **체크박스 상태**: 구현 역할 범위에서는 `RALPH_TASK.md`의 마지막 3개 `[ ]`를 유지한다(브라우저/서버 로그 실검증은 테스트 역할 소관).
+- **다음 인계(테스트)**: 1) `npm run dev`로 `/`에서 필터 요약 바 표시/칩 해제/전체 초기화의 URL·결과 동기화를 확인. 2) 필터 포함 URL 첫 진입 시 `home_view_opened` 1회 로그 확인. 3) `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
