@@ -30,6 +30,7 @@ RALPH_ACTIVITY_LOG_MAX_LINES="${RALPH_ACTIVITY_LOG_MAX_LINES:-400}"
 RALPH_ERRORS_LOG_MAX_LINES="${RALPH_ERRORS_LOG_MAX_LINES:-200}"
 RALPH_PROGRESS_READ_LINES="${RALPH_PROGRESS_READ_LINES:-120}"
 RALPH_ERRORS_READ_LINES="${RALPH_ERRORS_READ_LINES:-40}"
+RALPH_ARCHIVE_DIR_NAME="${RALPH_ARCHIVE_DIR_NAME:-archive}"
 
 # Iteration limits
 MAX_ITERATIONS="${MAX_ITERATIONS:-20}"
@@ -90,6 +91,46 @@ ralph_trim_file_to_last_lines() {
 
   tmp_file="${file}.tmp.$$"
   tail -n "$max_lines" "$file" > "$tmp_file" && mv "$tmp_file" "$file"
+}
+
+ralph_archive_stale_errors() {
+  local workspace="${1:-.}"
+  local ralph_dir="$workspace/.ralph"
+  local errors_file="$ralph_dir/errors.log"
+  local archive_dir="$ralph_dir/$RALPH_ARCHIVE_DIR_NAME"
+  local last_clear_line archive_file tmp_file
+
+  if [[ ! -f "$errors_file" ]]; then
+    return 0
+  fi
+
+  last_clear_line=$(grep -n 'ACTIVE ERRORS CLEARED:' "$errors_file" | tail -n 1 | cut -d: -f1)
+  if [[ -z "$last_clear_line" ]] || [[ "$last_clear_line" -le 1 ]]; then
+    return 0
+  fi
+
+  if ! sed -n "1,$((last_clear_line - 1))p" "$errors_file" | grep -qvE '^[[:space:]]*(#|$|>)'; then
+    return 0
+  fi
+
+  mkdir -p "$archive_dir"
+  archive_file="$archive_dir/errors-stale-history.log"
+  {
+    echo ""
+    echo "===== Archived stale errors at $(date '+%Y-%m-%d %H:%M:%S %z') ====="
+    sed -n "1,$((last_clear_line - 1))p" "$errors_file"
+  } >> "$archive_file"
+
+  tmp_file="${errors_file}.tmp.$$"
+  {
+    echo "# Error Log"
+    echo ""
+    echo "> Failures detected by stream-parser. Use to update guardrails."
+    echo ""
+    sed -n "${last_clear_line},\$p" "$errors_file"
+  } > "$tmp_file"
+  mv "$tmp_file" "$errors_file"
+  ralph_trim_file_to_last_lines "$errors_file" "$RALPH_ERRORS_LOG_MAX_LINES"
 }
 
 # Cursor CLI: 공식 설치 바이너리는 `agent`(문서: cursor.com/docs/cli/installation).
@@ -267,6 +308,7 @@ EOF
 
   ralph_trim_file_to_last_lines "$ralph_dir/activity.log" "$RALPH_ACTIVITY_LOG_MAX_LINES"
   ralph_trim_file_to_last_lines "$ralph_dir/errors.log" "$RALPH_ERRORS_LOG_MAX_LINES"
+  ralph_archive_stale_errors "$workspace"
 }
 
 # =============================================================================

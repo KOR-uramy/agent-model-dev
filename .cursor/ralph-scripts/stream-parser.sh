@@ -18,10 +18,15 @@
 #   - errors.log: failures and gutter detection
 
 set -euo pipefail
+trap 'exit 0' PIPE
 
 WORKSPACE="${1:-.}"
 RALPH_DIR="$WORKSPACE/.ralph"
 EVENTS_JSONL="${RALPH_EVENTS_JSONL:-$RALPH_DIR/events.jsonl}"
+ACTIVITY_LOG_MAX_LINES="${RALPH_ACTIVITY_LOG_MAX_LINES:-400}"
+ERRORS_LOG_MAX_LINES="${RALPH_ERRORS_LOG_MAX_LINES:-200}"
+LOG_LINE_MAX_CHARS="${RALPH_LOG_LINE_MAX_CHARS:-400}"
+ACTIVITY_KEEP_SESSIONS="${RALPH_ACTIVITY_KEEP_SESSIONS:-6}"
 
 # Ensure .ralph directory exists
 mkdir -p "$RALPH_DIR"
@@ -46,6 +51,56 @@ PROMPT_CHARS=3000
 FAILURES_FILE=$(mktemp)
 WRITES_FILE=$(mktemp)
 trap "rm -f $FAILURES_FILE $WRITES_FILE" EXIT
+
+trim_file_to_last_lines() {
+  local file="$1"
+  local max_lines="$2"
+  local tmp_file
+  local line_count
+
+  if [[ -z "$file" ]] || [[ -z "$max_lines" ]] || [[ ! -f "$file" ]]; then
+    return 0
+  fi
+
+  line_count=$(wc -l < "$file" 2>/dev/null | tr -d '[:space:]')
+  if [[ -z "$line_count" ]] || [[ "$line_count" -le "$max_lines" ]]; then
+    return 0
+  fi
+
+  tmp_file="${file}.tmp.$$"
+  tail -n "$max_lines" "$file" > "$tmp_file" && mv "$tmp_file" "$file"
+}
+
+archive_old_activity_sessions() {
+  local file="$RALPH_DIR/activity.log"
+  local archive_dir="$RALPH_DIR/archive"
+  local total_sessions keep_from_line tmp_file archive_file
+
+  if [[ ! -f "$file" ]]; then
+    return 0
+  fi
+
+  total_sessions=$(grep -c '^Ralph Session Started:' "$file" 2>/dev/null || true)
+  if [[ -z "$total_sessions" ]] || [[ "$total_sessions" -le "$ACTIVITY_KEEP_SESSIONS" ]]; then
+    return 0
+  fi
+
+  keep_from_line=$(grep -n '^Ralph Session Started:' "$file" | tail -n "$ACTIVITY_KEEP_SESSIONS" | head -n 1 | cut -d: -f1)
+  if [[ -z "$keep_from_line" ]] || [[ "$keep_from_line" -le 1 ]]; then
+    return 0
+  fi
+
+  mkdir -p "$archive_dir"
+  archive_file="$archive_dir/activity-session-history.log"
+  {
+    echo ""
+    echo "===== Archived activity sessions at $(date '+%Y-%m-%d %H:%M:%S %z') ====="
+    sed -n "1,$((keep_from_line - 1))p" "$file"
+  } >> "$archive_file"
+
+  tmp_file="${file}.tmp.$$"
+  sed -n "${keep_from_line},\$p" "$file" > "$tmp_file" && mv "$tmp_file" "$file"
+}
 
 # Get context health emoji
 get_health_emoji() {
@@ -106,7 +161,8 @@ log_activity() {
   local tokens=$(calc_tokens)
   local emoji=$(get_health_emoji $tokens)
   
-  echo "[$timestamp] $emoji $message" >> "$RALPH_DIR/activity.log"
+  echo "[$timestamp] $emoji $(summarize_for_log "$message" "$LOG_LINE_MAX_CHARS")" >> "$RALPH_DIR/activity.log"
+  trim_file_to_last_lines "$RALPH_DIR/activity.log" "$ACTIVITY_LOG_MAX_LINES"
 }
 
 # Log to errors.log
@@ -114,7 +170,8 @@ log_error() {
   local message="$1"
   local timestamp=$(date '+%H:%M:%S')
   
-  echo "[$timestamp] $message" >> "$RALPH_DIR/errors.log"
+  echo "[$timestamp] $(summarize_for_log "$message" "$LOG_LINE_MAX_CHARS")" >> "$RALPH_DIR/errors.log"
+  trim_file_to_last_lines "$RALPH_DIR/errors.log" "$ERRORS_LOG_MAX_LINES"
 }
 
 summarize_for_log() {
@@ -145,7 +202,8 @@ log_token_status() {
   fi
   
   local breakdown="[read:$((BYTES_READ/1024))KB write:$((BYTES_WRITTEN/1024))KB assist:$((ASSISTANT_CHARS/1024))KB shell:$((SHELL_OUTPUT_CHARS/1024))KB]"
-  echo "[$timestamp] $emoji $status_msg $breakdown" >> "$RALPH_DIR/activity.log"
+  echo "[$timestamp] $emoji $(summarize_for_log "$status_msg $breakdown" "$LOG_LINE_MAX_CHARS")" >> "$RALPH_DIR/activity.log"
+  trim_file_to_last_lines "$RALPH_DIR/activity.log" "$ACTIVITY_LOG_MAX_LINES"
   append_event "token_snapshot" "$(jq -nc --argjson t "$tokens" --argjson p "$pct" --arg s "$status_msg" --arg b "$breakdown" '{tokens:$t,contextPct:$p,summary:$s,breakdownLabel:$b}')"
 }
 
@@ -395,8 +453,10 @@ main() {
   # Initialize activity log for this session
   echo "" >> "$RALPH_DIR/activity.log"
   echo "═══════════════════════════════════════════════════════════════" >> "$RALPH_DIR/activity.log"
-  echo "Ralph Session Started: $(date)" >> "$RALPH_DIR/activity.log"
+  echo "Ralph Session Started: $(date) · session=${RALPH_SESSION_ID} · role=${RALPH_ROLE:-mono}" >> "$RALPH_DIR/activity.log"
   echo "═══════════════════════════════════════════════════════════════" >> "$RALPH_DIR/activity.log"
+  archive_old_activity_sessions
+  trim_file_to_last_lines "$RALPH_DIR/activity.log" "$ACTIVITY_LOG_MAX_LINES"
 
   if [[ -n "${RALPH_ROLE:-}" ]]; then
     append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" --arg role "$RALPH_ROLE" '{workspace:$ws,sessionId:$sid,role:$role}')"
