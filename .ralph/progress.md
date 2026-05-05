@@ -1097,3 +1097,12 @@
 - **이번 구현 작업**: 제품 코드 변경은 하지 않았다. 이번 이터는 에러 우선 정책에 따라 활성 오류 재현 여부를 다시 확인하고 green 상태를 검증하는 데 집중했다.
 - **체크박스 상태**: 구현 역할 범위에서는 `RALPH_TASK.md` 마지막 3개 `[ ]`를 유지한다(브라우저 상호작용·서버 로그 검증은 테스트 역할 소관).
 - **다음 인계(테스트)**: 1) 호스트에서 `npm run dev` 후 `/` 필터 요약 바가 빈 상태에서는 숨김, 필터 적용 시 결과 건수와 함께 노출되는지 확인. 2) 칩 개별 해제/`전체 초기화`가 URL 쿼리와 결과를 함께 갱신하는지 확인. 3) 필터 포함 URL 첫 진입 시 `home_view_opened` 1회, `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그를 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-06 00:13:16
+**Session 5 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-06 00:13:57
+**Session 6 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-06 00:13:57
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
