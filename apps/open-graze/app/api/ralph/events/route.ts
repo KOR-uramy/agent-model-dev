@@ -32,11 +32,7 @@ export async function GET(req: Request) {
   const sessionId = parseSessionIdQueryParam(searchParams.get("sessionId"));
 
   const sourceRaw = searchParams.get("source");
-  if (
-    sourceRaw !== null &&
-    sourceRaw.trim() !== "" &&
-    parseSourceQueryParam(sourceRaw) === null
-  ) {
+  if (sourceRaw !== null && parseSourceQueryParam(sourceRaw) === null) {
     return NextResponse.json(
       { error: RALPH_EVENTS_SOURCE_QUERY_ERROR },
       { status: 400 },

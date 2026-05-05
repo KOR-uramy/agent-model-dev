@@ -555,3 +555,12 @@
 
 ### 2026-05-05 21:51:50
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:53:38
+**Session 1 started** — 역할: 구현 (`implementation`) · model: gpt-5.1-codex
+
+### 2026-05-05 21:53:38
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:53:47
+**Session 1 ended** - Switching Codex model from 'gpt-5.1-codex' to fallback 'auto'
