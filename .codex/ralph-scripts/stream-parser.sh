@@ -210,6 +210,13 @@ is_retryable_api_error() {
   return 1  # Not retryable
 }
 
+is_model_access_error() {
+  local error_msg="$1"
+  local lower_msg
+  lower_msg=$(echo "$error_msg" | tr '[:upper:]' '[:lower:]')
+  [[ "$lower_msg" == *"not supported when using codex with a chatgpt account"* ]]
+}
+
 # Check for gutter conditions
 check_gutter() {
   local tokens=$(calc_tokens)
@@ -320,6 +327,13 @@ process_line() {
       log_error "API ERROR: $error_msg"
       log_activity "❌ API ERROR: $error_msg"
       append_event "api_error" "$(jq -nc --arg m "$error_msg" '{message:$m}')"
+
+      if is_model_access_error "$error_msg"; then
+        log_error "↪️ MODEL FALLBACK: current model is not allowed for this Codex account"
+        append_event "model_fallback_requested" "$(jq -nc --arg m "$error_msg" '{message:$m}')"
+        echo "MODEL_FALLBACK" 2>/dev/null || true
+        return
+      fi
       
       # Check if this is a retryable error (rate limit, network, etc.)
       if is_retryable_api_error "$error_msg"; then

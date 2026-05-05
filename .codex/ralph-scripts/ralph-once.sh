@@ -176,6 +176,19 @@ main() {
     active_errors=1
   fi
 
+  if [[ "$signal" == "MODEL_FALLBACK" ]]; then
+    echo ""
+    echo "↪️  Model '$MODEL' is not supported for this Codex account."
+    echo "   Retrying once with fallback model '$FALLBACK_MODEL'..."
+    MODEL="$FALLBACK_MODEL"
+    signal=$(run_iteration "$WORKSPACE" "1" "" "$SCRIPT_DIR")
+    task_status=$(check_task_complete "$WORKSPACE")
+    active_errors=0
+    if ralph_has_active_errors "$WORKSPACE"; then
+      active_errors=1
+    fi
+  fi
+
   if [[ "$signal" == "GUTTER" ]] && ralph_try_known_autofix "$WORKSPACE"; then
     echo ""
     echo "🛠 Known self-heal applied."

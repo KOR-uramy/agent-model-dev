@@ -34,6 +34,7 @@ MAX_ITERATIONS="${MAX_ITERATIONS:-20}"
 # Codex CLI 기본값은 경량 코딩 모델로 둔다.
 DEFAULT_MODEL="${RALPH_CODEX_DEFAULT_MODEL:-gpt-5.1-codex-mini}"
 MODEL="${RALPH_MODEL:-$DEFAULT_MODEL}"
+FALLBACK_MODEL="${RALPH_CODEX_FALLBACK_MODEL:-auto}"
 
 # Feature flags (set by caller)
 USE_BRANCH="${USE_BRANCH:-}"
@@ -110,6 +111,14 @@ ralph_codex_home() {
   if [[ -n "${RALPH_CODEX_HOME:-}" ]]; then
     echo "$RALPH_CODEX_HOME"
   fi
+}
+
+ralph_effective_codex_model() {
+  local model="${1:-}"
+  if [[ -z "$model" ]] || [[ "$model" == "auto" ]]; then
+    return 1
+  fi
+  printf '%s\n' "$model"
 }
 
 # Get current iteration from .ralph/.iteration
@@ -934,8 +943,9 @@ run_iteration() {
     --cd "$workspace"
     --output-last-message "$last_message"
   )
-  if [[ -n "$MODEL" ]]; then
-    cmd+=(--model "$MODEL")
+  local effective_model=""
+  if effective_model="$(ralph_effective_codex_model "$MODEL")"; then
+    cmd+=(--model "$effective_model")
   fi
   
   # Start spinner to show we're alive
@@ -1114,6 +1124,21 @@ run_ralph_loop() {
         echo "🔄 Rotating to fresh context..."
         iteration=$((iteration + 1))
         session_id=""
+        ;;
+      "MODEL_FALLBACK")
+        if [[ "$MODEL" == "$FALLBACK_MODEL" ]]; then
+          log_progress "$workspace" "**Session $iteration ended** - Model fallback requested, but fallback model is already active"
+          echo ""
+          echo "🚨 Model fallback was requested, but fallback model '$FALLBACK_MODEL' is already active."
+          echo "   Check Codex account/model access and .ralph/errors.log."
+          return 1
+        fi
+        log_progress "$workspace" "**Session $iteration ended** - Switching Codex model from '$MODEL' to fallback '$FALLBACK_MODEL'"
+        echo ""
+        echo "↪️  Model '$MODEL' is not supported for this Codex account."
+        echo "   Retrying the same iteration with fallback model '$FALLBACK_MODEL'..."
+        MODEL="$FALLBACK_MODEL"
+        sleep 2
         ;;
       "GUTTER")
         log_progress "$workspace" "**Session $iteration ended** - 🚨 GUTTER (agent stuck)"
