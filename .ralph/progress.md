@@ -902,3 +902,12 @@
 
 ### 2026-05-05 23:35:04
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:58:20
+**역할: 구현 (implementation)\**
+
+- **감시 요약 (기획 단계 검증)**: `.ralph/progress.md`를 아래에서부터 재확인해 최신 기획 항목(2026-05-05 22:52 KST)의 우선순위(`source` 계약 → `from/to` 정규화 → 복사 URL 재현)를 기준으로 현재 워크트리/문서를 대조했다. 직전 기획 handoff는 구현에 필요한 조건을 충분히 좁혀 두었고, 반려 사유는 없어 **승인**으로 판정한다.
+- **오류 우선 재현 결과**: `.ralph/errors.log`의 최근 SHELL FAIL 항목을 기준으로 루트에서 `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test`를 **직렬**로 재실행했다. 결과는 build 통과, runtime smoke는 서버 미기동 안내 후 skip(exit 0), test(내부 compile/build) 통과로 재현 가능한 활성 빌드/런타임 blocker는 확인되지 않았다.
+- **이번 구현 작업**: 제품 코드 추가 수정은 하지 않았다. 현재 이터의 핵심은 “활성 에러 먼저 해소”였고, 재현 검사 기준으로 저장소 상태는 green이다.
+- **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md`의 마지막 3개 `[ ]`를 그대로 유지한다. 항목 성격상 브라우저 동작/서버 로그 확인이 필요하므로 완료 판정은 테스트 역할 소관이다.
+- **다음 인계(테스트)**: 1) 호스트 터미널에서 `npm run dev` 후 `/`의 필터 요약 바 표시/칩 해제/전체 초기화가 URL·결과와 동기화되는지 확인. 2) 필터 포함 URL로 홈 첫 진입 시 `home_view_opened` 로그 1회 확인. 3) `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
