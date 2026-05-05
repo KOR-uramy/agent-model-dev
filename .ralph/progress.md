@@ -911,3 +911,12 @@
 - **이번 구현 작업**: 제품 코드 추가 수정은 하지 않았다. 현재 이터의 핵심은 “활성 에러 먼저 해소”였고, 재현 검사 기준으로 저장소 상태는 green이다.
 - **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md`의 마지막 3개 `[ ]`를 그대로 유지한다. 항목 성격상 브라우저 동작/서버 로그 확인이 필요하므로 완료 판정은 테스트 역할 소관이다.
 - **다음 인계(테스트)**: 1) 호스트 터미널에서 `npm run dev` 후 `/`의 필터 요약 바 표시/칩 해제/전체 초기화가 URL·결과와 동기화되는지 확인. 2) 필터 포함 URL로 홈 첫 진입 시 `home_view_opened` 로그 1회 확인. 3) `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-05 23:37:45
+**Session 2 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:38:44
+**Session 3 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:38:44
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
