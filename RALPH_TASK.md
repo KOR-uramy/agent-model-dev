@@ -22,7 +22,7 @@
 
 | 영역 | 위치 |
 |------|------|
-| Ralph 스크립트 | `.cursor/ralph-scripts/` — `ralph-loop.sh` 기본 **4역할 순환**(기획·디자인·구현·테스트) + 직전 단계 감시; **기획은 Goal 본질·기획 원칙 우선**. 순환 끄기: `RALPH_ROLE_MODE=mono`. **`apps/open-graze` 등 하위 폴더에서 실행해도** 상위를 거슬러 **`RALPH_TASK.md`가 있는 레포 루트**를 워크스페이스로 자동 맞춤. |
+| Ralph 스크립트 | 기준 구현은 `.codex/ralph-scripts/`로 둔다. `.cursor/ralph-scripts/`는 이를 위임하는 shim이며, 차이는 기본 모델 주입(`RALPH_CURSOR_DEFAULT_MODEL`, 기본 `auto`)만 허용한다. 루프 기본은 **4역할 순환**(기획·디자인·구현·테스트) + 직전 단계 감시, 순환 끄기: `RALPH_ROLE_MODE=mono`. **`apps/open-graze` 등 하위 폴더에서 실행해도** 상위를 거슬러 **`RALPH_TASK.md`가 있는 레포 루트**를 워크스페이스로 자동 맞춤. |
 | OpenGraze / Workspace Platform | **동일 앱** — `apps/open-graze`(패키지名 `open-graze`). 별도 `workspace-platform` 앱은 없음. **타임라인·역할·수집 규약의 문서 단일 근거는 이 앱의 README·코드**로 둔다(제품 스코프 밖 패키지명은 요구사항 문장에 쓰지 않음). |
 | SDK — 플랫폼 수집 라이브러리 | `packages/ralph-workspace-sdk` — **`createOpenGrazeIngestClient`**(`POST /api/v1/events`·`GET /api/v1/meta/limits`), **`summarizeIngestPayload`**, **`openGrazePlatformEnvSnippet`**. 다른 앱은 동일 패키지로 붙이고, 선택 서브패스 **`ralph-workspace-sdk/platform`**(동일 API, 번들 분리용). |
 | 자기 연동 테스트 | 루트 `npm run platform:self-test` — `scripts/platform-self-test.mjs`, 루트 `.env.example`의 `OPENGRAZE_PLATFORM_*` · LLM/연동 장문 **`docs/opengraze-llms-guide.md`**, 짧은 인덱스 **`/llms.txt`** |

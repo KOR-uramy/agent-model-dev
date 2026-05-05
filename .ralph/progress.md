@@ -996,3 +996,12 @@
 
 ### 2026-05-05 23:50:27
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:51:59
+**역할: 구현 (implementation)**
+
+- **감시 요약 (직전 디자인 검증)**: `.ralph/progress.md`의 최신 디자인 엔트리(2026-05-05 23:02)와 최근 `git log -5`, 현재 워크트리를 대조했다. 디자인 단계가 고정한 계약(필터 용어/정규화 기준/복사 URL 기준)은 현재 코드 상태와 충돌하지 않아 handoff는 **승인**이다.
+- **오류 우선 재현 결과**: 루트에서 `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test`를 직렬 재실행했다. `build`/`test`는 모두 통과했고, `runtime:smoke`는 서버 미기동 환경에서 기존 계약대로 안내 후 skip(exit 0) 처리됐다. 현재 재현 가능한 compile/build/runtime blocker는 없다.
+- **이번 구현 작업**: 제품 코드 변경은 하지 않았다. 이번 이터는 활성 에러 큐가 실제 blocker인지 다시 검증해 저장소가 green 상태임을 확인하는 데 집중했다.
+- **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md`의 마지막 3개 `[ ]`를 유지한다. 브라우저 상호작용 및 서버 로그 확인이 필요한 완료 판정은 테스트 역할 소관이다.
+- **다음 인계(테스트)**: 1) 호스트에서 `npm run dev` 후 `/`의 필터 요약 바 노출/숨김, 칩 개별 해제, 전체 초기화가 URL·결과와 동기화되는지 확인. 2) 필터가 포함된 URL로 진입했을 때 `home_view_opened` 신호를 확인. 3) `현재 뷰 URL 복사` 실행 시 `home_view_copied` 신호를 확인. 4) README 절차와 일치하면 `RALPH_TASK.md`의 마지막 3개 `[ ]`를 `[x]`로 전환.
