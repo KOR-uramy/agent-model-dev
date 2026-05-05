@@ -492,3 +492,28 @@
 
 ### 2026-05-05 21:26:40
 **Session 1 ended** - 🚨 GUTTER (agent stuck)
+
+### 2026-05-05 21:30:10
+**Session 1 started** — 역할: 구현 (`implementation`) · model: gpt-5.1-codex-mini
+
+### 2026-05-05 21:30:10
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:30:17
+**Session 1 ended** - Switching Codex model from 'gpt-5.1-codex-mini' to fallback 'auto'
+
+### 2026-05-05 21:31:00
+**Session 1 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 21:31:00
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:34:00
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 이번 런에는 직전 역할 산출물이 없어서 `RALPH_TASK.md`, `docs/ralph-guardrails.md`, `.ralph/progress.md`, `.ralph/errors.log`, 최근 git 로그만 기준으로 시작했다. 미완 `[ ]` 3건은 이미 로컬 커밋(`bd3c7d9`, `d079ecb`, `b3848d4`)으로 구현 흔적이 있었고, 실제 공유 blocker는 `.ralph/errors.log`의 unsupported-model 400과 초장문 에러 라인으로 인한 prompt overflow였다.
+- **이번에 한 일(구현 범위)**: [`.cursor/ralph-scripts/ralph-common.sh`](/Users/uram/dev/agent-model-dev/.cursor/ralph-scripts/ralph-common.sh)에서 (1) 최근 에러 요약을 줄 단위로 강하게 truncate, (2) 마지막 에러 줄이 `MODEL FALLBACK`/`AUTO-HEAL APPLIED` 같은 해결 마커면 active error로 보지 않게 수정, (3) `The '...codex...' model is not supported ...` 로그를 감지하면 Ralph 루프 모델을 즉시 `auto`로 낮추는 auto-heal을 추가했다. [`.cursor/ralph-scripts/stream-parser.sh`](/Users/uram/dev/agent-model-dev/.cursor/ralph-scripts/stream-parser.sh)에는 API 에러를 그대로 적지 않고 요약본만 `.ralph/errors.log`/events에 남기도록 넣어, 로그 재귀로 prompt가 1MB를 넘는 경로를 막았다.
+- **가드레일 추가**: [`docs/ralph-guardrails.md`](/Users/uram/dev/agent-model-dev/docs/ralph-guardrails.md)에 unsupported model은 `auto`로 즉시 fallback할 것, giant error line을 raw로 프롬프트에 다시 넣지 말 것 두 Sign을 추가했다.
+- **검증**: `bash -n .cursor/ralph-scripts/ralph-common.sh .cursor/ralph-scripts/stream-parser.sh` 통과. 셸 단위 smoke로 `ralph_summarize_log_line` truncate, `ralph_is_resolution_log_line`, `ralph_has_active_errors`가 fallback 마커 뒤에는 `CLEARED`를 반환하는지 확인했다. 임시 `.ralph/errors.log`로 `ralph_try_known_autofix`를 호출해 unsupported model에서 `MODEL=auto`로 바뀌고 `↪️ MODEL FALLBACK` 마커가 기록되는 것도 확인했다.
+- **다음 인계(테스트)**: (1) 호스트 터미널에서 실제 `git add -A && git commit -m 'ralph: harden Ralph error recovery for unsupported model + oversized error logs' && git push` 필요, (2) 그 다음 `./.cursor/ralph-scripts/ralph-once.sh -y -m gpt-5.1-codex-mini` 또는 동등 경로로 unsupported-model recovery가 실제 루프에서 `auto`로 재시도되는지 확인, (3) 기존 OpenGraze 미완 3건은 이미 구현 커밋이 있으므로 이 에러 복구가 녹색이면 테스트 역할이 빌드/스모크와 함께 `[x]` 판정으로 넘어갈 수 있다.
+- **주의(환경)**: `git add ...`는 여전히 `fatal: Unable to create '.git/index.lock': Operation not permitted`로 막혔다. 이 세션에서는 커밋/푸시를 대신할 수 없다.

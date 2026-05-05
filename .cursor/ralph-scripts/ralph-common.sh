@@ -478,6 +478,23 @@ ralph_file_mtime() {
   fi
 }
 
+ralph_is_resolution_log_line() {
+  local line="${1:-}"
+  [[ "$line" =~ (↪️[[:space:]]MODEL[[:space:]]FALLBACK|AUTO-HEAL[[:space:]]APPLIED|ERROR[[:space:]]RECOVERY[[:space:]]COMPLETE|ACTIVE[[:space:]]ERRORS[[:space:]]CLEARED) ]]
+}
+
+ralph_summarize_log_line() {
+  local line="${1:-}"
+  local max_chars="${2:-240}"
+
+  if [[ ${#line} -le $max_chars ]]; then
+    printf '%s\n' "$line"
+    return 0
+  fi
+
+  printf '%s… [truncated %d chars]\n' "${line:0:max_chars}" "${#line}"
+}
+
 ralph_has_active_errors() {
   local workspace="${1:-.}"
   local errors_file="$workspace/.ralph/errors.log"
@@ -496,7 +513,16 @@ ralph_has_active_errors() {
   file_ts=$(ralph_file_mtime "$errors_file")
   age=$((now_ts - file_ts))
 
-  [[ "$age" -le "$active_window" ]]
+  if [[ "$age" -gt "$active_window" ]]; then
+    return 1
+  fi
+
+  local last_line=""
+  last_line=$(grep -vE '^[[:space:]]*(#|$|>)' "$errors_file" | tail -n 1)
+  [[ -z "$last_line" ]] && return 1
+  ralph_is_resolution_log_line "$last_line" && return 1
+
+  return 0
 }
 
 ralph_recent_error_summary() {
@@ -509,7 +535,9 @@ ralph_recent_error_summary() {
     return 0
   fi
 
-  grep -vE '^[[:space:]]*(#|$|>)' "$errors_file" | tail -n 5
+  grep -vE '^[[:space:]]*(#|$|>)' "$errors_file" | tail -n 5 | while IFS= read -r line; do
+    ralph_summarize_log_line "$line" 240
+  done
 }
 
 ralph_cleanup_iteration_processes() {
@@ -534,6 +562,7 @@ ralph_try_known_autofix() {
   local errors_file="$workspace/.ralph/errors.log"
   local next_dir="$workspace/apps/open-graze/.next"
   local stamp_dir="$workspace/.ralph/autofix"
+  local model_stamp="$stamp_dir/model-fallback-auto.applied"
   local next_stamp="$stamp_dir/open-graze-next.cleaned"
   local next_stamp_ts=0
   local next_dir_ts=0
@@ -551,6 +580,21 @@ ralph_try_known_autofix() {
       echo "🛠 Auto-heal: cleared apps/open-graze/.next after detecting stale Turbopack build artifacts." >&2
       return 0
     fi
+  fi
+
+  if [[ -f "$errors_file" ]] && grep -q "not supported when using Codex with a ChatGPT account" "$errors_file"; then
+    if [[ "${MODEL:-}" != "auto" ]]; then
+      MODEL="auto"
+      export MODEL
+      export RALPH_MODEL="auto"
+      date '+%Y-%m-%dT%H:%M:%S%z' > "$model_stamp"
+      log_error "$workspace" "↪️ MODEL FALLBACK: switched loop model to 'auto' after unsupported-model error"
+      log_progress "$workspace" "**Auto-heal applied** - switched unsupported Codex model selection to fallback \`auto\`"
+      echo "🛠 Auto-heal: switched unsupported Codex model to auto." >&2
+      return 0
+    fi
+    log_error "$workspace" "ACTIVE ERRORS CLEARED: unsupported-model fallback already applied; continuing with auto"
+    return 0
   fi
 
   return 1

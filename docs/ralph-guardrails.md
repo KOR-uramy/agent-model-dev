@@ -47,3 +47,13 @@
 - **Trigger**: `next dev --turbopack`를 쓴 뒤 `next build`에서 `/_error`, `/_document`, `[turbopack]_runtime.js` 관련 `PageNotFoundError` / `MODULE_NOT_FOUND`가 날 때
 - **Instruction**: 개발 서버(Turbopack)와 배포 빌드(webpack)가 같은 `.next` 산출물을 섞어 쓰지 않게, 빌드 전에 **`.next`를 비우고** 다시 `next build`한다. 이 레포의 `apps/open-graze`는 build 스크립트 자체가 `rm -rf .next && next build`를 기본으로 가져가야 한다.
 - **Added after**: Iteration 1 — 2026-05-05에 `next dev --turbopack` 잔여물 때문에 `.next/server/pages/_document.js`가 `[turbopack]_runtime.js`를 require하며 Ralph loop 시작 빌드를 막음
+
+### Sign: Unsupported Codex model should fall back to `auto`
+- **Trigger**: `.ralph/errors.log`에 `The '...codex...' model is not supported when using Codex with a ChatGPT account.` 같은 400 invalid_request_error가 찍힐 때
+- **Instruction**: 고정 모델 재시도 루프를 돌리지 말고, Ralph 스크립트 모델을 즉시 `auto`로 낮춰 같은 이터를 재시도한다. 이후 에러 상태는 `MODEL FALLBACK` 같은 해결 마커 기준으로 정리해 recovery 루프에 갇히지 않게 한다.
+- **Added after**: Iteration 1 — 2026-05-05에 `gpt-5.1-codex-mini` 지정이 ChatGPT 계정에서 거부되어 구현 단계가 시작 직후 중단됨
+
+### Sign: Never inject raw giant error lines back into the Ralph prompt
+- **Trigger**: `.ralph/errors.log` 한 줄이 비정상적으로 길거나 `Input exceeds the maximum length of 1048576 characters.` 같은 turn/start 실패가 날 때
+- **Instruction**: 에러 요약을 프롬프트에 넣을 때는 최근 몇 줄만 쓰고, 각 줄 길이를 강하게 잘라 재귀적으로 로그 전체가 다시 프롬프트에 들어가지 않게 한다. 스트림 파서도 원본 에러를 그대로 적지 말고 요약본만 남긴다.
+- **Added after**: Iteration 1 — 2026-05-05에 `aggregated_output`가 통째로 `.ralph/errors.log`에 기록된 뒤 다음 이터 프롬프트가 1MB 제한을 초과함

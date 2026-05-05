@@ -117,6 +117,18 @@ log_error() {
   echo "[$timestamp] $message" >> "$RALPH_DIR/errors.log"
 }
 
+summarize_for_log() {
+  local text="${1:-}"
+  local max_chars="${2:-320}"
+
+  if [[ ${#text} -le $max_chars ]]; then
+    printf '%s\n' "$text"
+    return 0
+  fi
+
+  printf '%s… [truncated %d chars]\n' "${text:0:max_chars}" "${#text}"
+}
+
 # Check and log token status
 log_token_status() {
   local tokens=$(calc_tokens)
@@ -258,15 +270,17 @@ process_line() {
       # Handle API/engine errors
       local error_msg
       error_msg=$(echo "$line" | jq -r '.error.data.message // .error.message // .message // "Unknown error"' 2>/dev/null) || error_msg="Unknown error"
+      local error_summary
+      error_summary=$(summarize_for_log "$error_msg" 320)
       
-      log_error "API ERROR: $error_msg"
-      log_activity "❌ API ERROR: $error_msg"
-      append_event "api_error" "$(jq -nc --arg m "$error_msg" '{message:$m}')"
+      log_error "API ERROR: $error_summary"
+      log_activity "❌ API ERROR: $error_summary"
+      append_event "api_error" "$(jq -nc --arg m "$error_summary" '{message:$m}')"
       
       # Check if this is a retryable error (rate limit, network, etc.)
       if is_retryable_api_error "$error_msg"; then
         log_error "⚠️ RETRYABLE: Error may be transient (rate limit/network)"
-        append_event "api_error_defer" "$(jq -nc --arg m "$error_msg" '{message:$m,retryable:true}')"
+        append_event "api_error_defer" "$(jq -nc --arg m "$error_summary" '{message:$m,retryable:true}')"
         echo "DEFER" 2>/dev/null || true
       else
         log_error "🚨 NON-RETRYABLE: Error requires attention"
