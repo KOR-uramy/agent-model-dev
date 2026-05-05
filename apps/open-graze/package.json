@@ -6,7 +6,7 @@
     "postinstall": "prisma generate",
     "predev": "prisma generate",
     "dev": "rm -rf .next && next dev --turbopack",
-    "build": "prisma generate && rm -rf .next && next build",
+    "build": "sh ../../scripts/with-open-graze-build-lock.sh sh -c 'prisma generate && rm -rf .next && next build'",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",

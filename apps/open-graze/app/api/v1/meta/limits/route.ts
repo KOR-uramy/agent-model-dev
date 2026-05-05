@@ -3,6 +3,8 @@ import { getIngestMaxBodyBytes } from "@/lib/ingest-body";
 import { getIngestRateLimitConfig } from "@/lib/ingest-rate-limit";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * 비인증 공개 한도 스냅샷(비밀·워크스페이스 데이터 없음). 동종 SaaS의 “한도 표”에 대응하는 JSON.
  */

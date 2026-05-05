@@ -1011,3 +1011,13 @@
 
 ### 2026-05-06 00:00:10
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-06 00:03:18
+**역할: 구현 (implementation)**
+
+- **감시 요약 (직전 디자인 검증)**: `RALPH_TASK.md`·`.ralph/guardrails.md`·`.ralph/progress.md` 최신 엔트리를 다시 대조했고, 구현 역할 범위에서 우선순위는 “활성 compile/build/runtime 오류 해소”로 유지됨을 확인했다. 직전 handoff는 **승인**이다.
+- **오류 우선 재현 결과**: 루트 `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test` 직렬 실행에서 `npm test` 내부 `next build`가 `Cannot find module for page`(`/_document`, `/api/v1/events`, `/api/v1/meta/limits`)로 재현됐다.
+- **이번 구현 작업**: `apps/open-graze/app/api/v1/meta/limits/route.ts`에 `export const dynamic = "force-dynamic";`를 추가해 App Router의 정적 page-data 수집 대상에서 제외했다. 또한 `scripts/with-open-graze-build-lock.sh`를 추가하고 `apps/open-graze/package.json`의 `build`를 락 기반 실행으로 바꿔 동시 `.next` 경합(병렬 루프/다중 빌드)으로 인한 ENOENT 재발을 차단했다.
+- **검증**: 동일 직렬 명령 재실행에서 `build`/`test` 모두 통과, `runtime:smoke`는 서버 미기동 환경에서 기존 계약대로 안내 후 skip(exit 0) 유지.
+- **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md` 마지막 3개 `[ ]`를 유지했다(브라우저/서버 로그 실검증은 테스트 역할 소관).
+- **다음 인계(테스트)**: 1) 호스트에서 `npm run dev` 후 `/` 필터 요약 바 노출/칩 해제/전체 초기화의 URL·결과 동기화 확인. 2) 필터 포함 URL 첫 진입 시 `home_view_opened` 1회 로그 확인. 3) `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
