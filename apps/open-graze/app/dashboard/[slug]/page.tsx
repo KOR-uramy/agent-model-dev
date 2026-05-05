@@ -31,6 +31,12 @@ type EvRow = {
   createdAt: string;
   data: unknown;
 };
+type RalphActivityLog = {
+  path: string;
+  exists: boolean;
+  updatedAt: string | null;
+  lines: string[];
+};
 type TaskRow = {
   id: string;
   title: string;
@@ -47,6 +53,7 @@ export default function WorkspaceDetailPage() {
   const billingSuccess = searchParams.get("billing") === "success";
   const [keys, setKeys] = useState<KeyRow[]>([]);
   const [events, setEvents] = useState<EvRow[]>([]);
+  const [ralphActivity, setRalphActivity] = useState<RalphActivityLog | null>(null);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [keyName, setKeyName] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
@@ -54,6 +61,7 @@ export default function WorkspaceDetailPage() {
   const [publicOrigin, setPublicOrigin] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [eventsLoadErr, setEventsLoadErr] = useState<string | null>(null);
+  const [ralphActivityLoadErr, setRalphActivityLoadErr] = useState<string | null>(null);
   const [tasksLoadErr, setTasksLoadErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,13 +70,15 @@ export default function WorkspaceDetailPage() {
 
   const load = useCallback(async () => {
     setEventsLoadErr(null);
+    setRalphActivityLoadErr(null);
     setTasksLoadErr(null);
-    const [rk, re, rt] = await Promise.all([
+    const [rk, re, rr, rt] = await Promise.all([
       fetch(`/api/workspaces/${slug}/api-keys`),
       fetch(`/api/workspaces/${slug}/events`),
+      fetch(`/api/workspaces/${slug}/ralph-activity`),
       fetch(`/api/workspaces/${slug}/tasks`),
     ]);
-    if (rk.status === 401 || re.status === 401 || rt.status === 401) {
+    if (rk.status === 401 || re.status === 401 || rr.status === 401 || rt.status === 401) {
       router.replace("/login");
       return;
     }
@@ -94,6 +104,16 @@ export default function WorkspaceDetailPage() {
         }
       }
       setEventsLoadErr(msg);
+    }
+    if (rr.ok) {
+      const j = (await rr.json()) as RalphActivityLog;
+      setRalphActivity(j);
+    } else {
+      const raw = await rr.text();
+      setRalphActivity(null);
+      setRalphActivityLoadErr(
+        `Ralph 실행 로그를 불러오지 못했습니다 (HTTP ${rr.status}). ${raw.slice(0, 240)}`,
+      );
     }
     if (rt.ok) {
       const j = (await rt.json()) as { tasks: TaskRow[] };
@@ -474,6 +494,30 @@ export default function WorkspaceDetailPage() {
           {keys.length === 0 ? (
             <p className="mt-3 text-center text-xs text-muted">아직 발급된 키가 없습니다. 위에서 이름을 넣고 새 키를 만드세요.</p>
           ) : null}
+        </section>
+
+        <section className={`mt-8 ${surfaceCard}`}>
+          <h2 className={sectionEyebrow}>Ralph 실행 로그</h2>
+          <p className={proseMutedSm}>
+            같은 워크스페이스의 <code className={codeInline}>.ralph/activity.log</code> 최근 줄을 보여 줍니다. `cursor`,
+            `codex` 등 어떤 실행기를 써도 같은 파일에 모인 기록을 이 화면에서 바로 확인할 수 있습니다.
+          </p>
+          {ralphActivityLoadErr ? (
+            <p className={`mt-2 ${textErrorXs}`}>{ralphActivityLoadErr}</p>
+          ) : null}
+          {ralphActivity?.updatedAt ? (
+            <p className="mt-2 text-xs text-muted">
+              마지막 갱신: {new Date(ralphActivity.updatedAt).toLocaleString()} ·{" "}
+              <code className={codeInline}>{ralphActivity.path}</code>
+            </p>
+          ) : null}
+          <pre className="mt-4 max-h-80 overflow-auto rounded-xl border border-[var(--list-border)] bg-neutral-50/80 p-4 text-xs dark:bg-neutral-950/80">
+            {ralphActivity == null
+              ? "불러오는 중…"
+              : ralphActivity.exists
+                ? ralphActivity.lines.join("\n") || "아직 기록이 없습니다."
+                : "activity.log 파일이 아직 없습니다."}
+          </pre>
         </section>
 
         <section className={`mt-8 ${surfaceCard}`}>

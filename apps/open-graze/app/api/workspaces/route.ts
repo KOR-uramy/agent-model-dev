@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { isPlatformAdminEmail } from "@/lib/platform-admin";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
 import { NextResponse } from "next/server";
@@ -14,6 +15,7 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const isAdmin = isPlatformAdminEmail(session.user.email);
 
   const rows = await prisma.workspaceMember.findMany({
     where: { userId: session.user.id },
@@ -27,7 +29,7 @@ export async function GET() {
       name: r.workspace.name,
       slug: r.workspace.slug,
       role: r.role,
-      subscriptionStatus: r.workspace.subscriptionStatus,
+      subscriptionStatus: isAdmin ? "active" : r.workspace.subscriptionStatus,
     })),
   });
 }
@@ -37,6 +39,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const isAdmin = isPlatformAdminEmail(session.user.email);
 
   let body: unknown;
   try {
@@ -67,6 +70,7 @@ export async function POST(req: Request) {
         name,
         slug,
         ownerId: session.user.id,
+        subscriptionStatus: isAdmin ? "active" : "inactive",
         members: {
           create: { userId: session.user.id, role: "owner" },
         },

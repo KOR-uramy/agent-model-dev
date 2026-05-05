@@ -9,6 +9,28 @@
 
 ## Session History
 
+### 2026-05-04
+
+**역할: 기획 (planning)\**
+
+- **감시 요약**: `RALPH_TASK.md` 미완 `[ ]`는 사이클 4의 3건(`from/to`, `source`, “현재 뷰 복사”)만 남아 있고, 최근 실패는 `.ralph/errors.log`의 OpenAI 401(“Missing bearer…”) 및 `docs/ralph-guardrails.md`의 `.git/index.lock` EPERM 경고뿐이다.
+- **이번에 한 일(기획 범위)**: `RALPH_TASK.md`의 `from/to` 항목에 “필터 적용 시점에만 주소줄 반영 + 기본 `replaceState`로 히스토리 스팸 방지”를 계약으로 추가했고, `source` 항목에는 “미지/빈 값은 조용히 다른 결과가 아니라 UI에서 키 제거로 수렴(신뢰)” 리스크를 1줄로 고정했다(프로덕션 코드 변경 없음).
+- **다음 인계(디자인)**: (1) `from/to` 입력 UX에서 “적용 시점”이 무엇인지(버튼/확정 이벤트)와 주소줄 갱신 방식(`replaceState`)을 스케치로 고정, (2) `source` 미지 값 처리 시 사용자 피드백이 필요한지(없어도 되지만 ‘조용히 다른 결과’는 금지) 결정.
+- **주의(환경)**: Codex CLI에서 `.git/index.lock` EPERM이 재발할 수 있으니, 이 변경은 호스트에서 `git add -A && git commit -m 'docs(ralph): tighten URL sync + source trust contract' && git push`로 원격에 남겨 두는 편이 안전하다.
+
+**역할: 기획 (planning)\**
+
+- **감시 요약**: `RALPH_TASK.md`의 미완 항목이 「성장 루프 확장(사이클 4)」의 3건(`from/to`, `source`, “현재 뷰 복사”)로 남아 있어, `docs/ralph-guardrails.md`·`.ralph/errors.log`를 확인했다(401 Missing bearer 재발 방지, `.git/index.lock` EPERM 주의). `git log`상 동일 범위 구현 커밋/병합이 이미 존재해, 이번 이터는 **계약/리스크를 문서로 고정**하는 쪽에 한정했다(프로덕션 코드 변경 없음).
+- **이번에 한 일(기획 범위)**: `RALPH_TASK.md`의 `from/to`·“현재 뷰 복사” 항목에 **리스크 2줄**을 추가해 재현성(타임존 `+` URL 인코딩)과 신뢰(클립보드 실패를 숨기지 않기)를 문서로 못 박았다.
+- **다음 인계(디자인)**: (1) 필터 UI에서 `from/to` 입력·표시(정규화 `Z`)의 표면/상태를 스케치로 고정, (2) “현재 뷰 복사”의 성공/실패 피드백 + (가능하면) 사용자가 URL을 눈으로 확인 가능한 표면을 계약으로 명시, (3) `source` 선택 UI는 단일 선택(전체+허용값)만 제공한다는 기존 계약을 유지.
+- **주의(환경)**: Codex CLI 샌드박스에서 `git add`가 `.git/index.lock` EPERM으로 막혀 커밋/푸시를 못 했다. 호스트 터미널에서 `git add -A && git commit -m 'docs(ralph): clarify URL encoding + clipboard risks' && git push`로 반영해 두면 다음 역할이 원격 기준으로 이어갈 수 있다.
+
+**역할: 기획 (planning)\**
+
+- **이번에 한 일(기획 범위)**: `RALPH_TASK.md`의 남은 3개 `[ ]`(from/to, source, “현재 뷰 복사”)에 대해 **재현성/신뢰** 축만 강화하도록 계약을 더 좁혔다 — `from/to`는 URL 디코딩→파싱→`Z` 정규화 재기록, `source`는 다른 축과 AND 조합 고정, “현재 뷰 복사”는 클립보드 실패 시에도 **URL 확인/복사 표면**이 남아야 함을 검증 힌트에 포함.
+- **감시 메모**: `git log`에는 `from/to`·`source`·복사 기능 구현 커밋이 이미 보이므로, 다음 **디자인**은 “새 기능 발명”이 아니라 **현재 UI가 계약을 충족하는지**(표면/피드백/배치)만 확인해 스케치·명세로 고정하는 쪽이 낫다.
+- **다음 인계(디자인 → 테스트)**: 디자인은 최소 스케치로 계약을 고정하고, 테스트는 `apps/open-graze/README.md`의 URL/curl 검증 한 줄(또는 추가)로 `[x]` 판정을 내릴 수 있게 준비한다.
+
 ### 2026-05-02
 
 - `RALPH_TASK.md`를 **본질 목표(관측·신뢰·재현)** 와 OpenGraze/SDK/클라우드 스캐폴드에 맞게 재작성함.
@@ -320,3 +342,42 @@
 
 ### 2026-05-04 00:34:51
 **Session 1 ended** - 🚨 GUTTER (agent stuck)
+
+### 2026-05-04 00:37:42
+**Session 1 started** — 역할: 기획 (`planning`) · model: gpt-5.2
+
+### 2026-05-04 (Ralph Iteration 1 — 기획 · 사이클 1 · 단계 1/4)
+
+**역할: 기획 (planning)\**
+
+**감시 요약** — `RALPH_TASK.md`의 미완 `[ ]` 3건(`from/to` URL 동기화, `source` 필터, “현재 뷰 복사”)이 본질(동일 시간·동일 채널·동일 역할·동일 세션 뷰를 URL만으로 재현/감사)에 직접 연결된다. `git log`상 구현 커밋이 이미 있으므로, 이번 사이클의 목표는 **계약/UX 정합과 테스트 증거로 `[x]` 처리**다.
+
+**이번에 한 일(문서만)** — 구현 위치를 빠르게 훑어본 뒤(홈 필터: `apps/open-graze/app/components/home-page-content.tsx`, API: `apps/open-graze/app/api/ralph/events/route.ts`, URL 빌더: `apps/open-graze/lib/home-view-url.ts`), `RALPH_TASK.md`의 계약을 3곳 보강했다:
+- `from/to`: timezone 없는 ISO가 JS 로컬로 해석돼 재현성이 깨질 수 있으므로 “timezone 포함만 유효” 근거를 명시.
+- `source`: UI 옵션을 API와 동일 allowlist에서 직접 생성하도록(“한 곳” 상수) 구체 경로(`apps/open-graze/lib/timeline-query-params.ts`)를 적시.
+- “현재 뷰 복사”: 성공뿐 아니라 **실패 시에도** 사용자에게 문구/토스트 등 피드백이 반드시 보이도록 요구를 강화(현재 구현은 성공 피드백 위주라 보완 여지).
+
+**다음 인계(디자인)** — (1) `from/to` 무효 케이스(부분 입력, timezone 없음, from>to)에서 “키 제거” UX를 한 문장으로 고정, (2) `source` 라벨/옵션은 allowlist 기반으로 고정, (3) “현재 뷰 복사” 실패 피드백 문구·노출 위치를 와이어로 결정.
+
+**블로커(중요)** — 이 환경에서는 `.git/index.lock` 생성이 EPERM으로 막혀 `git add/commit/push`를 수행할 수 없다. 워킹 트리에 남은 변경: `RALPH_TASK.md`, `.ralph/progress.md`.
+
+### 2026-05-04 00:41:44
+**Session 1 ended** - ⏸️ DEFERRED (rate limit/transient error)
+
+### 2026-05-04 00:42:23
+**Session 1 started** — 역할: 기획 (`planning`) · model: gpt-5.2
+
+### 2026-05-04 00:44:23
+**Session 1 ended** - ⏸️ DEFERRED (rate limit/transient error)
+
+### 2026-05-04 00:45:22
+**Session 1 started** — 역할: 기획 (`planning`) · model: gpt-5.2
+
+### 2026-05-04 00:48:04
+**Session 1 ended** - ⏸️ DEFERRED (rate limit/transient error)
+
+### 2026-05-04 00:49:29
+**Session 1 started** — 역할: 기획 (`planning`) · model: gpt-5.2
+
+### 2026-05-04 00:51:20
+**Session 1 ended** - ⏸️ DEFERRED (rate limit/transient error)

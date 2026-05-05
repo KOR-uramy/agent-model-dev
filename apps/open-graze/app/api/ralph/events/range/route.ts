@@ -1,10 +1,10 @@
 import {
   RALPH_EVENTS_ROLE_QUERY_ERROR,
   RALPH_EVENTS_SOURCE_QUERY_ERROR,
-  TIMELINE_RANGE_MAX_ROWS,
   loadTimelineEventsInRange,
   parseSessionIdQueryParam,
 } from "@/lib/timeline-feed";
+import { TIMELINE_RANGE_MAX_ROWS } from "@/lib/timeline-constants";
 import {
   parseSourceQueryParam,
   parseTimelineRangeParams,
