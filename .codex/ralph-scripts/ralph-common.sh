@@ -813,6 +813,7 @@ run_iteration() {
   local workspace="$1"
   local iteration="$2"
   local script_dir="${4:-$(dirname "${BASH_SOURCE[0]}")}"
+  local fifo=""
 
   local role_key=""
   local forced_error_recovery=0
