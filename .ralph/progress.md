@@ -517,3 +517,18 @@
 - **검증**: `bash -n .cursor/ralph-scripts/ralph-common.sh .cursor/ralph-scripts/stream-parser.sh` 통과. 셸 단위 smoke로 `ralph_summarize_log_line` truncate, `ralph_is_resolution_log_line`, `ralph_has_active_errors`가 fallback 마커 뒤에는 `CLEARED`를 반환하는지 확인했다. 임시 `.ralph/errors.log`로 `ralph_try_known_autofix`를 호출해 unsupported model에서 `MODEL=auto`로 바뀌고 `↪️ MODEL FALLBACK` 마커가 기록되는 것도 확인했다.
 - **다음 인계(테스트)**: (1) 호스트 터미널에서 실제 `git add -A && git commit -m 'ralph: harden Ralph error recovery for unsupported model + oversized error logs' && git push` 필요, (2) 그 다음 `./.cursor/ralph-scripts/ralph-once.sh -y -m gpt-5.1-codex-mini` 또는 동등 경로로 unsupported-model recovery가 실제 루프에서 `auto`로 재시도되는지 확인, (3) 기존 OpenGraze 미완 3건은 이미 구현 커밋이 있으므로 이 에러 복구가 녹색이면 테스트 역할이 빌드/스모크와 함께 `[x]` 판정으로 넘어갈 수 있다.
 - **주의(환경)**: `git add ...`는 여전히 `fatal: Unable to create '.git/index.lock': Operation not permitted`로 막혔다. 이 세션에서는 커밋/푸시를 대신할 수 없다.
+
+### 2026-05-05 21:45:37
+**Session 1 started** — 역할: 구현 (`implementation`) · model: gpt-5.1
+
+### 2026-05-05 21:45:37
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:45:42
+**Session 1 ended** - Switching Codex model from 'gpt-5.1' to fallback 'auto'
+
+### 2026-05-05 21:46:26
+**Session 1 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 21:46:26
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.

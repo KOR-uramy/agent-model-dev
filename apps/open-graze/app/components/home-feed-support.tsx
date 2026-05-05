@@ -8,6 +8,7 @@ import type {
   EventSource,
   WorkspaceFeedEvent,
 } from "ralph-workspace-sdk";
+import { EVENT_SOURCE_KEYS } from "@/lib/timeline-query-params";
 
 /** 이메일 로그인을 숨기려면 `false`로 둔다. */
 export const SHOW_LOGIN_LINKS = true;
@@ -23,6 +24,8 @@ export const SOURCE_LABEL_KO: Record<EventSource, string> = {
   ralph: "에이전트만",
   application: "제품만",
 };
+
+export const EVENT_SOURCE_OPTIONS = EVENT_SOURCE_KEYS;
 
 export const KIND_LABEL: Record<string, string> = {
   session_start: "세션 시작",

@@ -12,6 +12,9 @@ export type TimelineRangeParseResult =
   | { ok: true; fromIso: string; toIso: string }
   | { ok: false; message: string };
 
+const ISO_8601_WITH_TIMEZONE_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+
 export function parseTimelineRangeParams(
   fromRaw: string | null,
   toRaw: string | null,
@@ -23,6 +26,16 @@ export function parseTimelineRangeParams(
       ok: false,
       message:
         "쿼리 `from`·`to`는 필수입니다(ISO 8601, 예: 2026-05-03T00:00:00Z).",
+    };
+  }
+  if (
+    !ISO_8601_WITH_TIMEZONE_RE.test(fromTrim) ||
+    !ISO_8601_WITH_TIMEZONE_RE.test(toTrim)
+  ) {
+    return {
+      ok: false,
+      message:
+        "`from`·`to`는 timezone 이 포함된 ISO 8601 이어야 합니다(예: `Z`, `+09:00`).",
     };
   }
   const fromMs = Date.parse(fromTrim);
@@ -48,7 +61,9 @@ export function parseSourceQueryParam(
 ): EventSource | null {
   if (value == null || value.trim() === "") return null;
   const v = value.trim();
-  if (v === "ralph" || v === "application") return v;
+  if ((EVENT_SOURCE_KEYS as readonly string[]).includes(v)) {
+    return v as EventSource;
+  }
   return null;
 }
 

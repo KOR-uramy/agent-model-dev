@@ -3,6 +3,7 @@
 import {
   detailPreview,
   durationCell,
+  EVENT_SOURCE_OPTIONS,
   fmtUsd,
   KIND_LABEL,
   ROLE_LABEL_KO,
@@ -28,6 +29,8 @@ export function HomeTimelineSection({
   events,
   loading,
   copyDone,
+  copyError,
+  currentViewUrl,
   onCopyViewUrl,
   sessionIdFilter,
   roleFilter,
@@ -49,6 +52,8 @@ export function HomeTimelineSection({
   events: WorkspaceFeedEvent[];
   loading: boolean;
   copyDone: boolean;
+  copyError: string | null;
+  currentViewUrl: string;
   onCopyViewUrl: () => void;
   sessionIdFilter: string | null;
   roleFilter: AgentRoleKey | null;
@@ -81,9 +86,26 @@ export function HomeTimelineSection({
               >
                 {copyDone ? "복사됨" : "현재 뷰 URL 복사"}
               </button>
-              <span className="text-[10px] text-muted">
-                주소에 적용 중인 필터(role·sessionId·from·to·source)가 절대 URL로 담깁니다.
+              <span className={`text-[10px] ${copyError ? "text-amber-700 dark:text-amber-300" : "text-muted"}`}>
+                {copyError ??
+                  "주소에 적용 중인 필터(role·sessionId·from·to·source)가 절대 URL로 담깁니다."}
               </span>
+            </div>
+            <div className="mt-3 flex flex-col gap-1">
+              <label
+                className="text-[10px] font-semibold uppercase tracking-wider text-muted"
+                htmlFor="current-view-url"
+              >
+                현재 뷰 URL
+              </label>
+              <input
+                id="current-view-url"
+                type="text"
+                readOnly
+                value={currentViewUrl}
+                className="w-full rounded-lg border border-[var(--list-border)] bg-background px-3 py-2 font-mono text-[11px] text-foreground shadow-sm"
+                aria-label="현재 뷰 절대 URL"
+              />
             </div>
           </div>
           <div className="flex w-full max-w-xl flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row sm:flex-wrap sm:items-end sm:justify-end">
@@ -163,7 +185,7 @@ export function HomeTimelineSection({
                 aria-label="타임라인 채널(출처) 필터"
               >
                 <option value="">전체 채널</option>
-                {(Object.keys(SOURCE_LABEL_KO) as EventSource[]).map((key) => (
+                {EVENT_SOURCE_OPTIONS.map((key) => (
                   <option key={key} value={key}>
                     {SOURCE_LABEL_KO[key]}
                   </option>

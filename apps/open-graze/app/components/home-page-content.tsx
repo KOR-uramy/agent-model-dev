@@ -59,6 +59,24 @@ export function HomePageContent() {
     [searchParams],
   );
 
+  const currentViewUrl = useMemo(() => {
+    if (typeof window === "undefined" || !window.location?.origin) return "";
+    return buildHomeViewAbsoluteUrl(window.location.origin, pathname || "/", {
+      role: roleFilter,
+      sessionId: sessionIdFilter,
+      fromIso: fromToFilter?.fromIso ?? null,
+      toIso: fromToFilter?.toIso ?? null,
+      source: sourceFilter,
+    });
+  }, [
+    fromToFilter?.fromIso,
+    fromToFilter?.toIso,
+    pathname,
+    roleFilter,
+    sessionIdFilter,
+    sourceFilter,
+  ]);
+
   useEffect(() => {
     const raw = searchParams.get("role");
     if (raw === null) return;
@@ -154,6 +172,7 @@ export function HomePageContent() {
   const [fromDraft, setFromDraft] = useState("");
   const [toDraft, setToDraft] = useState("");
   const [copyDone, setCopyDone] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   const applyFromToDraftToUrl = useCallback(() => {
     const next = new URLSearchParams(searchParams.toString());
@@ -211,33 +230,17 @@ export function HomePageContent() {
   }, [fromToFilter, roleFilter, sessionIdFilter, sourceFilter]);
 
   const copyCurrentViewUrl = useCallback(async () => {
-    const origin =
-      typeof window !== "undefined" && window.location?.origin
-        ? window.location.origin
-        : "";
-    if (!origin) return;
-    const url = buildHomeViewAbsoluteUrl(origin, pathname || "/", {
-      role: roleFilter,
-      sessionId: sessionIdFilter,
-      fromIso: fromToFilter?.fromIso ?? null,
-      toIso: fromToFilter?.toIso ?? null,
-      source: sourceFilter,
-    });
+    if (!currentViewUrl) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(currentViewUrl);
       setCopyDone(true);
+      setCopyError(null);
       window.setTimeout(() => setCopyDone(false), 2000);
     } catch {
       setCopyDone(false);
+      setCopyError("클립보드 접근이 막혀 URL을 직접 복사해야 합니다.");
     }
-  }, [
-    fromToFilter?.fromIso,
-    fromToFilter?.toIso,
-    pathname,
-    roleFilter,
-    sessionIdFilter,
-    sourceFilter,
-  ]);
+  }, [currentViewUrl]);
 
   useEffect(() => {
     void load();
@@ -284,6 +287,8 @@ export function HomePageContent() {
           events={events}
           loading={loading}
           copyDone={copyDone}
+          copyError={copyError}
+          currentViewUrl={currentViewUrl}
           onCopyViewUrl={copyCurrentViewUrl}
           sessionIdFilter={sessionIdFilter}
           roleFilter={roleFilter}

@@ -8,7 +8,7 @@
 - **`/`** — SQLite **`TimelineEvent`** 타임라인(원본은 `.ralph/*.jsonl` → 동기화 API로 적재). 타임라인 JSON 한 줄의 `detail`이 객체일 때 **선택** 필드 **`role`**(`detail.role`)에 `planning` \| `design` \| `implementation` \| `test` 만 온다(`RALPH_TASK.md` 규약). 홈의 역할 필터는 **`?role=`** 쿼리와 양방향 동기화되며, `GET /api/ralph/events`의 **`role`** 과 동일한 네 가지 값만 인정한다. 세션 선택·직접 입력은 **`?sessionId=`** 와 양방향 동기화되며(값이 비어 있으면 쿼리 키 제거), **`role`** 과 함께 붙여도 `GET /api/ralph/events`와 같은 조합 의미로 동작한다. 구간 **`?from=`**·**`?to=`**(ISO 8601 쌍)과 채널 **`?source=`**(`ralph` \| `application`)도 URL·API·화면이 같게 맞춰진다. **운영·감사 검증(한 줄)**: 「현재 뷰 URL 복사」로 클립보드에 담은 뒤 시크릿 창에 붙여넣고, 주소창의 `role`·`sessionId`·`from`·`to`·`source`와 타임라인 필터 UI가 원본 탭과 동일한지 확인한다.
 
 ```
-http://localhost:3000/?role=planning&sessionId=ralph-session-example&source=ralph
+http://localhost:3000/?role=planning&sessionId=ralph-session-example&from=2026-05-01T00:00:00Z&to=2026-05-03T23:59:59Z&source=ralph
 ```
 - **`/register`**, **`/login`**, **`/dashboard`** — 회원가입(`POST /api/auth/register`), 이메일·비밀번호 로그인(Credentials + DB), 워크스페이스, **작업 현황**(위: `WorkspaceTask` 표는 **조회만**·Task API로만 갱신; 아래 같은 블록에 **수집 활동 요약** — `POST /api/v1/events`로 들어온 `IngestedEvent`를 표로 보여 주며 약 60초마다 자동 새로고침·수동 **다시 불러오기**), API 키, 하단 **최근 수집 활동** JSON
 - **`POST /api/v1/events`** — Bearer API 키로 클라우드 수집(타 앱·CI에서는 **`ralph-workspace-sdk`** 의 `createOpenGrazeIngestClient` 등으로 동일 계약 재사용 — 패키지 README「OpenGraze 플랫폼에 붙이기」절)
