@@ -1021,3 +1021,12 @@
 - **검증**: 동일 직렬 명령 재실행에서 `build`/`test` 모두 통과, `runtime:smoke`는 서버 미기동 환경에서 기존 계약대로 안내 후 skip(exit 0) 유지.
 - **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md` 마지막 3개 `[ ]`를 유지했다(브라우저/서버 로그 실검증은 테스트 역할 소관).
 - **다음 인계(테스트)**: 1) 호스트에서 `npm run dev` 후 `/` 필터 요약 바 노출/칩 해제/전체 초기화의 URL·결과 동기화 확인. 2) 필터 포함 URL 첫 진입 시 `home_view_opened` 1회 로그 확인. 3) `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-06 00:04:00
+**Session 1 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-06 00:04:41
+**Session 2 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-06 00:04:41
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
