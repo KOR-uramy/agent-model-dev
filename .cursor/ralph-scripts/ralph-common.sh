@@ -502,6 +502,9 @@ ralph_has_active_errors() {
 ralph_recent_error_summary() {
   local workspace="${1:-.}"
   local errors_file="$workspace/.ralph/errors.log"
+  if ! ralph_has_active_errors "$workspace"; then
+    return 0
+  fi
   if [[ ! -f "$errors_file" ]]; then
     return 0
   fi
