@@ -930,3 +930,12 @@
 - **이번 구현 작업**: 제품 코드 변경은 하지 않았다(오류 재현 해소 상태 유지 확인 단계).
 - **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md` 마지막 3개 `[ ]`를 유지한다. 브라우저 동작/서버 로그 실검증이 필요한 항목이라 완료 판정은 테스트 역할 소관이다.
 - **다음 인계(테스트)**: 1) 호스트에서 `npm run dev` 후 `/` 필터 요약 바가 빈 상태에서 숨김/필터 적용 시 노출되는지 확인. 2) 칩 개별 해제·`전체 초기화`가 URL 쿼리와 결과를 함께 갱신하는지 확인. 3) 필터 포함 URL 첫 진입 시 `home_view_opened` 1회, `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그를 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-05 23:41:05
+**Session 3 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:41:44
+**Session 4 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:41:44
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
