@@ -38,6 +38,7 @@ SHELL_OUTPUT_CHARS=0
 PROMPT_CHARS=0
 TOOL_CALLS=0
 WARN_SENT=0
+JSON_EVENTS_SEEN=0
 
 # Estimate initial prompt size (Ralph prompt is ~2KB + file references)
 PROMPT_CHARS=3000
@@ -133,6 +134,26 @@ truncate_inline_text() {
     echo "${text:0:max_len}..."
   else
     echo "$text"
+  fi
+}
+
+should_log_raw_line() {
+  local line="${1:-}"
+  [[ "$line" == \{* ]] && return 1
+  [[ "$line" == \[* ]] && return 1
+  local lower
+  lower=$(printf '%s' "$line" | tr '[:upper:]' '[:lower:]')
+  [[ "$lower" == *" warn "* ]] || [[ "$lower" == warn* ]] || [[ "$lower" == *" error "* ]] || [[ "$lower" == error* ]] || [[ "$lower" == *"forbidden"* ]] || [[ "$lower" == *"unauthorized"* ]] || [[ "$lower" == *"failed"* ]] || [[ "$lower" == *"challenge"* ]]
+}
+
+log_raw_diagnostic_line() {
+  local line
+  line="$(truncate_inline_text "${1:-}" 220)"
+  [[ -z "$line" ]] && return
+  if should_log_raw_line "$line"; then
+    log_activity "RAW $line"
+    log_error "RAW DIAG: $line"
+    append_event "raw_diag" "$(jq -nc --arg text "$line" '{text:$text}')"
   fi
 }
 
@@ -260,6 +281,11 @@ process_line() {
   # Skip empty lines
   [[ -z "$line" ]] && return
 
+  if ! echo "$line" | jq -e '.' >/dev/null 2>&1; then
+    log_raw_diagnostic_line "$line"
+    return
+  fi
+
   if [[ "$line" == *"<ralph>COMPLETE</ralph>"* ]]; then
     log_activity "✅ Agent signaled COMPLETE"
     append_event "ralph_complete" "null"
@@ -273,6 +299,7 @@ process_line() {
   fi
 
   # Parse JSON type
+  JSON_EVENTS_SEEN=1
   local type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null) || return
   local subtype=$(echo "$line" | jq -r '.subtype // empty' 2>/dev/null) || true
   
@@ -498,6 +525,10 @@ main() {
   
   # Final token status
   log_token_status
+  if [[ "$JSON_EVENTS_SEEN" -eq 0 ]]; then
+    log_error "STREAM PARSER: no JSON events were parsed from codex output"
+    append_event "stream_no_json" "null"
+  fi
 }
 
 main

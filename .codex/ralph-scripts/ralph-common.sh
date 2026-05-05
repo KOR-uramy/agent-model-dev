@@ -982,6 +982,12 @@ run_iteration() {
   fi
 
   if [[ -z "$signal" ]] && [[ $agent_rc -ne 0 ]]; then
+    local last_message_excerpt=""
+    if [[ -s "$last_message" ]]; then
+      last_message_excerpt="$(tail -c 400 "$last_message" 2>/dev/null | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')"
+    fi
+    log_error "$workspace" "AGENT EXIT: codex exec exited with status $agent_rc${last_message_excerpt:+ · last message: $last_message_excerpt}"
+    log_activity "$workspace" "🚨 AGENT EXIT: codex exec status $agent_rc"
     signal="GUTTER"
   fi
 
