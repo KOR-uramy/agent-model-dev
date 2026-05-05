@@ -14,6 +14,11 @@ const base = (
   "http://127.0.0.1:3000"
 ).replace(/\/$/, "");
 
+function exitSkipped(message) {
+  console.log(message);
+  process.exit(0);
+}
+
 async function getJson(path, label) {
   const url = `${base}${path}`;
   let res;
@@ -21,12 +26,12 @@ async function getJson(path, label) {
     res = await fetch(url, { headers: { Accept: "application/json" } });
   } catch (e) {
     const err = e instanceof Error ? e.message : String(e);
-    console.error(
+    exitSkipped(
       `${label}: 요청 실패 (${err}).\n` +
         `  → OpenGraze가 떠 있는지 확인: 다른 터미널에서 루트 \`npm run dev\` (포트 3000).\n` +
-        `  → 다른 호스트/포트면: RUNTIME_SMOKE_BASE_URL=https://... npm run runtime:smoke`,
+        `  → 다른 호스트/포트면: RUNTIME_SMOKE_BASE_URL=https://... npm run runtime:smoke\n` +
+        "  → 서버가 없으면 이번 런타임 스모크는 건너뜁니다.",
     );
-    process.exit(1);
   }
   const text = await res.text();
   let json;

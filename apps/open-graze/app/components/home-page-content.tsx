@@ -3,9 +3,12 @@
 import { HomeLandingColumn } from "@/app/components/home-landing-column";
 import { HomeTimelineSection } from "@/app/components/home-timeline-section";
 import { AppChrome } from "@/app/components/app-chrome";
-import { buildHomeViewAbsoluteUrl } from "@/lib/home-view-url";
+import {
+  buildHomeViewAbsoluteUrl,
+  hasActiveHomeViewFilters,
+} from "@/lib/home-view-url";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   parseRoleQueryParam,
   parseSessionIdQueryParam,
@@ -76,6 +79,28 @@ export function HomePageContent() {
     sessionIdFilter,
     sourceFilter,
   ]);
+
+  const currentFilterSnapshot = useMemo(
+    () => ({
+      role: roleFilter,
+      sessionId: sessionIdFilter,
+      fromIso: fromToFilter?.fromIso ?? null,
+      toIso: fromToFilter?.toIso ?? null,
+      source: sourceFilter,
+    }),
+    [
+      fromToFilter?.fromIso,
+      fromToFilter?.toIso,
+      roleFilter,
+      sessionIdFilter,
+      sourceFilter,
+    ],
+  );
+
+  const hasActiveFilters = useMemo(
+    () => hasActiveHomeViewFilters(currentFilterSnapshot),
+    [currentFilterSnapshot],
+  );
 
   useEffect(() => {
     const raw = searchParams.get("role");
@@ -165,6 +190,17 @@ export function HomePageContent() {
     [pathname, router, searchParams],
   );
 
+  const clearAllFilters = useCallback(() => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("role");
+    next.delete("sessionId");
+    next.delete("from");
+    next.delete("to");
+    next.delete("source");
+    const q = next.toString();
+    router.replace(q ? `${pathname}?${q}` : pathname || "/", { scroll: false });
+  }, [pathname, router, searchParams]);
+
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [knownSessionIds, setKnownSessionIds] = useState<string[]>([]);
@@ -173,6 +209,38 @@ export function HomePageContent() {
   const [toDraft, setToDraft] = useState("");
   const [copyDone, setCopyDone] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const didEmitOpenSignalRef = useRef(false);
+
+  const emitHomeViewSignal = useCallback(
+    async (kind: "home_view_opened" | "home_view_copied") => {
+      if (!hasActiveHomeViewFilters(currentFilterSnapshot)) return;
+      try {
+        const qs = new URLSearchParams({
+          tail: "1",
+          auditKind: kind,
+          auditOnly: "1",
+        });
+        if (currentFilterSnapshot.role) qs.set("role", currentFilterSnapshot.role);
+        if (currentFilterSnapshot.sessionId) {
+          qs.set("sessionId", currentFilterSnapshot.sessionId);
+        }
+        if (currentFilterSnapshot.fromIso && currentFilterSnapshot.toIso) {
+          qs.set("from", currentFilterSnapshot.fromIso);
+          qs.set("to", currentFilterSnapshot.toIso);
+        }
+        if (currentFilterSnapshot.source) {
+          qs.set("source", currentFilterSnapshot.source);
+        }
+        await fetch(`/api/ralph/events?${qs.toString()}`, {
+          method: "GET",
+          keepalive: true,
+        });
+      } catch {
+        /* best-effort only */
+      }
+    },
+    [currentFilterSnapshot],
+  );
 
   const applyFromToDraftToUrl = useCallback(() => {
     const next = new URLSearchParams(searchParams.toString());
@@ -233,6 +301,7 @@ export function HomePageContent() {
     if (!currentViewUrl) return;
     try {
       await navigator.clipboard.writeText(currentViewUrl);
+      await emitHomeViewSignal("home_view_copied");
       setCopyDone(true);
       setCopyError(null);
       window.setTimeout(() => setCopyDone(false), 2000);
@@ -240,7 +309,14 @@ export function HomePageContent() {
       setCopyDone(false);
       setCopyError("클립보드 접근이 막혀 URL을 직접 복사해야 합니다.");
     }
-  }, [currentViewUrl]);
+  }, [currentViewUrl, emitHomeViewSignal]);
+
+  useEffect(() => {
+    if (didEmitOpenSignalRef.current) return;
+    didEmitOpenSignalRef.current = true;
+    if (!hasActiveFilters) return;
+    void emitHomeViewSignal("home_view_opened");
+  }, [emitHomeViewSignal, hasActiveFilters]);
 
   useEffect(() => {
     void load();
@@ -301,10 +377,13 @@ export function HomePageContent() {
           setSourceQuery={setSourceQuery}
           fromDraft={fromDraft}
           toDraft={toDraft}
+          appliedFromIso={fromToFilter?.fromIso ?? null}
+          appliedToIso={fromToFilter?.toIso ?? null}
           setFromDraft={setFromDraft}
           setToDraft={setToDraft}
           applyFromToDraftToUrl={applyFromToDraftToUrl}
           clearFromToQuery={clearFromToQuery}
+          clearAllFilters={clearAllFilters}
         />
       </main>
     </AppChrome>

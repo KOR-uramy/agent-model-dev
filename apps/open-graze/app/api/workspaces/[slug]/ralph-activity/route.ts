@@ -1,5 +1,8 @@
 import { auth } from "@/auth";
-import { readRalphActivityLog } from "@/lib/ralph-activity-log";
+import {
+  readRalphActivityLog,
+  readRalphCurrentSession,
+} from "@/lib/ralph-activity-log";
 import { requireWorkspaceMember } from "@/lib/workspace-access";
 import { NextResponse } from "next/server";
 
@@ -17,6 +20,9 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const snapshot = await readRalphActivityLog();
-  return NextResponse.json(snapshot);
+  const [snapshot, currentSession] = await Promise.all([
+    readRalphActivityLog(),
+    readRalphCurrentSession(),
+  ]);
+  return NextResponse.json({ ...snapshot, currentSession });
 }

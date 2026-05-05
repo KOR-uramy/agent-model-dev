@@ -12,6 +12,8 @@ import {
 import { parseRoleQueryParam } from "ralph-workspace-sdk";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * 동기화된 Ralph/SQLite 타임라인을 `from`·`to`(ISO 8601)로 잘라 반환합니다.
  * 본문은 **객체**(`events`, `truncated`, `returnedCount`)이며, SQLite `LIMIT`에 닿아도 **항상 HTTP 200**

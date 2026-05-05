@@ -9,6 +9,8 @@ import { digestToken } from "@/lib/tokens";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const bodySchema = z.object({
   kind: z.string().min(1).max(120),
   data: z.record(z.string(), z.unknown()).optional(),

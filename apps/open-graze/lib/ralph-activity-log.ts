@@ -16,6 +16,14 @@ export function resolveRalphActivityLogPath(): string {
   return join(resolveRalphWorkspaceRoot(), ".ralph", "activity.log");
 }
 
+export function resolveRalphCurrentGoalPath(): string {
+  return join(resolveRalphWorkspaceRoot(), ".ralph", "current-goal.txt");
+}
+
+export function resolveRalphCurrentSessionPath(): string {
+  return join(resolveRalphWorkspaceRoot(), ".ralph", "current-session.json");
+}
+
 export type RalphActivityLogSnapshot = {
   path: string;
   exists: boolean;
@@ -43,6 +51,24 @@ export type RalphActivityStatus = {
     assistKb: number | null;
     shellKb: number | null;
   };
+};
+
+export type RalphCurrentSessionSnapshot = {
+  goalPath: string;
+  sessionPath: string;
+  exists: boolean;
+  updatedAt: string | null;
+  goal: string | null;
+  session: {
+    updatedAt: string | null;
+    workspace: string | null;
+    iteration: number | null;
+    role: string | null;
+    roleLabel: string | null;
+    model: string | null;
+    goal: string | null;
+    forcedErrorRecovery: boolean;
+  } | null;
 };
 
 const TOKEN_STATUS_RE =
@@ -193,6 +219,60 @@ export async function readRalphActivityLog(
       hiddenCounts: { token: 0, banner: 0, noisy: 0 },
       status: null,
       workLogHint: null,
+    };
+  }
+}
+
+function toNullableString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+function toNullableNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function toBoolean(value: unknown): boolean {
+  return value === true;
+}
+
+export async function readRalphCurrentSession(): Promise<RalphCurrentSessionSnapshot> {
+  const goalPath = resolveRalphCurrentGoalPath();
+  const sessionPath = resolveRalphCurrentSessionPath();
+
+  try {
+    const [goalRaw, sessionRaw, info] = await Promise.all([
+      readFile(goalPath, "utf8").catch(() => ""),
+      readFile(sessionPath, "utf8"),
+      stat(sessionPath),
+    ]);
+    const parsed = JSON.parse(sessionRaw) as Record<string, unknown>;
+    const fallbackGoal = goalRaw.trim() || null;
+    const goal = toNullableString(parsed.goal) ?? fallbackGoal;
+    return {
+      goalPath,
+      sessionPath,
+      exists: true,
+      updatedAt: info.mtime.toISOString(),
+      goal,
+      session: {
+        updatedAt: toNullableString(parsed.updatedAt),
+        workspace: toNullableString(parsed.workspace),
+        iteration: toNullableNumber(parsed.iteration),
+        role: toNullableString(parsed.role),
+        roleLabel: toNullableString(parsed.roleLabel),
+        model: toNullableString(parsed.model),
+        goal,
+        forcedErrorRecovery: toBoolean(parsed.forcedErrorRecovery),
+      },
+    };
+  } catch {
+    return {
+      goalPath,
+      sessionPath,
+      exists: false,
+      updatedAt: null,
+      goal: null,
+      session: null,
     };
   }
 }

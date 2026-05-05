@@ -56,6 +56,23 @@ type RalphActivityLog = {
     };
   } | null;
   workLogHint: string | null;
+  currentSession?: {
+    goalPath: string;
+    sessionPath: string;
+    exists: boolean;
+    updatedAt: string | null;
+    goal: string | null;
+    session: {
+      updatedAt: string | null;
+      workspace: string | null;
+      iteration: number | null;
+      role: string | null;
+      roleLabel: string | null;
+      model: string | null;
+      goal: string | null;
+      forcedErrorRecovery: boolean;
+    } | null;
+  };
 };
 type TaskRow = {
   id: string;
@@ -65,6 +82,8 @@ type TaskRow = {
   createdAt: string;
   updatedAt: string;
 };
+
+const CURRENT_SESSION_ACTIVE_WINDOW_MS = 10 * 60 * 1000;
 
 export default function WorkspaceDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -203,6 +222,38 @@ export default function WorkspaceDetailPage() {
         : null,
     ].filter(Boolean);
     return parts.join(" · ");
+  }
+
+  function currentGoalBadge(activity: RalphActivityLog | null) {
+    const session = activity?.currentSession?.session;
+    const updatedAt = activity?.currentSession?.updatedAt;
+    if (!session || !updatedAt) {
+      return {
+        label: "대기 중",
+        className:
+          "border-neutral-300/80 bg-neutral-100 text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-300",
+      };
+    }
+    if (session.forcedErrorRecovery) {
+      return {
+        label: "에러 복구 중",
+        className:
+          "border-amber-300/80 bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100",
+      };
+    }
+    const ageMs = Date.now() - new Date(updatedAt).getTime();
+    if (Number.isFinite(ageMs) && ageMs <= CURRENT_SESSION_ACTIVE_WINDOW_MS) {
+      return {
+        label: "진행 중",
+        className:
+          "border-emerald-300/80 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100",
+      };
+    }
+    return {
+      label: "대기 중",
+      className:
+        "border-neutral-300/80 bg-neutral-100 text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-300",
+    };
   }
 
   async function copyNewTokenOnly() {
@@ -529,6 +580,48 @@ export default function WorkspaceDetailPage() {
           {keys.length === 0 ? (
             <p className="mt-3 text-center text-xs text-muted">아직 발급된 키가 없습니다. 위에서 이름을 넣고 새 키를 만드세요.</p>
           ) : null}
+        </section>
+
+        <section className={`mt-8 ${surfaceCard}`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className={sectionEyebrow}>현재 작업 목표</h2>
+              <p className={proseMutedSm}>
+                Ralph가 이번 세션에서 무엇을 하려는지 자연어 목표를 별도 파일에서 읽어 보여 줍니다.{" "}
+                <code className={codeInline}>.ralph/current-goal.txt</code>와{" "}
+                <code className={codeInline}>.ralph/current-session.json</code> 기준입니다.
+              </p>
+            </div>
+            <span
+              className={`rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.12em] ${currentGoalBadge(ralphActivity).className}`}
+            >
+              {currentGoalBadge(ralphActivity).label}
+            </span>
+          </div>
+          {ralphActivity?.currentSession?.updatedAt ? (
+            <p className="mt-2 text-xs text-muted">
+              마지막 갱신: {new Date(ralphActivity.currentSession.updatedAt).toLocaleString()} ·{" "}
+              <code className={codeInline}>{ralphActivity.currentSession.sessionPath}</code>
+            </p>
+          ) : null}
+          <div className="mt-4 rounded-xl border border-[var(--list-border)] bg-neutral-50/80 p-4 dark:bg-neutral-950/80">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">목표</p>
+            <p className="mt-2 text-sm leading-6 text-foreground">
+              {ralphActivity == null
+                ? "불러오는 중…"
+                : ralphActivity.currentSession?.exists
+                  ? ralphActivity.currentSession.goal || "현재 목표 문구가 아직 없습니다."
+                  : "current-goal/current-session 파일이 아직 없습니다."}
+            </p>
+            {ralphActivity?.currentSession?.session ? (
+              <p className="mt-3 text-xs text-muted">
+                역할 {ralphActivity.currentSession.session.roleLabel ?? ralphActivity.currentSession.session.role ?? "—"} · iteration{" "}
+                {ralphActivity.currentSession.session.iteration ?? "—"} · model{" "}
+                {ralphActivity.currentSession.session.model ?? "—"}
+                {ralphActivity.currentSession.session.forcedErrorRecovery ? " · error recovery" : ""}
+              </p>
+            ) : null}
+          </div>
         </section>
 
         <section className={`mt-8 ${surfaceCard}`}>

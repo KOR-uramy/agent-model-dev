@@ -573,14 +573,17 @@ main() {
   echo "" >> "$RALPH_DIR/activity.log"
   echo "═══════════════════════════════════════════════════════════════" >> "$RALPH_DIR/activity.log"
   echo "Ralph Session Started: $(date) · session=${RALPH_SESSION_ID} · role=${RALPH_ROLE:-mono}" >> "$RALPH_DIR/activity.log"
+  if [[ -n "${RALPH_SESSION_GOAL:-}" ]]; then
+    echo "Goal: $(truncate_inline_text "$RALPH_SESSION_GOAL" 220)" >> "$RALPH_DIR/activity.log"
+  fi
   echo "═══════════════════════════════════════════════════════════════" >> "$RALPH_DIR/activity.log"
   archive_old_activity_sessions
   trim_file_to_last_lines "$RALPH_DIR/activity.log" "$ACTIVITY_LOG_MAX_LINES"
 
   if [[ -n "${RALPH_ROLE:-}" ]]; then
-    append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" --arg role "$RALPH_ROLE" '{workspace:$ws,sessionId:$sid,role:$role}')"
+    append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" --arg role "$RALPH_ROLE" --arg goal "${RALPH_SESSION_GOAL:-}" '{workspace:$ws,sessionId:$sid,role:$role,goal:$goal}')"
   else
-    append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" '{workspace:$ws,sessionId:$sid}')"
+    append_event "session_start" "$(jq -nc --arg ws "$WORKSPACE" --arg sid "$RALPH_SESSION_ID" --arg goal "${RALPH_SESSION_GOAL:-}" '{workspace:$ws,sessionId:$sid,goal:$goal}')"
   fi
   
   # Track last token log time

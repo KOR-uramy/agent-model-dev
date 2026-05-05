@@ -165,15 +165,10 @@ export async function loadTimelineFromDb(
       range.fromIso,
       range.toIso,
       t,
-      { role, sessionId, newestFirst: true },
+      { role, sessionId, source, newestFirst: true },
     );
-    let merged = events;
-    let sourceFilterEmpty = false;
-    if (source) {
-      const before = merged.length;
-      merged = merged.filter((e) => e.source === source);
-      if (before > 0 && merged.length === 0) sourceFilterEmpty = true;
-    }
+    const merged = events;
+    const sourceFilterEmpty = Boolean(source && events.length === 0);
     const rawEmpty = events.length === 0;
     const empty = rawEmpty;
     const sessionFilterMiss = Boolean(sessionId && empty);

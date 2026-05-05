@@ -43,10 +43,13 @@ export function HomeTimelineSection({
   setSourceQuery,
   fromDraft,
   toDraft,
+  appliedFromIso,
+  appliedToIso,
   setFromDraft,
   setToDraft,
   applyFromToDraftToUrl,
   clearFromToQuery,
+  clearAllFilters,
 }: {
   data: ApiPayload | null;
   events: WorkspaceFeedEvent[];
@@ -66,11 +69,22 @@ export function HomeTimelineSection({
   setSourceQuery: (v: EventSource | null) => void;
   fromDraft: string;
   toDraft: string;
+  appliedFromIso: string | null;
+  appliedToIso: string | null;
   setFromDraft: (v: string) => void;
   setToDraft: (v: string) => void;
   applyFromToDraftToUrl: () => void;
   clearFromToQuery: () => void;
+  clearAllFilters: () => void;
 }) {
+  const activeFilterCount = [
+    roleFilter,
+    sessionIdFilter,
+    sourceFilter,
+    appliedFromIso && appliedToIso ? "range" : null,
+  ].filter(Boolean).length;
+  const showFilterSummary = activeFilterCount > 0;
+
   return (
     <>
       <div className="mx-auto mt-14 max-w-4xl overflow-hidden rounded-[var(--radius-lg)] border border-[var(--list-border)] bg-card shadow-[var(--shadow-card)]">
@@ -194,6 +208,67 @@ export function HomeTimelineSection({
             </label>
           </div>
         </div>
+        {showFilterSummary ? (
+          <div className="border-b border-[var(--list-border)] bg-neutral-50/70 px-5 py-3 dark:bg-neutral-950/30">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                <span className="font-semibold text-foreground">
+                  적용 중 필터
+                </span>
+                <span>결과 {events.length.toLocaleString()}건</span>
+                {roleFilter ? (
+                  <button
+                    type="button"
+                    onClick={() => setRoleQuery(null)}
+                    className="rounded-full border border-[var(--list-border)] bg-background px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm transition hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                  >
+                    역할 {ROLE_LABEL_KO[roleFilter]} ×
+                  </button>
+                ) : null}
+                {sessionIdFilter ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSessionManual("");
+                      setSessionIdQuery(null);
+                    }}
+                    className="rounded-full border border-[var(--list-border)] bg-background px-2.5 py-1 font-mono text-[11px] font-medium text-foreground shadow-sm transition hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                  >
+                    세션 {shortenPath(sessionIdFilter, 28)} ×
+                  </button>
+                ) : null}
+                {sourceFilter ? (
+                  <button
+                    type="button"
+                    onClick={() => setSourceQuery(null)}
+                    className="rounded-full border border-[var(--list-border)] bg-background px-2.5 py-1 text-[11px] font-medium text-foreground shadow-sm transition hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                  >
+                    채널 {SOURCE_LABEL_KO[sourceFilter]} ×
+                  </button>
+                ) : null}
+                {appliedFromIso && appliedToIso ? (
+                  <button
+                    type="button"
+                    onClick={() => clearFromToQuery()}
+                    className="rounded-full border border-[var(--list-border)] bg-background px-2.5 py-1 font-mono text-[11px] font-medium text-foreground shadow-sm transition hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                  >
+                    구간 {appliedFromIso} → {appliedToIso} ×
+                  </button>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSessionManual("");
+                  clearAllFilters();
+                }}
+                className="self-start rounded-full border border-dashed border-neutral-400 px-3 py-1 text-[11px] font-semibold text-muted transition hover:border-neutral-500 hover:text-foreground dark:border-neutral-600"
+              >
+                전체 초기화
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-2 border-b border-[var(--list-border)] bg-neutral-50/40 px-5 py-3 dark:bg-neutral-950/20">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
             구간 (UTC, ISO 8601) — 비우면 전체 기간

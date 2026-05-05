@@ -22,6 +22,10 @@ export function buildHomeViewSearchString(f: HomeViewUrlFilters): string {
   return q.toString();
 }
 
+export function hasActiveHomeViewFilters(f: HomeViewUrlFilters): boolean {
+  return buildHomeViewSearchString(f) !== "";
+}
+
 /** `pathname`은 보통 `/` */
 export function buildHomeViewAbsoluteUrl(
   origin: string,

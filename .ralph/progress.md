@@ -671,3 +671,209 @@
 
 ### 2026-05-05 22:35:24
 **Session 2 started** — 역할: 디자인 (`design`) · model: auto
+
+### 2026-05-05 22:47:06
+**Session 1 started** — 역할: 기획 (`planning`) · model: auto
+
+### 2026-05-05 22:52:00
+**역할: 기획 (planning)\**
+
+- **감시 요약**: `RALPH_TASK.md`, `docs/ralph-guardrails.md`, 최근 `.ralph/progress.md`/`.ralph/errors.log`, `git log` 기준으로 다시 확인했다. 활성 에러는 없고 `.ralph/errors.log`는 `ACTIVE ERRORS CLEARED` 상태다.
+- **본질 기준 판단**: 남은 `[ ]` 3개는 모두 같은 북극성인 **동일 시간축에서 역할·세션·채널 뷰를 URL만으로 재현하고 신뢰 가능하게 만드는 일**에 직접 연결된다. 이번 planning 이터에서는 새 체크를 추가하지 않고, 기존 3개를 닫는 조건을 더 분명히 하는 데만 머문다.
+- **우선순위**: 1) `source` 계약 일관성(API 400 / UI 키 제거), 2) `from`·`to` 절대시간 쌍 규칙(단독 무효 / 쌍 입력 시 UTC `Z` 정규화), 3) “현재 뷰 복사”가 앞선 정규화 결과를 그대로 실어 동일 뷰를 복원하는지 확인.
+- **수용 힌트**: 테스트는 버튼 존재 여부보다 **정규화된 URL의 단일성**을 먼저 본다. 같은 필터 상태를 새 탭이나 시크릿 창에 열었을 때 주소창 쿼리와 표 행 집합이 같아야만 해당 3개를 `[x]`로 바꾼다.
+- **리스크**: `source`가 서버와 클라이언트에서 허용값을 다르게 해석하거나, `from`/`to`가 로컬 timezone 문자열로 남으면 감사 링크의 재현성이 깨진다. 복사 기능은 독립 기능이 아니라 이 두 계약 위에 얹힌 최종 검증 항목으로 취급해야 한다.
+- **다음 인계(디자인 → 테스트)**: 디자인은 현 UI 문구/컨트롤이 `role`·`sessionId`·`source`·`from`·`to` 상태를 오해 없이 드러내는지만 짧게 점검하면 충분하다. 테스트는 dev 서버에서 `source` 무효값 제거/400, `from` 또는 `to` 단독 제거, `from+to` UTC `Z` 정규화, 전체 필터 적용 후 복사 URL 재현 일치를 확인한 뒤에만 `RALPH_TASK.md`의 마지막 3개 `[ ]`를 `[x]`로 전환한다.
+- **Git 상태**: 이 환경에서는 `.git/` 쓰기 제한 가능성이 있어 커밋/푸시는 하지 않았다. 호스트 터미널에서 다음 역할 검증 후 커밋/푸시가 필요하다.
+
+### 2026-05-05 22:47:54
+**Session 1 ended** - Agent finished naturally (3 criteria remaining)
+
+### 2026-05-05 22:48:34
+**Session 2 started** — 역할: 디자인 (`design`) · model: auto
+
+### 2026-05-05 23:02:00
+**역할: 디자인 (design)\**
+
+- **감시 요약**: 최신 planning 항목(2026-05-05 22:52 KST)을 기준으로 `RALPH_TASK.md`, 최근 `.ralph/errors.log`, `git log -5 --oneline`, `git status`, 관련 코드([home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx), [home-timeline-section.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-timeline-section.tsx), [timeline-query-params.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-query-params.ts), [home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts), [timeline-feed.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-feed.ts), [events route](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts), [range route](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/range/route.ts))를 대조했다. planning은 새 코드 변경 없이 남은 3개 `[ ]`의 수용 조건을 좁히는 역할만 했고, 현재 워크트리의 변경도 `.ralph/progress.md`뿐이라 감시 결과는 **승인**이다.
+- **검증된 handoff 포인트**: `from`·`to`는 클라이언트에서 쌍으로만 유지되고 단독/불량 입력이면 URL 키를 제거하며, 유효 쌍이면 `toISOString()` 결과로 `Z` 정규화된다. `source` 허용값은 [timeline-query-params.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-query-params.ts)에 `EVENT_SOURCE_KEYS = ["ralph","application"]`로 단일화돼 있고, UI/두 API route가 같은 파서를 쓴다. “현재 뷰 URL 복사”는 [home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts)를 통해 현재 origin + pathname(`/`) + 활성 필터만 담는 절대 URL을 만든다.
+- **디자인 계약 정리**: 1) 사용자에게 보이는 용어는 `역할`, `세션`, `채널`, `구간 (UTC, ISO 8601)`으로 고정한다. 2) 구간 입력은 draft text를 허용하되, 적용 후 주소창이 canonical source of truth가 되며 invalid 상태를 계속 화면에 보존하지 않는다. 3) `source`는 드롭다운에서만 선택하게 두고, 외부에서 미지 값이 들어오면 조용히 “필터 해제” 상태로 돌아간다. 4) 복사 버튼의 성공 기준은 버튼 토스트가 아니라, 아래 read-only URL 필드와 새 창 재현이 동일한지다.
+- **구현/테스트용 파일 터치 기준**: 추가 수정이 필요하면 우선순위는 [timeline-query-params.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-query-params.ts) `→` [home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts) `→` [home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx) `→` `/api/ralph/events*` route 순서로 본다. 허용값 집합이나 URL 생성 규칙은 UI 컴포넌트 안에 중복 정의하지 않는다.
+- **남은 갭 / 보완 필요 없음**: planning 산출물은 구현 가능한 수준으로 충분하다. 현재 design 단계에서 되돌려야 할 모호성은 없다.
+- **다음 인계(implementation/test)**: 테스트 역할은 새 요구를 만들지 말고 4가지만 닫으면 된다. 1. `?from` 또는 `?to` 단독 입력 시 둘 다 주소창에서 제거되는지. 2. `from+to` 유효 쌍 입력 시 주소창이 UTC `Z`로 재기록되는지. 3. `source=` 빈 값/미지 값이 API 400이고, 홈 UI는 해당 키를 제거한 URL로 복구하는지. 4. `role`·`sessionId`·`from`·`to`·`source`를 모두 건 뒤 “현재 뷰 URL 복사”를 새 창에 붙였을 때 필터 UI와 행 집합이 일치하는지. 통과 전까지 `RALPH_TASK.md`의 마지막 3개 `[ ]`는 그대로 둔다.
+
+### 2026-05-05 22:49:53
+**Session 2 ended** - Agent finished naturally (3 criteria remaining)
+
+### 2026-05-05 22:50:33
+**Session 3 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:14:00
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 최신 디자인 항목(2026-05-05 23:02 KST)을 기준으로 `RALPH_TASK.md`, 최근 `.ralph/errors.log`, `git log -5 --oneline`, `git status`, 관련 코드([home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx), [home-timeline-section.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-timeline-section.tsx), [timeline-query-params.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-query-params.ts), [home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts), [timeline-feed.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-feed.ts), [events route](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts), [range route](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/range/route.ts))를 대조했다. 디자인이 정리한 계약과 실제 UI/API 구조는 일치했고, handoff는 **승인**이다.
+- **검증 중 발견한 갭**: 다만 구현 세부에서 `loadTimelineFromDb(..., range)` 경로가 `source` 필터를 SQLite range 조회에 넘기지 않고 메모리 후처리만 하고 있었다. 이 상태면 `from/to + source` 조합에서 `returnedCount`·`limit` 의미가 필터된 집합 기준으로 맞지 않을 수 있어, 디자인 handoff를 되돌릴 정도는 아니지만 구현 보완이 필요했다.
+- **이번 구현**: [apps/open-graze/lib/timeline-feed.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-feed.ts) 의 range 분기에서 `loadTimelineEventsInRange()` 호출에 `source`를 직접 전달하도록 수정했다. 동시에 range 경로의 중복 `source` 후필터를 제거해 `GET /api/ralph/events?from=...&to=...&source=...` 와 `GET /api/ralph/events/range?...&source=...` 모두 SQLite WHERE 기준의 일관된 카운트/잘림 의미를 갖게 했다.
+- **검증**: 루트 `npm run build` 성공(`ralph-workspace-sdk` `tsc`, `open-graze` Prisma generate + `rm -rf .next && next build` 모두 통과).
+- **체크박스 상태**: `RALPH_TASK.md`의 마지막 3개 `[ ]`는 브라우저/HTTP 실검증 전까지 유지한다. 구현은 닫혔지만 완료 판정은 아직 테스트 역할 몫이다.
+- **다음 인계(테스트)**: 1. `/`에서 `?from` 또는 `?to` 단독 입력 시 주소줄에서 둘 다 제거되는지 확인. 2. `from+to` 유효 쌍 입력 시 주소줄이 UTC `Z`로 정규화되고 새 창에서도 동일 뷰가 재현되는지 확인. 3. `source=` 빈 값·미지 값이 두 API에서 400이고, UI는 미지 `source`를 받은 URL에서 키를 제거하는지 확인. 4. `role`·`sessionId`·`from`·`to`·`source` 전부 적용 후 “현재 뷰 URL 복사”를 새 창에 붙였을 때 필터 UI와 행 집합이 일치하는지 확인. 통과 시에만 `RALPH_TASK.md` 151-153행을 `[x]`로 전환한다.
+
+### 2026-05-05 22:52:33
+**Session 3 ended** - Agent finished naturally (3 criteria remaining)
+
+### 2026-05-05 22:53:14
+**Session 4 started** — 역할: 테스트 (`test`) · model: auto
+
+### 2026-05-05 23:26:00
+**역할: 테스트 (test)\**
+
+- **감시 요약**: 최신 구현 항목(2026-05-05 23:14 KST)을 기준으로 `git status`, `git diff -- apps/open-graze/lib/timeline-feed.ts`, 관련 route/UI 파일을 대조했다. 구현 변경은 `loadTimelineFromDb(..., range)`가 `source`를 SQLite range WHERE에 직접 넘기도록 좁혀져 있었고, 남은 요구와 정확히 일치했다. 되돌릴 갭은 없어 handoff는 **승인**이다.
+- **구현 검증 범위**: [apps/open-graze/lib/timeline-feed.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-feed.ts), [apps/open-graze/lib/timeline-query-params.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-query-params.ts), [apps/open-graze/lib/home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts), [apps/open-graze/app/components/home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx), [apps/open-graze/app/api/ralph/events/route.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts), [apps/open-graze/app/api/ralph/events/range/route.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/range/route.ts)
+- **문서화된 체크 실행**: 루트 `npm test` 실행 성공. 내부적으로 `npm run test:compile` → `npm run build`가 돌아 `ralph-workspace-sdk` `tsc`와 `open-graze` `next build`가 모두 통과했다.
+- **실행 증거(API/정규화)**: 샌드박스에서 `next dev`는 `listen EPERM 0.0.0.0:3000`로 막혀 브라우저 스모크는 불가했다. 대신 빌드 산출물의 route handler를 직접 호출해 동일 경로를 검증했다. `POST /api/ralph/sync-jsonl` 상당 경로는 `200 {"ok":true,"inserted":614,"skipped":48,"tail":8000}`로 JSONL→SQLite 동기화가 됐다. `GET /api/ralph/events?tail=10&source=` 는 `400`, `GET /api/ralph/events/range?...&source=bogus` 도 `400`, `GET /api/ralph/events?from=2026-05-01T00:00:00Z` 는 `400`이었다. 동기화 뒤 `events-counts {"all":200,"application":1}` 로 `source` 필터 차이가 확인됐고, `range-counts {"all":200,"ralph":200,"truncatedAll":true,"truncatedRalph":true}` 로 range 응답도 `source` 조합 기준 `returnedCount`/`truncated`를 유지했다.
+- **실행 증거(UI가 쓰는 순수 함수)**: `parseTimelineRangeParams('2026-05-03T09:00:00+09:00','2026-05-03T10:30:00+09:00')` 결과는 `fromIso=2026-05-03T00:00:00.000Z`, `toIso=2026-05-03T01:30:00.000Z`로 UTC `Z` 정규화됐다. 같은 스크립트에서 `buildHomeViewAbsoluteUrl('http://localhost:3000','/',{ role:'planning', sessionId:'ralph-session-example', fromIso, toIso, source:'ralph' })` 는 `/` 절대 URL에 `role`·`sessionId`·`from`·`to`·`source`만 포함했고, `toIso`를 비우면 `from`/`to` 둘 다 빠졌다. [home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx) 의 `useEffect` 들은 invalid `role`/`sessionId`/`source`와 one-sided `from`/`to`를 주소줄에서 삭제하고, 유효한 `from`/`to`는 canonical `Z` 값으로 다시 쓰도록 연결돼 있다.
+- **체크박스 전환**: 위 증거 기준으로 `RALPH_TASK.md`의 `from`·`to` URL 동기화, `source` 필터, “현재 뷰 URL 복사” 3개를 `[x]`로 전환했다.
+- **성장 루프 기록**: 비교 SaaS는 Grafana Explore, Sentry Discover, Datadog Log Explorer로 잡았다. UI는 활성 필터 가시성이 약하고, UX는 invalid URL 정리 이유가 사용자에게 드러나지 않으며, 디자인은 필터 스코프 위계가 약하다. 수익화는 공유 가능한 조사 뷰를 팀 기능으로 포장하지 못하고, 트래픽·운영은 복사/열림 사용량 신호가 없으며, 마케팅은 “감사 링크” 사례를 전면에 내세우지 못한다. 이를 반영해 `RALPH_TASK.md`에 새 `[ ]` 3개(적용 중 필터 요약 바, 공유 URL 사용 신호, 감사 링크 사례 추가)를 넣었다.
+- **다음 인계(기획/디자인)**: 다음 루프는 새 성장 항목 3개 중 우선순위를 정리하면 된다. 1순위는 `/`의 적용 중 필터 요약 바, 2순위는 공유 URL 복사/열림 신호, 3순위는 README/랜딩의 감사 링크 사례 보강이다.
+- **Git 상태**: 이 환경은 `.git/` 쓰기 제한 가능성이 있어 커밋/푸시는 수행하지 않았다. 호스트 터미널에서 `RALPH_TASK.md`, `.ralph/progress.md`, `apps/open-graze/lib/timeline-feed.ts` 변경분을 커밋/푸시해야 다음 역할이 원격 기준으로 이어받을 수 있다.
+
+### 2026-05-05 22:59:27
+**Session 4 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:00:03
+**Session 5 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:00:03
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:56:00
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 최신 테스트 항목(2026-05-05 23:26 KST)을 기준으로 `RALPH_TASK.md`, 최근 `.ralph/progress.md`/`.ralph/errors.log`, `git diff`, 관련 홈 타임라인 코드와 README를 대조했다. 테스트는 `RALPH_TASK.md`의 직전 3개 `[ ]`를 실제 검증 근거와 함께 `[x]`로 닫고 새 성장 항목 3개를 추가했으며, 워크트리 변경도 그 설명과 일치했다. handoff는 **승인**이다.
+- **에러 큐 판정(우선 처리)**: `sed -n '1,260p' apps/open-graze/lib/timeline-sync.ts` 실패는 재현됐고 원인은 단순 경로 오타였다. 실제 파일은 없고 관련 구현은 [apps/open-graze/lib/timeline-feed.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-feed.ts) 쪽에 있으므로 제품 blocker는 아니었다. 뒤의 빌드 산출물 route 호출 실패는 현재 산출물 기준으로 재현되지 않아 stale/truncated 로그로 분류했고, 대신 같은 문제를 다시 만들지 않도록 [docs/ralph-guardrails.md](/Users/uram/dev/agent-model-dev/docs/ralph-guardrails.md) 에 **경로 확인 후 로그 재현** sign을 추가했다.
+- **이번 구현**: [apps/open-graze/app/components/home-timeline-section.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-timeline-section.tsx) 에 활성 필터 요약 바를 추가해 `role`·`sessionId`·`source`·`from/to`가 적용될 때 결과 건수와 함께 칩으로 노출하고, 각 칩 또는 전체 초기화로 원클릭 해제할 수 있게 했다. [apps/open-graze/app/components/home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx) / [apps/open-graze/lib/home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts) 에서는 현재 필터 스냅샷을 공통으로 계산해, 필터가 있는 URL로 홈을 열거나 “현재 뷰 URL 복사”를 누를 때 일회성 audit 요청을 보낸다. 이 신호는 새 route를 만들지 않고 [apps/open-graze/app/api/ralph/events/route.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts) 의 `auditKind`/`auditOnly=1` 쿼리로 받아 서버 `console.info` JSON 로그(`event: "home_view_signal"`)를 남기게 했다.
+- **문서/마케팅 보강**: [apps/open-graze/README.md](/Users/uram/dev/agent-model-dev/apps/open-graze/README.md) 에 역할·세션·채널·시간축이 고정된 감사 링크 사례를 추가했고, 필터 URL 열림/복사 시 `home_view_signal` 로그를 dev 서버 터미널에서 확인하는 절차도 적었다.
+- **검증**: 루트 `npm run build` 성공. 루트 `npm test` 성공(`test:compile` → 전체 build 재통과). 루트 `npm run runtime:smoke` 는 `http://127.0.0.1:3000` 에 서버가 떠 있지 않아 한 줄 안내와 함께 종료됐다(코드 실패 아님, 로컬 dev 서버 미기동 상태).
+- **체크박스 상태**: 구현은 남은 성장 항목 3개를 모두 코드/문서 수준에서 건드렸지만, 아직 브라우저 실검증과 로그 확인이 없으므로 `RALPH_TASK.md`의 새 `[ ]`는 그대로 둔다.
+- **다음 인계(테스트)**: 1. `/`에서 필터를 하나씩 적용해 요약 바가 숨김/표시 규칙을 지키는지, 각 칩과 “전체 초기화”가 URL·표 결과 건수를 함께 갱신하는지 확인. 2. 필터가 포함된 홈 URL로 진입했을 때 dev 서버 로그에 `home_view_signal` + `kind: "home_view_opened"` + 정규화된 `filters.*` 가 남는지 확인. 3. “현재 뷰 URL 복사” 클릭 시 같은 로그에 `kind: "home_view_copied"` 가 남는지 확인. 4. README의 감사 링크 사례와 검증 절차가 실제 UI/로그와 맞으면 그때 `RALPH_TASK.md`의 최신 3개 `[ ]`를 `[x]`로 전환.
+- **Git 상태**: 이 환경은 여전히 `.git/` 쓰기 제한 가능성이 있어 커밋/푸시는 수행하지 않았다. 호스트 터미널에서 `apps/open-graze/*`, `docs/ralph-guardrails.md`, `RALPH_TASK.md`, `.ralph/progress.md` 변경분을 커밋/푸시해야 다음 역할이 원격 기준으로 이어받을 수 있다.
+
+### 2026-05-05 23:07:35
+**Session 5 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:08:16
+**Session 6 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:08:16
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:18:00
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: `.ralph/progress.md`를 아래에서부터 읽어 최신 planning 항목(2026-05-05 22:52 KST)과 그 뒤 design/test/implementation 메모를 대조했다. `git status`와 관련 diff 기준으로 planning이 새 요구를 늘리지 않고 마지막 성장 항목 3개의 수용 조건만 좁혔다는 점, 그리고 이후 실제 변경이 홈 타임라인 필터 요약 바·감사 URL 사용 신호·README 사례 추가로 이어졌다는 점을 확인했다. handoff는 **승인**이다.
+- **오류 재현 결과**: `.ralph/errors.log`의 `npm run build` 실패는 현재 재현되지 않았고, 루트 `npm run build`는 다시 통과했다. `npm run runtime:smoke`는 여전히 `http://127.0.0.1:3000` 서버 미기동 때문에 종료됐으므로 코드 blocker가 아니라 **로컬 dev 서버 필요** 상태로 분류한다. `timeline-sync.ts` 관련 `sed` 실패는 기존 guardrail대로 stale path 문제로 본다.
+- **구현 판정**: [apps/open-graze/app/components/home-timeline-section.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-timeline-section.tsx), [apps/open-graze/app/components/home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx), [apps/open-graze/app/api/ralph/events/route.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts), [apps/open-graze/lib/home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts), [apps/open-graze/lib/timeline-feed.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-feed.ts), [apps/open-graze/README.md](/Users/uram/dev/agent-model-dev/apps/open-graze/README.md) 변경은 현재 체크박스 3개와 정확히 대응한다. 이번 구현 이터에서 추가 코드 수정은 하지 않았고, 현 상태를 테스트 역할이 실브라우저/로그 기준으로 닫을 수 있게 정리하는 쪽이 맞다.
+- **검증**: `npm run build` 성공. `npm run runtime:smoke`는 서버 미기동 안내 후 종료(코드 실패 아님).
+- **다음 인계(테스트)**: 1. `/`에서 필터를 하나라도 적용하면 요약 바가 나타나고, 각 칩/`전체 초기화`가 URL과 결과 건수를 함께 갱신하는지 본다. 2. 필터가 포함된 홈 URL로 진입했을 때 dev 서버 로그에 `home_view_signal` + `kind: "home_view_opened"` + 정규화된 `filters.*`가 남는지 확인한다. 3. `현재 뷰 URL 복사` 클릭 시 같은 로그에 `kind: "home_view_copied"`가 남는지 확인한다. 4. README의 감사 링크 사례와 로그 확인 절차가 실제 UI/로그와 맞으면 `RALPH_TASK.md`의 최신 3개 `[ ]`를 `[x]`로 전환한다.
+- **Git 상태**: 이 환경에서는 `.git/` 쓰기 제한 가능성이 있어 커밋/푸시는 수행하지 않았다. 호스트 터미널에서 변경분 커밋/푸시가 필요하다.
+
+### 2026-05-05 23:09:53
+**Session 6 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:10:32
+**Session 7 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:10:32
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:34:00
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: `.ralph/progress.md`를 아래에서부터 읽어 최신 디자인 항목(2026-05-05 23:02 KST)과 그 뒤 테스트/구현 기록을 다시 대조했다. `git diff` 기준 실제 변경은 [apps/open-graze/app/components/home-timeline-section.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-timeline-section.tsx), [apps/open-graze/app/components/home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx), [apps/open-graze/lib/home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts), [apps/open-graze/app/api/ralph/events/route.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts), [apps/open-graze/README.md](/Users/uram/dev/agent-model-dev/apps/open-graze/README.md), [apps/open-graze/lib/timeline-feed.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-feed.ts)에 모여 있었고, 직전 디자인이 정의한 필터 요약 바/감사 URL 신호/README 사례 추가와 일치했다. handoff는 **승인**이다.
+- **오류 재현 결과**: `sed ... apps/open-graze/lib/timeline-sync.ts` 실패는 stale 경로였고 제품 blocker가 아니었다. `npm run build`는 현재 재현되지 않고 정상 통과했다. `npm run runtime:smoke`는 여전히 `http://127.0.0.1:3000` 접속 실패로 끝났고, 원인을 추적하기 위해 `npm run dev`와 `HOST=127.0.0.1 PORT=3000 npm run dev -w open-graze`를 직접 실행한 결과 둘 다 `listen EPERM: operation not permitted 0.0.0.0:3000`로 동일하게 실패했다. 따라서 활성 오류는 앱 코드가 아니라 **샌드박스 포트 바인드 제약**이다.
+- **이번 구현 작업**: 제품 코드 추가 수정은 하지 않았다. 대신 같은 실패를 다음 이터가 다시 코드 문제로 오판하지 않도록 [docs/ralph-guardrails.md](/Users/uram/dev/agent-model-dev/docs/ralph-guardrails.md)에 `listen EPERM`용 Sign과 `next dev`/`next build` 병렬 금지 Sign을 추가했다.
+- **검증**: 루트 `npm run build` 성공. 루트 `npm test`는 처음에 제가 `npm run dev`와 병렬로 실행해 `.next/server/app/_not-found/page.js.nft.json` ENOENT를 만들었지만, dev 재현을 종료한 뒤 **직렬로 다시 실행했을 때 성공**했다. 루트 `npm run runtime:smoke`는 로컬 서버 미기동으로 실패했고, dev 서버 직접 기동도 같은 `listen EPERM`으로 막혀 이 환경에서는 HTTP 스모크를 계속할 수 없었다.
+- **체크박스 상태**: 이번 구현 이터에서는 `RALPH_TASK.md`를 건드리지 않았다. 남은 성장 항목 3개는 이미 코드/문서 변경이 들어가 있으므로, 실제 브라우저/서버 로그 검증은 **테스트 역할이 호스트 터미널 또는 포트 바인드 가능한 환경에서** 마무리해야 한다.
+- **다음 인계(테스트)**: 1. 호스트 터미널에서 루트 `npm run dev`를 띄운 뒤 `/` 필터 요약 바 표시/칩 제거/전체 초기화를 실브라우저로 확인한다. 2. 필터가 있는 홈 URL 진입 시 dev 서버 로그에 `home_view_signal` + `kind: "home_view_opened"` + 정규화된 `filters.*`가 남는지 본다. 3. `현재 뷰 URL 복사` 클릭 시 `kind: "home_view_copied"` 로그가 남는지 본다. 4. 위 3개가 맞으면 `RALPH_TASK.md`의 최신 성장 항목 3개를 `[x]`로 전환한다.
+- **Git 상태**: 이 환경은 여전히 `.git/` 쓰기 제한 가능성이 있어 커밋/푸시는 수행하지 않았다. 호스트 터미널에서 현재 변경분 전체를 검토 후 커밋/푸시해야 다음 역할이 원격 기준으로 이어받을 수 있다.
+
+### 2026-05-05 23:14:03
+**Session 7 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:14:39
+**Session 8 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:14:39
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:17:22
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 직전 구현 항목(2026-05-05 23:34 KST)을 기준으로 `.ralph/progress.md`, `git diff`, 최근 에러 로그를 다시 맞춰 봤다. 이전 구현이 남긴 필터 요약 바·공유 URL 사용 신호·README 사례 추가는 워크트리와 일치했고, handoff는 **승인**이다. 다만 에러 큐에 남은 `runtime:smoke` exit 1은 실제 제품 고장보다 스크립트 종료 규약 불일치에 가까워 보였고, 이 부분을 우선 보완했다.
+- **오류 재현 결과**: `npm run runtime:smoke`는 서버 미기동 시 여전히 `fetch failed`를 안내했지만, 수정 전에는 exit 1이라 recovery 루프를 계속 만들었다. `npm run build` 실패는 이번에도 `npm run build`와 `npm test`를 제가 병렬로 돌렸을 때만 `.next/export/500.html` ENOENT로 재현됐고, 이는 같은 앱에서 Next build 두 개를 동시에 돌린 검증 방식 문제였다.
+- **이번 구현**: [scripts/runtime-smoke.mjs](/Users/uram/dev/agent-model-dev/scripts/runtime-smoke.mjs) 에 `exitSkipped()`를 추가해, 서버가 없을 때는 기존 안내를 출력하되 exit 0으로 종료하게 바꿨다. 이로써 `RALPH_TASK.md`의 “서버가 없으면 한 줄 안내로 종료” 계약과 실제 스크립트 동작을 맞췄다. 동시에 [docs/ralph-guardrails.md](/Users/uram/dev/agent-model-dev/docs/ralph-guardrails.md) 의 병렬 실행 Sign을 넓혀 `npm run dev`/`npm run build`뿐 아니라 **build 두 개 또는 build+test도 같은 앱에서는 직렬만 허용**하도록 명시했다.
+- **검증**: 루트 `npm run runtime:smoke` 성공(exit 0) — `http://127.0.0.1:3000` 서버 부재를 안내하고 skip 처리. 루트 `npm test` 단독 재실행 성공. `npm run build`는 단독 실행 시 통과했고, 병렬 실행에서만 ENOENT가 나므로 제품 blocker가 아니라 검증 가드레일 문제로 판정한다.
+- **체크박스 상태**: `RALPH_TASK.md`의 남은 `[ ]` 3개는 이번 이터에서도 건드리지 않았다. 구현 코드는 이미 들어가 있고, 브라우저/서버 로그 실검증은 여전히 테스트 역할 몫이다.
+- **다음 인계(테스트)**: 1. 호스트 터미널에서 루트 `npm run dev`를 띄운 뒤 `/` 필터 요약 바가 빈 상태에서는 숨고, 필터 적용 시 결과 건수와 함께 보이는지 확인한다. 2. 각 칩과 `전체 초기화`가 URL 쿼리와 표 결과를 함께 갱신하는지 본다. 3. 필터가 포함된 홈 URL 진입 시 dev 서버 로그에 `home_view_signal` + `kind: "home_view_opened"` + 정규화된 `filters.*`가 남는지 확인한다. 4. `현재 뷰 URL 복사` 클릭 시 `kind: "home_view_copied"` 로그가 남고, README 절차와 일치하면 그때 최신 3개 `[ ]`를 `[x]`로 전환한다.
+- **Git 상태**: 이 환경에서는 `.git/` 쓰기 제한 가능성이 있어 커밋/푸시는 수행하지 않았다. 호스트 터미널에서 [scripts/runtime-smoke.mjs](/Users/uram/dev/agent-model-dev/scripts/runtime-smoke.mjs), [docs/ralph-guardrails.md](/Users/uram/dev/agent-model-dev/docs/ralph-guardrails.md), 기존 홈 타임라인 변경분을 함께 검토 후 커밋/푸시해야 한다.
+
+### 2026-05-05 23:17:59
+**Session 8 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:18:40
+**Session 9 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:18:40
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:40:00
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 최신 테스트 항목(2026-05-05 23:26 KST)을 아래에서부터 다시 읽고, `git diff --stat` 및 핵심 변경([home-timeline-section.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-timeline-section.tsx), [home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx), [home-view-url.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/home-view-url.ts), [events route](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts), [README](/Users/uram/dev/agent-model-dev/apps/open-graze/README.md), [runtime-smoke.mjs](/Users/uram/dev/agent-model-dev/scripts/runtime-smoke.mjs))를 대조했다. 테스트가 닫은 범위와 실제 워크트리 변경은 일치했고, 최신 handoff는 **승인**이다.
+- **오류 재현 판정**: 루트 `npm run build`는 현재 정상 통과했고, 루트 `npm test`도 단독 재실행에서 통과했다. 루트 `npm run runtime:smoke`는 수정된 스크립트 계약대로 서버 부재 안내만 남기고 exit 0으로 종료해 더 이상 제품 오류가 아니다. `.ralph/errors.log`에 남아 있던 `apps/open-graze/app/api/workspaces/[slug]/ralph-activity/route.ts`, `apps/open-graze/app/dashboard/[slug]/page.tsx` 읽기 실패는 파일 부재가 아니라 **zsh의 `[]` 글로빙** 문제로 재현됐고, stale build/test 실패도 현재는 재현되지 않았다.
+- **이번 구현**: 제품 코드 추가 수정은 하지 않았다. 대신 같은 셸 경로 실패를 반복하지 않도록 [docs/ralph-guardrails.md](/Users/uram/dev/agent-model-dev/docs/ralph-guardrails.md)에 **App Router 대괄호 경로는 항상 quote** 하라는 Sign을 추가했다.
+- **체크박스 상태**: 남은 `[ ]` 3개는 여전히 브라우저/서버 로그 실검증이 필요하다. 구현물은 이미 워크트리에 있으므로, 이 단계에서 `RALPH_TASK.md`는 건드리지 않는다.
+- **다음 인계(테스트)**: 1. 호스트 터미널에서 `npm run dev` 후 `/` 진입, 필터 요약 바가 빈 상태에서는 숨고 필터 적용 시 결과 건수와 함께 보이는지 확인. 2. 각 칩과 `전체 초기화`가 URL 쿼리와 테이블 결과를 함께 갱신하는지 확인. 3. 필터가 포함된 홈 URL 열기와 `현재 뷰 URL 복사` 클릭이 dev 서버 로그에 각각 `home_view_opened`, `home_view_copied`를 남기는지 확인. 4. 위가 맞으면 `RALPH_TASK.md` 159-161행을 `[x]`로 전환.
+- **Git 상태**: 이 환경은 `.git/` 쓰기 제한 가능성이 있어 커밋/푸시는 수행하지 않았다. 호스트 터미널에서 `docs/ralph-guardrails.md`, `.ralph/progress.md` 포함 현재 변경분을 커밋/푸시해야 다음 역할이 원격 기준으로 이어받을 수 있다.
+
+### 2026-05-05 23:21:01
+**Session 9 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:21:42
+**Session 10 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:21:42
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:25:55
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: `.ralph/progress.md`를 아래에서부터 읽어 최신 기획 항목(2026-05-05 22:52 KST)과 최신 디자인 항목(2026-05-05 23:02 KST)을 기준으로 확인했다. planning은 마지막 3개 성장 항목의 수용 조건만 좁혔고, design은 필터 요약 바가 **적용된 URL 상태**를 기준으로 보여야 하며 공유 URL 검증은 canonical URL 재현성이 우선이라는 계약을 명확히 했다. 현재 워크트리의 홈 타임라인/README 변경은 그 방향과 일치하므로 handoff는 **승인**이다.
+- **오류 재현 결과**: active queue를 다시 확인해 `sed` 실패는 quote/path 이슈로 stale, `python ...` exit 127은 단순 잘못된 one-liner 재현으로 제품 blocker가 아니라고 분류했다. 반면 루트 `npm run build`는 이번 세션에서 실제로 다시 실패했고, `Collecting page data` 단계에서 `/api/ralph/events/range`, `/api/v1/events` `Cannot find module for page` 오류가 재현됐다.
+- **이번 구현**: [apps/open-graze/app/components/home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx) 와 [apps/open-graze/app/components/home-timeline-section.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-timeline-section.tsx) 에서 필터 요약 바의 기준을 draft 입력값이 아니라 **현재 URL에 실제 적용된 canonical 필터 값**으로 고쳤다. 이제 range 칩/건수 노출은 `appliedFromIso`·`appliedToIso` 기준으로만 보이고, draft를 수정만 한 상태에서는 “적용 중 필터”로 오인되지 않는다. 또 `home_view_opened` 신호는 홈이 **필터가 실린 URL로 처음 열릴 때 1회만** 보내고, 이후 사용자가 같은 탭에서 필터를 조작할 때마다 중복으로 찍히지 않게 보정했다.
+- **빌드 복구 구현**: [apps/open-graze/app/api/ralph/events/route.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts), [apps/open-graze/app/api/ralph/events/range/route.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/range/route.ts), [apps/open-graze/app/api/v1/events/route.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/v1/events/route.ts) 에 `export const dynamic = "force-dynamic"` 를 추가해 Next가 DB/로그 기반 API handler를 정적 page-data 수집 대상으로 다루지 않게 고정했다. 같은 유형이 반복되지 않도록 [docs/ralph-guardrails.md](/Users/uram/dev/agent-model-dev/docs/ralph-guardrails.md) 에 관련 Sign도 추가했다.
+- **검증**: 루트 `npm run build` 재실행 성공. 루트 `npm test` 성공(`test:compile` → 전체 build 재통과). 루트 `npm run runtime:smoke` 는 서버 미기동 상태에서 기존 계약대로 한 줄 안내 후 skip(exit 0)했다.
+- **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md`의 최신 3개 `[ ]`를 아직 바꾸지 않는다. UI/로그 실검증은 여전히 테스트 역할이 닫아야 한다.
+- **다음 인계(테스트)**: 1. `/`에서 필터 요약 바가 **적용된 URL 기준**으로만 나타나는지 본다. draft range를 수정만 하고 적용하지 않았을 때는 요약 바 구간 칩이 바뀌지 않아야 한다. 2. 필터가 포함된 URL로 홈을 처음 열었을 때 dev 서버 로그에 `home_view_signal` + `kind: "home_view_opened"` 가 1회만 남는지 확인한다(같은 탭에서 필터를 추가로 조작한다고 `opened`가 계속 늘면 안 됨). 3. `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그가 남는지 확인한다. 4. 위가 맞으면 `RALPH_TASK.md`의 마지막 3개 `[ ]`를 `[x]`로 전환한다.
+- **Git 상태**: 이 환경은 `.git/` 쓰기 제한 가능성이 있어 커밋/푸시는 수행하지 않았다. 호스트 터미널에서 현재 변경분을 커밋/푸시해야 다음 역할이 원격 기준으로 이어받을 수 있다.
+
+### 2026-05-05 23:26:40
+**Session 10 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-05 23:27:21
+**Session 11 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:27:21
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:27:31
+**Session 11 ended** - ⏸️ DEFERRED (rate limit/transient error)
+
+### 2026-05-05 23:28:28
+**Session 11 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 23:28:28
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:28:35
+**Session 11 ended** - ⏸️ DEFERRED (rate limit/transient error)

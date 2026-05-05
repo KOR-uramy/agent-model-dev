@@ -10,6 +10,8 @@
 ```
 http://localhost:3000/?role=planning&sessionId=ralph-session-example&from=2026-05-01T00:00:00Z&to=2026-05-03T23:59:59Z&source=ralph
 ```
+
+처음 보는 운영자에게는 위처럼 **역할·세션·채널·시간축이 고정된 감사 링크**를 바로 보내면 된다. 링크를 열면 “지금 어떤 스코프를 보고 있는지”가 상단 필터 요약 바로 드러나고, 같은 URL을 다른 탭에서도 그대로 재현할 수 있다.
 - **`/register`**, **`/login`**, **`/dashboard`** — 회원가입(`POST /api/auth/register`), 이메일·비밀번호 로그인(Credentials + DB), 워크스페이스, **작업 현황**(위: `WorkspaceTask` 표는 **조회만**·Task API로만 갱신; 아래 같은 블록에 **수집 활동 요약** — `POST /api/v1/events`로 들어온 `IngestedEvent`를 표로 보여 주며 약 60초마다 자동 새로고침·수동 **다시 불러오기**), API 키, 하단 **최근 수집 활동** JSON
 - **`POST /api/v1/events`** — Bearer API 키로 클라우드 수집(타 앱·CI에서는 **`ralph-workspace-sdk`** 의 `createOpenGrazeIngestClient` 등으로 동일 계약 재사용 — 패키지 README「OpenGraze 플랫폼에 붙이기」절)
 - **웹훅** — `/api/webhooks/toss`(토스 v2), `/api/webhooks/stripe`(레거시), `/api/webhooks/telegram`
@@ -142,6 +144,17 @@ printf 'all=%s source=ralph=%s\n' "$(curl -sS 'http://localhost:3000/api/ralph/e
 ```bash
 curl -sS 'http://localhost:3000/api/ralph/events/range?from=2026-05-01T00:00:00Z&to=2026-05-03T23:59:59Z&role=planning&sessionId=SESSION' | node -p "JSON.parse(require('fs').readFileSync(0,'utf-8')).returnedCount"
 ```
+
+### 공유 URL 사용 신호
+
+홈에서 필터가 하나라도 적용된 상태로 `/`를 열거나 **현재 뷰 URL 복사**를 누르면, 서버는 JSON 로그 한 줄을 남깁니다. 개발 중에는 `npm run dev` 터미널에서 아래 필드를 확인하면 됩니다.
+
+- `event: "home_view_signal"`
+- `source: "application"`
+- `kind: "home_view_opened"` 또는 `kind: "home_view_copied"`
+- `filters.role` / `filters.sessionId` / `filters.source` / `filters.fromIso` / `filters.toIso`
+
+검증 절차 한 줄: 필터가 포함된 홈 URL을 열거나 **현재 뷰 URL 복사**를 누른 뒤, dev 서버 터미널에 `home_view_signal` JSON 로그가 찍히는지 확인합니다.
 
 #### 응답 배열에 포함되는 주요 필드(재현·감사)
 

@@ -57,3 +57,28 @@
 - **Trigger**: `.ralph/errors.log` 한 줄이 비정상적으로 길거나 `Input exceeds the maximum length of 1048576 characters.` 같은 turn/start 실패가 날 때
 - **Instruction**: 에러 요약을 프롬프트에 넣을 때는 최근 몇 줄만 쓰고, 각 줄 길이를 강하게 잘라 재귀적으로 로그 전체가 다시 프롬프트에 들어가지 않게 한다. 스트림 파서도 원본 에러를 그대로 적지 말고 요약본만 남긴다.
 - **Added after**: Iteration 1 — 2026-05-05에 `aggregated_output`가 통째로 `.ralph/errors.log`에 기록된 뒤 다음 이터 프롬프트가 1MB 제한을 초과함
+
+### Sign: Verify file paths before replaying shell snippets from logs
+- **Trigger**: `.ralph/errors.log` 또는 handoff 메모에 있는 `sed`, `cat`, `node require(...)` 같은 명령을 그대로 다시 실행하려 할 때
+- **Instruction**: 먼저 `rg --files`나 `find`로 대상 파일이 실제로 존재하는지 확인한다. 추정 파일명(`timeline-sync.ts`처럼)으로 바로 재실행하지 말고, 현재 레포의 실제 경로를 찾은 뒤 후속 재현/수정을 한다.
+- **Added after**: Iteration 5 — 2026-05-05에 `apps/open-graze/lib/timeline-sync.ts`를 읽는 재현 명령이 실제 파일 부재로 다시 실패함
+
+### Sign: Sandbox `listen EPERM` is an environment blocker, not a product regression
+- **Trigger**: `npm run dev`, `next dev`, `next start`, 또는 그에 의존한 `npm run runtime:smoke`가 `listen EPERM: operation not permitted 0.0.0.0:3000`로 실패할 때
+- **Instruction**: 먼저 `npm run build`로 코드 상태를 분리 확인하고, 이어 dev 서버 직접 기동으로 같은 `listen EPERM`가 재현되는지 본다. 동일하면 앱 코드를 임의 수정하지 말고 샌드박스 포트 바인드 제약으로 기록한 뒤, 호스트 터미널/실서버에서 런타임 스모크를 이어받게 인계한다.
+- **Added after**: Iteration 7 — 2026-05-05에 `runtime:smoke` 실패를 추적한 결과, `next dev --turbopack` 자체가 샌드박스에서 `listen EPERM`으로 막혀 HTTP 스모크가 불가능했음
+
+### Sign: Do not run multiple Next dev/build jobs against the same app in parallel
+- **Trigger**: 같은 `apps/open-graze` 워크트리에서 `npm run dev`, `npm run build`, `npm test`처럼 `next dev`/`next build`를 일으키는 명령 둘 이상을 동시에 돌리려 할 때
+- **Instruction**: `next build`가 `.next`를 지우고 다시 만들기 때문에, dev 재현과 compile 검증은 물론 **build 두 개도** 반드시 **직렬**로 실행한다. `listen EPERM` 원인 확인용 `npm run dev`를 먼저 끝내고, 이후 `npm test` 또는 `npm run build`를 **하나씩 단독**으로 돌려 결과를 판정한다.
+- **Added after**: Iteration 7 — 2026-05-05에 `npm test`와 `npm run dev` 병렬 실행으로 `.next/server/app/_not-found/page.js.nft.json` ENOENT가 났고, Iteration 8에서는 `npm run build`와 `npm test` 병렬 실행으로 `.next/export/500.html` ENOENT가 재현됨
+
+### Sign: Quote Next App Router paths that contain brackets
+- **Trigger**: `apps/open-graze/app/**/[slug]/**` 같은 App Router 경로를 `sed`, `git diff`, `cat` 등 셸 명령에 그대로 넣을 때
+- **Instruction**: zsh는 `[]`를 글로브 패턴으로 해석하므로, 이런 경로는 항상 **작은따옴표로 감싸거나** `printf '%q'` 수준으로 이스케이프해서 실행한다. 파일 부재로 오판하지 말고 먼저 셸 글로빙 실패인지 구분한다.
+- **Added after**: Iteration 9 — 2026-05-05에 `apps/open-graze/app/api/workspaces/[slug]/ralph-activity/route.ts` / `apps/open-graze/app/dashboard/[slug]/page.tsx` 읽기 재현이 경로 존재 여부와 무관하게 zsh glob 실패로 다시 기록됨
+
+### Sign: Force dynamic for DB/log-backed App Router API handlers
+- **Trigger**: `app/api/**/route.ts` 가 Prisma, 로그 파일, 또는 런타임 쿼리 파라미터에 의존하는데 `next build` 후반 `Collecting page data` 에서 `Cannot find module for page: /api/...` 류 오류가 날 때
+- **Instruction**: 이런 route handler는 정적 수집 대상이 아니므로 `export const dynamic = "force-dynamic"` 를 명시한다. 특히 `GET /api/ralph/events*`, `POST /api/v1/events` 같은 DB/로그 기반 엔드포인트는 먼저 dynamic 설정 여부를 확인한 뒤 다시 빌드한다.
+- **Added after**: Iteration 10 — 2026-05-05에 홈 필터 요약 바 수정 후 재검증 중 `next build` 가 `/api/ralph/events/range`, `/api/v1/events` page-data 수집 단계에서 누락되어 실패했고, dynamic 고정 후 복구됨

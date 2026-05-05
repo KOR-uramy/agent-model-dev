@@ -94,6 +94,83 @@ ralph_trim_file_to_last_lines() {
   tail -n "$max_lines" "$file" > "$tmp_file" && mv "$tmp_file" "$file"
 }
 
+ralph_write_current_session_meta() {
+  local workspace="${1:-.}"
+  local iteration="${2:-0}"
+  local role_key="${3:-mono}"
+  local model="${4:-auto}"
+  local goal="${5:-}"
+  local forced_error_recovery="${6:-0}"
+  local ralph_dir="$workspace/.ralph"
+  local goal_file="$ralph_dir/current-goal.txt"
+  local meta_file="$ralph_dir/current-session.json"
+  local role_ko
+
+  mkdir -p "$ralph_dir"
+  role_ko="$(ralph_role_label_ko "$role_key")"
+
+  printf '%s\n' "$goal" > "$goal_file"
+  jq -nc \
+    --arg updatedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg workspace "$workspace" \
+    --argjson iteration "$iteration" \
+    --arg role "$role_key" \
+    --arg roleLabel "$role_ko" \
+    --arg model "$model" \
+    --arg goal "$goal" \
+    --argjson forcedErrorRecovery "$forced_error_recovery" \
+    '{
+      updatedAt: $updatedAt,
+      workspace: $workspace,
+      iteration: $iteration,
+      role: $role,
+      roleLabel: $roleLabel,
+      model: $model,
+      goal: $goal,
+      forcedErrorRecovery: $forcedErrorRecovery
+    }' > "$meta_file"
+}
+
+ralph_strip_task_markup() {
+  local text="${1:-}"
+  text="$(printf '%s' "$text" | sed -E 's/^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[[ x]\][[:space:]]*//')"
+  text="$(printf '%s' "$text" | sed -E 's/[`*#]+//g')"
+  text="$(printf '%s' "$text" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+  printf '%s\n' "$text"
+}
+
+ralph_next_unchecked_task_summary() {
+  local workspace="${1:-.}"
+  local task_file="$workspace/RALPH_TASK.md"
+  local line=""
+
+  if [[ ! -f "$task_file" ]]; then
+    return 0
+  fi
+
+  line=$(grep -m 1 -E '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[ \]' "$task_file" 2>/dev/null || true)
+  [[ -z "$line" ]] && return 0
+  ralph_strip_task_markup "$line"
+}
+
+ralph_session_goal_summary() {
+  local workspace="${1:-.}"
+  local next_task=""
+
+  if ralph_has_active_errors "$workspace"; then
+    printf '%s\n' "활성 오류를 먼저 재현·수정하고 빌드/런타임을 다시 green 상태로 되돌린다."
+    return 0
+  fi
+
+  next_task="$(ralph_next_unchecked_task_summary "$workspace")"
+  if [[ -n "$next_task" ]]; then
+    printf '%s\n' "$next_task"
+    return 0
+  fi
+
+  printf '%s\n' "남은 Ralph 기준을 검증하고 다음 성장 루프 항목을 구체화한다."
+}
+
 ralph_archive_stale_errors() {
   local workspace="${1:-.}"
   local ralph_dir="$workspace/.ralph"
@@ -955,6 +1032,7 @@ run_iteration() {
 
   local role_key=""
   local forced_error_recovery=0
+  local session_goal=""
   if ralph_has_active_errors "$workspace"; then
     role_key="${RALPH_ERROR_RECOVERY_ROLE:-implementation}"
     export RALPH_ROLE="$role_key"
@@ -971,6 +1049,9 @@ run_iteration() {
     unset RALPH_ROLE 2>/dev/null || true
     unset RALPH_FORCE_ERROR_RECOVERY 2>/dev/null || true
   fi
+
+  session_goal="$(ralph_session_goal_summary "$workspace")"
+  export RALPH_SESSION_GOAL="$session_goal"
 
   local prompt
   prompt=$(build_prompt "$workspace" "$iteration" "$role_key")
@@ -992,6 +1073,7 @@ run_iteration() {
   echo "Workspace: $workspace" >&2
   echo "Model:     $MODEL" >&2
   echo "Role mode: ${RALPH_ROLE_MODE:-cycle}" >&2
+  echo "Goal:      $session_goal" >&2
   echo "Monitor:   tail -f $workspace/.ralph/activity.log" >&2
   local recent_errors
   recent_errors="$(ralph_recent_error_summary "$workspace")"
@@ -1012,6 +1094,7 @@ run_iteration() {
   if [[ "$forced_error_recovery" -eq 1 ]]; then
     log_progress "$workspace" "**Error recovery mode** — recent entries in \`.ralph/errors.log\` forced this iteration to prioritize unresolved failures before checklist work."
   fi
+  ralph_write_current_session_meta "$workspace" "$iteration" "${role_key:-mono}" "$MODEL" "$session_goal" "$forced_error_recovery"
 
   # stream-parser: JSONL events (.ralph/events.jsonl) include this iteration index
   export RALPH_ITERATION="$iteration"
