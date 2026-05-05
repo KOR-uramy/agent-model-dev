@@ -78,6 +78,9 @@ Examples:
   ./ralph-loop.sh --branch feature/api --pr -y      # Scripted PR workflow
   ./ralph-loop.sh --parallel --max-parallel 4        # Run 4 agents in parallel
   
+Workspace:
+  현재 디렉터리에 RALPH_TASK.md 가 없으면 상위 폴더를 거슬러 최초로 발견한 과제 루트를 워크스페이스로 씁니다(예: apps/open-graze 에서 실행 → 레포 루트).
+
 Environment:
   RALPH_MODEL            Override default model (same as -m; default in repo: auto)
   RALPH_ROLE_MODE        cycle (기본): 이터마다 기획→디자인→구현→테스트 순환, 직전 역할 산출물 감시
@@ -199,6 +202,15 @@ main() {
     WORKSPACE="$(pwd)"
   else
     WORKSPACE="$(cd "$WORKSPACE" && pwd)"
+  fi
+
+  # 과제 파일이 하위에만 있고 루트에 있을 때(예: cwd=apps/open-graze)
+  if [[ ! -f "$WORKSPACE/RALPH_TASK.md" ]]; then
+    local _task_root=""
+    if _task_root="$(resolve_ralph_workspace_with_task "$WORKSPACE")"; then
+      echo "ℹ️  RALPH_TASK.md를 상위에서 찾았습니다. 워크스페이스·.ralph 루트를 다음으로 맞춥니다: $_task_root" >&2
+      WORKSPACE="$_task_root"
+    fi
   fi
   
   local task_file="$WORKSPACE/RALPH_TASK.md"

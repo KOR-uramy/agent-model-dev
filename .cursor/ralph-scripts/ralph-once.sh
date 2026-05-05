@@ -93,6 +93,14 @@ main() {
   else
     WORKSPACE="$(cd "$WORKSPACE" && pwd)"
   fi
+
+  if [[ ! -f "$WORKSPACE/RALPH_TASK.md" ]]; then
+    local _task_root=""
+    if _task_root="$(resolve_ralph_workspace_with_task "$WORKSPACE")"; then
+      echo "ℹ️  RALPH_TASK.md를 상위에서 찾았습니다. 워크스페이스를 다음으로 맞춥니다: $_task_root" >&2
+      WORKSPACE="$_task_root"
+    fi
+  fi
   
   local task_file="$WORKSPACE/RALPH_TASK.md"
   

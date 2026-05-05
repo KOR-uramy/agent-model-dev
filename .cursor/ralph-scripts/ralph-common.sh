@@ -1157,6 +1157,23 @@ run_ralph_loop() {
 # PREREQUISITE CHECKS
 # =============================================================================
 
+# 상위 디렉터리를 거슬러 `RALPH_TASK.md`가 있는 절대 경로를 출력한다. 없으면 1.
+# 모노레포에서 `apps/open-graze` 등 하위만 워크스페이스로 줄 때 사용한다.
+resolve_ralph_workspace_with_task() {
+  local d
+  d="$(cd "${1:-.}" && pwd)" || return 1
+  while true; do
+    if [[ -f "$d/RALPH_TASK.md" ]]; then
+      printf '%s\n' "$d"
+      return 0
+    fi
+    local parent
+    parent="$(dirname "$d")"
+    [[ "$parent" == "$d" ]] && return 1
+    d="$parent"
+  done
+}
+
 # Check all prerequisites, exit with error message if any fail
 check_prerequisites() {
   local workspace="$1"
