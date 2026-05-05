@@ -9,7 +9,7 @@
 # Usage:
 #   ./ralph-loop.sh                              # Start from current directory
 #   ./ralph-loop.sh /path/to/project             # Start from specific project
-#   ./ralph-loop.sh -n 50 -m gpt-5.4             # Custom iterations and model
+#   ./ralph-loop.sh -n 50 -m gpt-5.1-codex-mini  # Custom iterations and model
 #   ./ralph-loop.sh --branch feature/foo --pr   # Create branch and PR
 #   ./ralph-loop.sh -y                           # Skip confirmation (for scripting)
 #   ./ralph-loop.sh -y --infinite                # No iteration cap (until GUTTER / Ctrl-C; 병렬+무한은 전부 [x]일 때 기획 확장 후 재개)
@@ -17,7 +17,7 @@
 #
 # Flags:
 #   -n, --iterations N     Max iterations (default: 20). Use 0 for unlimited.
-#   -m, --model MODEL      Model to use (default: gpt-5.2; override with RALPH_MODEL)
+#   -m, --model MODEL      Model to use (default: gpt-5.1-codex-mini; override with RALPH_MODEL)
 #   --branch NAME          Sequential: create/work on branch; Parallel: integration branch name
 #   --pr                   Sequential: open PR (requires --branch); Parallel: open ONE integration PR (branch optional)
 #   --parallel             Run tasks in parallel with worktrees
@@ -60,7 +60,7 @@ Usage:
 Options:
   -n, --iterations N     Max iterations (default: 20). 0 = unlimited until task done / GUTTER / interrupt
   --infinite             Same as -n 0
-  -m, --model MODEL      Model to use (default: gpt-5.2; env RALPH_MODEL)
+  -m, --model MODEL      Model to use (default: gpt-5.1-codex-mini; env RALPH_MODEL)
   --branch NAME          Sequential: create/work on branch; Parallel: integration branch name
   --pr                   Sequential: open PR (requires --branch); Parallel: open ONE integration PR (branch optional)
   --parallel             Run tasks in parallel with worktrees
@@ -74,12 +74,12 @@ Examples:
   ./ralph-loop.sh                                    # Interactive mode
   ./ralph-loop.sh -n 50                              # 50 iterations max
   ./ralph-loop.sh -y --infinite                      # No iteration cap (use tmux)
-  ./ralph-loop.sh -m gpt-5.2-high                    # Use GPT model
+  ./ralph-loop.sh -m gpt-5.1-codex-mini              # Use Codex mini model
   ./ralph-loop.sh --branch feature/api --pr -y      # Scripted PR workflow
   ./ralph-loop.sh --parallel --max-parallel 4        # Run 4 agents in parallel
   
 Environment:
-  RALPH_MODEL            Override default model (same as -m; Codex copy default: gpt-5.2)
+  RALPH_MODEL            Override default model (same as -m; Codex copy default: gpt-5.1-codex-mini)
   RALPH_ROLE_MODE        cycle (기본): 이터마다 기획→디자인→구현→테스트 순환, 직전 역할 산출물 감시
                          mono: 역할 구분 없이 기존 단일 프롬프트
   FORCE_RALPH_TASK_GUARD 1 이면 --force와 동일(전부 [x]여도 조기 종료 안 함)

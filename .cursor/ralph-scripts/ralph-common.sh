@@ -464,6 +464,68 @@ ralph_prior_role_label_ko() {
   ralph_role_label_ko "$k"
 }
 
+ralph_file_mtime() {
+  local path="$1"
+  if [[ ! -e "$path" ]]; then
+    echo "0"
+    return 0
+  fi
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    stat -f '%m' "$path" 2>/dev/null || echo "0"
+  else
+    stat -c '%Y' "$path" 2>/dev/null || echo "0"
+  fi
+}
+
+ralph_has_active_errors() {
+  local workspace="${1:-.}"
+  local errors_file="$workspace/.ralph/errors.log"
+  local active_window="${RALPH_ERROR_ACTIVE_WINDOW_SEC:-3600}"
+
+  if [[ ! -f "$errors_file" ]]; then
+    return 1
+  fi
+
+  if ! grep -qvE '^[[:space:]]*(#|$|>)' "$errors_file"; then
+    return 1
+  fi
+
+  local now_ts file_ts age
+  now_ts=$(date +%s)
+  file_ts=$(ralph_file_mtime "$errors_file")
+  age=$((now_ts - file_ts))
+
+  [[ "$age" -le "$active_window" ]]
+}
+
+ralph_recent_error_summary() {
+  local workspace="${1:-.}"
+  local errors_file="$workspace/.ralph/errors.log"
+  if [[ ! -f "$errors_file" ]]; then
+    return 0
+  fi
+
+  grep -vE '^[[:space:]]*(#|$|>)' "$errors_file" | tail -n 5
+}
+
+ralph_cleanup_iteration_processes() {
+  local spinner_pid="${1:-}"
+  local agent_pid="${2:-}"
+  local fifo="${3:-}"
+
+  if [[ -n "$agent_pid" ]]; then
+    kill "$agent_pid" 2>/dev/null || true
+    wait "$agent_pid" 2>/dev/null || true
+  fi
+  if [[ -n "$spinner_pid" ]]; then
+    kill "$spinner_pid" 2>/dev/null || true
+    wait "$spinner_pid" 2>/dev/null || true
+  fi
+  [[ -n "$fifo" ]] && rm -f "$fifo" 2>/dev/null || true
+  printf "\r\033[K" >&2
+}
+
 # =============================================================================
 # PROMPT BUILDING
 # =============================================================================
@@ -474,11 +536,14 @@ _build_prompt_shared_body() {
   local iteration="$1"
   local progress_role="${2:-}"
   local progress_rule
+  local workspace="${RALPH_PROMPT_WORKSPACE:-.}"
+  local recent_errors=""
   if [[ -n "$progress_role" ]]; then
     progress_rule="4. Update \`.ralph/progress.md\` — start the entry with a line: \`**역할: (한글 라벨) ($progress_role)\**\` then summary, supervision notes, and next handoff."
   else
     progress_rule="4. Update \`.ralph/progress.md\` with what you accomplished and what's next for the following iteration."
   fi
+  recent_errors="$(ralph_recent_error_summary "$workspace")"
   cat << EOF
 ## FIRST: Read State Files
 
@@ -512,9 +577,32 @@ Ralph's strength is state-in-git, not LLM memory. Commit early and often:
 
 If you get rotated, the next agent picks up from your last commit **on the remote if you pushed**. Your commits ARE your memory only after \`git push\`.
 
+## Error-First Policy (Critical)
+
+- Unresolved errors are the **highest priority**, ahead of new feature work or the next unchecked checklist item.
+- If \`.ralph/errors.log\`, the last build, or the last runtime smoke shows a real failure, enter **error recovery mode** first: reproduce the failure, fix it, re-run the relevant verification, then return to normal checklist work.
+- Treat compile/build/runtime failures as shared blockers across roles. Do not hide behind role boundaries when the repo is red; do the minimum cross-role work needed to get back to green, then leave a clean handoff.
+- Only treat transient rate limits/network issues as deferrable. Everything else should be assumed actionable until disproven.
+
+EOF
+  if [[ -n "$recent_errors" ]]; then
+    cat << EOF
+### Active Error Queue
+
+Recent unresolved entries from \`.ralph/errors.log\`:
+\`\`\`
+$recent_errors
+\`\`\`
+
+Start by checking whether these failures are still reproducible. If yes, fixing them is your first task this iteration.
+
+EOF
+  fi
+  cat << EOF
+
 ## Task Execution
 
-1. Work on the next unchecked criterion in RALPH_TASK.md (look for \`[ ]\`) **that fits your current role** (see Role Boundaries above). If none fit, document blockers in \`.ralph/progress.md\` and output handoff notes for the next role.
+1. If there is an active compile/build/runtime error, work on that **before** the next unchecked criterion in RALPH_TASK.md. Otherwise work on the next unchecked criterion (look for \`[ ]\`) **that fits your current role** (see Role Boundaries above). If none fit, document blockers in \`.ralph/progress.md\` and output handoff notes for the next role.
 2. Run tests after changes when your role is **test** or when you touch executable code (**implementation**). For the **test** role, always include a compile/build verification pass (`npm test` if the repo defines it; otherwise the documented build command such as `npm run build`) before you mark anything done.
 3. **Mark completed criteria**: Edit RALPH_TASK.md and change \`[ ]\` to \`[x]\` only when your role owns verification (**test** role for code-facing criteria, or when the criterion is purely planning/docs and **planning** agrees).
 $progress_rule
@@ -553,6 +641,7 @@ build_prompt() {
   local workspace="$1"
   local iteration="$2"
   local role_key="${3:-}"
+  export RALPH_PROMPT_WORKSPACE="$workspace"
 
   if [[ -z "$role_key" ]]; then
     cat << EOF
@@ -586,7 +675,7 @@ EOF
 
 - Anchor every proposal in \`RALPH_TASK.md\` **Goal (본질)** and **Success** north-star items — multi-agent role monitoring, observability, trust, reproducibility, workspace platform checks. **Reject or defer** feature churn, trends, or “completeness” that do not clearly serve that essence; if something might still matter, write **one line linking it to the essence** before suggesting new \`[ ]\` items.
 - Clarify scope, priorities, acceptance hints, and risks **only** along that spine; growth/benchmark gaps must tighten the same story, not a parallel product.
-- Do **not** write production code; you may edit docs and task checklists only when they describe intent, not implementation.
+- Do **not** write production code unless the repo is red and a minimal error-recovery patch is required to restore build/runtime health; otherwise you may edit docs and task checklists only when they describe intent, not implementation.
 - Prefer short, checkable bullets the **디자인** role can turn into contracts/sketches.
 
 EOF
@@ -684,14 +773,22 @@ run_iteration() {
   local script_dir="${4:-$(dirname "${BASH_SOURCE[0]}")}"
 
   local role_key=""
+  local forced_error_recovery=0
   if [[ -n "${RALPH_ROLE_OVERRIDE:-}" ]]; then
     role_key="$RALPH_ROLE_OVERRIDE"
     export RALPH_ROLE="$role_key"
+  elif ralph_has_active_errors "$workspace"; then
+    role_key="${RALPH_ERROR_RECOVERY_ROLE:-implementation}"
+    export RALPH_ROLE="$role_key"
+    export RALPH_FORCE_ERROR_RECOVERY=1
+    forced_error_recovery=1
   elif [[ "${RALPH_ROLE_MODE:-cycle}" != "mono" ]]; then
     role_key=$(ralph_role_for_iteration "$iteration")
     export RALPH_ROLE="$role_key"
+    unset RALPH_FORCE_ERROR_RECOVERY 2>/dev/null || true
   else
     unset RALPH_ROLE 2>/dev/null || true
+    unset RALPH_FORCE_ERROR_RECOVERY 2>/dev/null || true
   fi
 
   local prompt
@@ -720,6 +817,14 @@ run_iteration() {
   echo "Model:     $MODEL" >&2
   echo "Role mode: ${RALPH_ROLE_MODE:-cycle}" >&2
   echo "Monitor:   tail -f $workspace/.ralph/activity.log" >&2
+  local recent_errors
+  recent_errors="$(ralph_recent_error_summary "$workspace")"
+  if [[ -n "$recent_errors" ]]; then
+    echo "Priority:  error recovery first (.ralph/errors.log has recent entries)" >&2
+  fi
+  if [[ "$forced_error_recovery" -eq 1 ]]; then
+    echo "Role:      forced to $(ralph_role_label_ko "$role_key") for error recovery" >&2
+  fi
   echo "" >&2
 
   # Log session start to progress.md
@@ -727,6 +832,9 @@ run_iteration() {
     log_progress "$workspace" "**Session $iteration started** — 역할: $(ralph_role_label_ko "$role_key") (\`$role_key\`) · model: $MODEL"
   else
     log_progress "$workspace" "**Session $iteration started** (model: $MODEL, mono role mode)"
+  fi
+  if [[ "$forced_error_recovery" -eq 1 ]]; then
+    log_progress "$workspace" "**Error recovery mode** — recent entries in \`.ralph/errors.log\` forced this iteration to prioritize unresolved failures before checklist work."
   fi
 
   # stream-parser: JSONL events (.ralph/events.jsonl) include this iteration index
@@ -754,6 +862,7 @@ run_iteration() {
   # Start spinner to show we're alive
   spinner "$workspace" &
   local spinner_pid=$!
+  local interrupted=0
   
   # Start parser in background, reading from cursor-agent
   # Parser outputs to fifo, we read signals from fifo
@@ -761,6 +870,8 @@ run_iteration() {
     eval "$cmd \"$prompt\"" 2>&1 | "$script_dir/stream-parser.sh" "$workspace" > "$fifo"
   ) &
   local agent_pid=$!
+
+  trap 'interrupted=1; ralph_cleanup_iteration_processes "$spinner_pid" "$agent_pid" "$fifo"; echo ""; echo "🛑 Interrupted." >&2' INT TERM
   
   # Read signals from parser
   local signal=""
@@ -804,12 +915,14 @@ run_iteration() {
   wait $agent_pid 2>/dev/null || true
   
   # Stop spinner and clear line
-  kill $spinner_pid 2>/dev/null || true
-  wait $spinner_pid 2>/dev/null || true
-  printf "\r\033[K" >&2  # Clear spinner line
+  ralph_cleanup_iteration_processes "$spinner_pid" "$agent_pid" "$fifo"
+  trap - INT TERM
   
   # Cleanup
-  rm -f "$fifo"
+  if [[ "$interrupted" -eq 1 ]]; then
+    echo "INTERRUPTED"
+    return 130
+  fi
   
   echo "$signal"
 }
@@ -855,8 +968,12 @@ run_ralph_loop() {
     # Check task completion
     local task_status
     task_status=$(check_task_complete "$workspace")
+    local active_errors=0
+    if ralph_has_active_errors "$workspace"; then
+      active_errors=1
+    fi
     
-    if [[ "$task_status" == "COMPLETE" ]]; then
+    if [[ "$task_status" == "COMPLETE" ]] && [[ "$active_errors" -eq 0 ]]; then
       log_progress "$workspace" "**Session $iteration ended** - ✅ TASK COMPLETE"
       echo ""
       echo "═══════════════════════════════════════════════════════════════════"
@@ -885,7 +1002,7 @@ run_ralph_loop() {
     case "$signal" in
       "COMPLETE")
         # Agent signaled completion - verify with checkbox check
-        if [[ "$task_status" == "COMPLETE" ]]; then
+        if [[ "$task_status" == "COMPLETE" ]] && [[ "$active_errors" -eq 0 ]]; then
           log_progress "$workspace" "**Session $iteration ended** - ✅ TASK COMPLETE (agent signaled)"
           echo ""
           echo "═══════════════════════════════════════════════════════════════════"
@@ -908,6 +1025,12 @@ run_ralph_loop() {
           fi
           
           return 0
+        elif [[ "$active_errors" -eq 1 ]]; then
+          log_progress "$workspace" "**Session $iteration ended** - Completion deferred because active errors remain"
+          echo ""
+          echo "⚠️  Agent signaled completion, but active errors still exist."
+          echo "   Forcing another iteration in error recovery mode before accepting completion..."
+          iteration=$((iteration + 1))
         else
           # Agent said complete but checkboxes say otherwise - continue
           log_progress "$workspace" "**Session $iteration ended** - Agent signaled complete but criteria remain"
@@ -956,9 +1079,21 @@ run_ralph_loop() {
         printf "\r\033[K" >&2
         echo "   Resuming..." >&2
         ;;
+      "INTERRUPTED")
+        log_progress "$workspace" "**Session $iteration ended** - 🛑 INTERRUPTED by user"
+        echo ""
+        echo "🛑 Ralph loop interrupted."
+        return 130
+        ;;
       *)
         # Agent finished naturally, check if more work needed
-        if [[ "$task_status" == INCOMPLETE:* ]]; then
+        if [[ "$active_errors" -eq 1 ]]; then
+          log_progress "$workspace" "**Session $iteration ended** - Active errors remain; continuing in recovery mode"
+          echo ""
+          echo "🚧 Active errors remain in .ralph/errors.log."
+          echo "   Continuing with another error-recovery iteration before normal checklist work..."
+          iteration=$((iteration + 1))
+        elif [[ "$task_status" == INCOMPLETE:* ]]; then
           local remaining_count=${task_status#INCOMPLETE:}
           log_progress "$workspace" "**Session $iteration ended** - Agent finished naturally ($remaining_count criteria remaining)"
           echo ""

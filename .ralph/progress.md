@@ -9,6 +9,15 @@
 
 ## Session History
 
+### 2026-05-05
+
+**역할: 기획 (planning)\**
+
+- **감시 요약**: `RALPH_TASK.md` 미완 `[ ]`는 3건(`from/to` URL 동기화, `source` 필터, “현재 뷰 복사”)만 남아 있고, `.ralph/errors.log`는 OpenAI 401(“Missing bearer…”) 계열 재발 방지 주의만 유효하다. `git log`상 해당 기능 구현 커밋이 이미 존재해, 이번 이터는 **계약·검증 힌트 문서 고정**만 수행했다(프로덕션 코드 변경 없음).
+- **이번에 한 일(기획 범위)**: `RALPH_TASK.md`의 `from/to`에 “추측 보정 금지(애매한 입력은 키 제거로 수렴)”을 계약에 추가하고, “현재 뷰 복사”에 **주소줄 동기화와 동일 규칙/단일 함수 공유 + 복사 실패 시 URL 확인 표면 제공**을 계약으로 못 박았다(재현·감사·신뢰 축 강화, 프로덕션 코드 변경 없음).
+- **다음 인계(디자인)**: (1) `from/to` 적용(확정) 시점 UI 이벤트를 스케치로 고정(입력 중 주소줄 갱신 금지), (2) `from/to` 파싱 실패/불완전(한쪽만) 상태에서 UI가 “키 제거(필터 해제)”로 수렴하는 표면(토스트 필요 여부 포함)을 결정, (3) “현재 뷰 복사”는 클립보드 실패에서도 URL을 **눈으로 확인/복사 가능한 표면**을 어떻게 둘지(텍스트/모달 등)만 계약화.
+- **주의(환경)**: Codex CLI 샌드박스에서 `.git/index.lock` EPERM으로 `git add/commit/push`가 실패했다. 호스트 터미널에서 `git add -A && git commit -m 'docs(ralph): tighten from/to URL decode contract' && git push`로 원격에 반영 필요.
+
 ### 2026-05-04
 
 **역할: 기획 (planning)\**
@@ -381,3 +390,12 @@
 
 ### 2026-05-04 00:51:20
 **Session 1 ended** - ⏸️ DEFERRED (rate limit/transient error)
+
+### 2026-05-05 10:40:00
+**Session 1 started** — 역할: 기획 (`planning`) · model: gpt-5.2
+
+### 2026-05-05 10:43:22
+**Session 1 ended** - ⏸️ DEFERRED (rate limit/transient error)
+
+### 2026-05-05 10:44:09
+**Session 1 started** — 역할: 기획 (`planning`) · model: gpt-5.2

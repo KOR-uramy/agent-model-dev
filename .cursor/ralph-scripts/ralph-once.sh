@@ -169,6 +169,10 @@ main() {
   # Check result
   local task_status
   task_status=$(check_task_complete "$WORKSPACE")
+  local active_errors=0
+  if ralph_has_active_errors "$WORKSPACE"; then
+    active_errors=1
+  fi
   
   echo ""
   echo "═══════════════════════════════════════════════════════════════════"
@@ -178,10 +182,13 @@ main() {
   
   case "$signal" in
     "COMPLETE")
-      if [[ "$task_status" == "COMPLETE" ]]; then
+      if [[ "$task_status" == "COMPLETE" ]] && [[ "$active_errors" -eq 0 ]]; then
         echo "🎉 Task completed in single iteration!"
         echo ""
         echo "All criteria are checked. You're done!"
+      elif [[ "$active_errors" -eq 1 ]]; then
+        echo "⚠️  Agent signaled complete, but active errors still exist."
+        echo "   Error recovery still takes priority. Run again after fixing the failure."
       else
         echo "⚠️  Agent signaled complete but some criteria remain unchecked."
         echo "   Review the results and run again if needed."
@@ -201,9 +208,16 @@ main() {
       echo "The agent used a lot of context. This is normal for complex tasks."
       echo "Review the progress and run again or proceed to full loop."
       ;;
+    "INTERRUPTED")
+      echo "🛑 Iteration interrupted by user."
+      echo ""
+      echo "The spinner and agent processes were asked to stop."
+      ;;
     *)
-      if [[ "$task_status" == "COMPLETE" ]]; then
+      if [[ "$task_status" == "COMPLETE" ]] && [[ "$active_errors" -eq 0 ]]; then
         echo "🎉 Task completed in single iteration!"
+      elif [[ "$active_errors" -eq 1 ]]; then
+        echo "🚧 Single iteration finished, but active errors remain."
       else
         local remaining_count=${task_status#INCOMPLETE:}
         echo "Agent finished with $remaining_count criteria remaining."
