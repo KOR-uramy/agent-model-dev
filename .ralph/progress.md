@@ -11,6 +11,14 @@
 
 ### 2026-05-05
 
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: `.ralph/errors.log`의 active queue는 unsupported Codex model 400 fallback 건이었다. 셸 스모크로 `ralph_try_known_autofix`를 다시 실행해 `MODEL=auto` 전환과 `↪️ MODEL FALLBACK` 마커 기록이 현재 코드에서 재현됨을 확인했고, OpenGraze 미완 `[ ]` 3건은 UI/API/README 정합을 보강하는 쪽이 남은 구현 범위라고 판단했다.
+- **이번에 한 일(구현 범위)**: [`apps/open-graze/lib/timeline-query-params.ts`](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-query-params.ts)에서 `from`/`to`를 timezone 포함 ISO 8601(`Z` 또는 `+09:00`)만 허용하도록 강화하고, `source` 파서는 `EVENT_SOURCE_KEYS` allowlist를 단일 근거로 쓰게 정리했다. [`apps/open-graze/app/components/home-page-content.tsx`](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx)·[`apps/open-graze/app/components/home-timeline-section.tsx`](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-timeline-section.tsx)에는 “현재 뷰 URL” read-only 표면과 클립보드 실패 메시지를 추가해 복사 실패 시에도 URL을 눈으로 확인·직접 복사할 수 있게 했다. [`apps/open-graze/app/layout.tsx`](/Users/uram/dev/agent-model-dev/apps/open-graze/app/layout.tsx)는 `next/font/google` 의존을 제거하고 로컬 폰트 스택 CSS 변수로 바꿔, 이 샌드박스처럼 외부 DNS가 막힌 환경에서도 `npm run build`가 통과하게 만들었다. [`apps/open-graze/README.md`](/Users/uram/dev/agent-model-dev/apps/open-graze/README.md)에는 `role`·`sessionId`·`from`·`to`·`source`를 모두 포함한 복사 가능한 예시 URL을 반영했다.
+- **검증**: `npm run build` 성공(기존 `fonts.googleapis.com` ENOTFOUND blocker 해소 후 재실행). 셸 스모크: `source .cursor/ralph-scripts/ralph-common.sh` 후 임시 `.ralph/errors.log`에 unsupported-model 400을 넣고 `ralph_try_known_autofix` 호출 → `autofix=1`, `MODEL=auto`, `↪️ MODEL FALLBACK...` 확인.
+- **다음 인계(테스트)**: (1) 호스트에서 `npm run build`를 다시 한 번 실행해 동일 녹색 확인, (2) 가능하면 dev 서버에서 `/`에 timezone 없는 `?from=2026-05-01T00:00:00&to=...` 를 넣었을 때 주소줄이 키 제거로 수렴하는지, `source=bogus`가 제거되는지, “현재 뷰 URL 복사” 실패 시 read-only URL 입력이 그대로 남는지 수동 확인, (3) 통과 시 `RALPH_TASK.md`의 남은 3개 `[ ]`를 `[x]`로 바꾸고 README 한 줄 검증과 함께 마감.
+- **주의(환경)**: `git add -A`는 여전히 `fatal: Unable to create '.git/index.lock': Operation not permitted`로 실패했다. 호스트 터미널에서 `git add -A && git commit -m 'ralph: harden timeline URL filters and offline-safe home build' && git push`가 필요하다.
+
 **역할: 기획 (planning)\**
 
 - **감시 요약**: `RALPH_TASK.md` 미완 `[ ]`는 3건(`from/to` URL 동기화, `source` 필터, “현재 뷰 복사”)만 남아 있고, `.ralph/errors.log`는 OpenAI 401(“Missing bearer…”) 계열 재발 방지 주의만 유효하다. `git log`상 해당 기능 구현 커밋이 이미 존재해, 이번 이터는 **계약·검증 힌트 문서 고정**만 수행했다(프로덕션 코드 변경 없음).
@@ -531,4 +539,19 @@
 **Session 1 started** — 역할: 구현 (`implementation`) · model: auto
 
 ### 2026-05-05 21:46:26
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:50:54
+**Session 1 started** — 역할: 구현 (`implementation`) · model: gpt-5.1-codex-mini
+
+### 2026-05-05 21:50:54
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:51:00
+**Session 1 ended** - Switching Codex model from 'gpt-5.1-codex-mini' to fallback 'auto'
+
+### 2026-05-05 21:51:50
+**Session 1 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 21:51:50
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
