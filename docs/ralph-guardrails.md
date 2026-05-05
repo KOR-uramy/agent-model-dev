@@ -42,3 +42,8 @@
 - **Trigger**: `app/api/**/route.ts`에서 `POST` / `PATCH` / `DELETE` 같은 쓰기 전용 handler만 만들 때
 - **Instruction**: Next app route는 쓰기 전용이어도 **간단한 `GET` 405 응답**(`Allow` 헤더 포함)을 함께 export하는 것을 기본값으로 둔다. `POST` 전용 route를 만들고 끝내지 말고, 처음부터 `methodNotAllowed("POST")` 같은 공통 헬퍼를 같이 넣은 뒤 build를 확인한다.
 - **Added after**: Iteration 1 — 2026-05-05에 `/api/v1/events`가 `POST`만 export된 상태에서 `next build`의 route/page-data 수집 단계가 꼬이며 Ralph loop 시작 빌드를 막음
+
+### Sign: Clean `.next` before webpack `next build` when dev used Turbopack
+- **Trigger**: `next dev --turbopack`를 쓴 뒤 `next build`에서 `/_error`, `/_document`, `[turbopack]_runtime.js` 관련 `PageNotFoundError` / `MODULE_NOT_FOUND`가 날 때
+- **Instruction**: 개발 서버(Turbopack)와 배포 빌드(webpack)가 같은 `.next` 산출물을 섞어 쓰지 않게, 빌드 전에 **`.next`를 비우고** 다시 `next build`한다. 이 레포의 `apps/open-graze`는 build 스크립트 자체가 `rm -rf .next && next build`를 기본으로 가져가야 한다.
+- **Added after**: Iteration 1 — 2026-05-05에 `next dev --turbopack` 잔여물 때문에 `.next/server/pages/_document.js`가 `[turbopack]_runtime.js`를 require하며 Ralph loop 시작 빌드를 막음

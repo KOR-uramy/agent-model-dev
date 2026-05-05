@@ -173,6 +173,18 @@ main() {
   if ralph_has_active_errors "$WORKSPACE"; then
     active_errors=1
   fi
+
+  if [[ "$signal" == "GUTTER" ]] && ralph_try_known_autofix "$WORKSPACE"; then
+    echo ""
+    echo "🛠 Known self-heal applied."
+    echo "   Retrying the single iteration once more..."
+    signal=$(run_iteration "$WORKSPACE" "1" "" "$SCRIPT_DIR")
+    task_status=$(check_task_complete "$WORKSPACE")
+    active_errors=0
+    if ralph_has_active_errors "$WORKSPACE"; then
+      active_errors=1
+    fi
+  fi
   
   echo ""
   echo "═══════════════════════════════════════════════════════════════════"

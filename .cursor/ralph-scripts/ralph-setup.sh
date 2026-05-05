@@ -412,6 +412,12 @@ main() {
           ;;
         "GUTTER")
           log_progress "$workspace" "**Session $iteration ended** - 🚨 GUTTER"
+          if ralph_try_known_autofix "$workspace"; then
+            echo "🛠 Known self-heal applied. Retrying the same iteration..."
+            session_id=""
+            sleep 2
+            continue
+          fi
           echo "🚨 Gutter detected. Check .ralph/errors.log"
           exit 1
           ;;

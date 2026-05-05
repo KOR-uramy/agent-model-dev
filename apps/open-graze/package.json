@@ -6,7 +6,7 @@
     "postinstall": "prisma generate",
     "predev": "prisma generate",
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && rm -rf .next && next build",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",

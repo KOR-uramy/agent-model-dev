@@ -36,6 +36,26 @@ type RalphActivityLog = {
   exists: boolean;
   updatedAt: string | null;
   lines: string[];
+  workLines: string[];
+  hiddenCounts: {
+    token: number;
+    banner: number;
+    noisy: number;
+  };
+  status: {
+    rawLine: string;
+    timestamp: string | null;
+    tokens: number | null;
+    limit: number | null;
+    contextPct: number | null;
+    breakdown: {
+      readKb: number | null;
+      writeKb: number | null;
+      assistKb: number | null;
+      shellKb: number | null;
+    };
+  } | null;
+  workLogHint: string | null;
 };
 type TaskRow = {
   id: string;
@@ -168,6 +188,21 @@ export default function WorkspaceDetailPage() {
     return isWorkspaceTaskStatus(status)
       ? WORKSPACE_TASK_STATUS_LABEL[status]
       : status;
+  }
+
+  function tokenStatusLabel(activity: RalphActivityLog | null) {
+    const status = activity?.status;
+    if (!status) return "상태 스냅샷이 아직 없습니다.";
+    const parts = [
+      status.tokens != null && status.limit != null
+        ? `${status.tokens.toLocaleString()} / ${status.limit.toLocaleString()} tokens`
+        : "token 수치 없음",
+      status.contextPct != null ? `컨텍스트 ${status.contextPct}%` : null,
+      status.breakdown.readKb != null
+        ? `read ${status.breakdown.readKb}KB · write ${status.breakdown.writeKb ?? 0}KB · assist ${status.breakdown.assistKb ?? 0}KB · shell ${status.breakdown.shellKb ?? 0}KB`
+        : null,
+    ].filter(Boolean);
+    return parts.join(" · ");
   }
 
   async function copyNewTokenOnly() {
@@ -499,8 +534,10 @@ export default function WorkspaceDetailPage() {
         <section className={`mt-8 ${surfaceCard}`}>
           <h2 className={sectionEyebrow}>Ralph 실행 로그</h2>
           <p className={proseMutedSm}>
-            같은 워크스페이스의 <code className={codeInline}>.ralph/activity.log</code> 최근 줄을 보여 줍니다. `cursor`,
-            `codex` 등 어떤 실행기를 써도 같은 파일에 모인 기록을 이 화면에서 바로 확인할 수 있습니다.
+            같은 워크스페이스의 <code className={codeInline}>.ralph/activity.log</code>를 읽되,{" "}
+            <strong className="text-foreground">상태 줄</strong>과{" "}
+            <strong className="text-foreground">작업 내용 로그</strong>를 분리해서 보여 줍니다. `cursor`, `codex` 등 어떤 실행기를 써도
+            같은 파일에 모인 기록을 이 화면에서 바로 확인할 수 있습니다.
           </p>
           {ralphActivityLoadErr ? (
             <p className={`mt-2 ${textErrorXs}`}>{ralphActivityLoadErr}</p>
@@ -511,13 +548,36 @@ export default function WorkspaceDetailPage() {
               <code className={codeInline}>{ralphActivity.path}</code>
             </p>
           ) : null}
-          <pre className="mt-4 max-h-80 overflow-auto rounded-xl border border-[var(--list-border)] bg-neutral-50/80 p-4 text-xs dark:bg-neutral-950/80">
-            {ralphActivity == null
-              ? "불러오는 중…"
-              : ralphActivity.exists
-                ? ralphActivity.lines.join("\n") || "아직 기록이 없습니다."
-                : "activity.log 파일이 아직 없습니다."}
-          </pre>
+          <div className="mt-4 rounded-xl border border-[var(--list-border)] bg-neutral-50/80 p-4 dark:bg-neutral-950/80">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">상태</p>
+            <p className="mt-2 text-sm text-foreground">
+              {ralphActivity == null
+                ? "불러오는 중…"
+                : ralphActivity.exists
+                  ? tokenStatusLabel(ralphActivity)
+                  : "activity.log 파일이 아직 없습니다."}
+            </p>
+            {ralphActivity?.status?.rawLine ? (
+              <p className="mt-1 font-mono text-[11px] text-muted">{ralphActivity.status.rawLine}</p>
+            ) : null}
+          </div>
+          <div className="mt-4 rounded-xl border border-[var(--list-border)]">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--list-border)] bg-neutral-50/80 px-4 py-3 text-[11px] text-muted dark:bg-neutral-950/80">
+              <span className="font-semibold uppercase tracking-[0.18em]">작업 로그</span>
+              {ralphActivity ? (
+                <span>
+                  숨김: 상태 {ralphActivity.hiddenCounts.token} · 배너 {ralphActivity.hiddenCounts.banner} · 노이즈 {ralphActivity.hiddenCounts.noisy}
+                </span>
+              ) : null}
+            </div>
+            <pre className="max-h-80 overflow-auto p-4 text-xs">
+              {ralphActivity == null
+                ? "불러오는 중…"
+                : ralphActivity.exists
+                  ? ralphActivity.workLines.join("\n") || ralphActivity.workLogHint || "아직 작업 로그가 없습니다."
+                  : "activity.log 파일이 아직 없습니다."}
+            </pre>
+          </div>
         </section>
 
         <section className={`mt-8 ${surfaceCard}`}>

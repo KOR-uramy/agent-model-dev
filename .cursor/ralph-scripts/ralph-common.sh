@@ -526,6 +526,33 @@ ralph_cleanup_iteration_processes() {
   printf "\r\033[K" >&2
 }
 
+ralph_try_known_autofix() {
+  local workspace="${1:-.}"
+  local errors_file="$workspace/.ralph/errors.log"
+  local next_dir="$workspace/apps/open-graze/.next"
+  local stamp_dir="$workspace/.ralph/autofix"
+  local next_stamp="$stamp_dir/open-graze-next.cleaned"
+  local next_stamp_ts=0
+  local next_dir_ts=0
+
+  mkdir -p "$stamp_dir"
+  next_stamp_ts=$(ralph_file_mtime "$next_stamp")
+  next_dir_ts=$(ralph_file_mtime "$next_dir")
+
+  if [[ -d "$next_dir" ]] && [[ "$next_stamp_ts" -lt "$next_dir_ts" ]]; then
+    if { [[ -f "$errors_file" ]] && grep -qE 'Cannot find module for page: /_error|Cannot find module for page: /api/|\\[turbopack\\]_runtime\\.js|server/pages/_document\\.js' "$errors_file"; } \
+      || { [[ -f "$next_dir/server/pages/_document.js" ]] && grep -q '\[turbopack\]_runtime\.js' "$next_dir/server/pages/_document.js"; }; then
+      rm -rf "$next_dir"
+      date '+%Y-%m-%dT%H:%M:%S%z' > "$next_stamp"
+      log_progress "$workspace" "**Auto-heal applied** - cleared \`apps/open-graze/.next\` after detecting stale Turbopack/webpack build artifacts"
+      echo "🛠 Auto-heal: cleared apps/open-graze/.next after detecting stale Turbopack build artifacts." >&2
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 # =============================================================================
 # PROMPT BUILDING
 # =============================================================================
@@ -774,14 +801,14 @@ run_iteration() {
 
   local role_key=""
   local forced_error_recovery=0
-  if [[ -n "${RALPH_ROLE_OVERRIDE:-}" ]]; then
-    role_key="$RALPH_ROLE_OVERRIDE"
-    export RALPH_ROLE="$role_key"
-  elif ralph_has_active_errors "$workspace"; then
+  if ralph_has_active_errors "$workspace"; then
     role_key="${RALPH_ERROR_RECOVERY_ROLE:-implementation}"
     export RALPH_ROLE="$role_key"
     export RALPH_FORCE_ERROR_RECOVERY=1
     forced_error_recovery=1
+  elif [[ -n "${RALPH_ROLE_OVERRIDE:-}" ]]; then
+    role_key="$RALPH_ROLE_OVERRIDE"
+    export RALPH_ROLE="$role_key"
   elif [[ "${RALPH_ROLE_MODE:-cycle}" != "mono" ]]; then
     role_key=$(ralph_role_for_iteration "$iteration")
     export RALPH_ROLE="$role_key"
@@ -1049,6 +1076,14 @@ run_ralph_loop() {
         ;;
       "GUTTER")
         log_progress "$workspace" "**Session $iteration ended** - 🚨 GUTTER (agent stuck)"
+        if ralph_try_known_autofix "$workspace"; then
+          echo ""
+          echo "🛠 Known self-heal applied."
+          echo "   Retrying the same iteration once more..."
+          session_id=""
+          sleep 2
+          continue
+        fi
         echo ""
         echo "🚨 Gutter detected. Check .ralph/errors.log for details."
         echo "   The agent may be stuck. Consider:"
