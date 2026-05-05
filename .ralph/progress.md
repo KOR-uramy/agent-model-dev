@@ -959,3 +959,12 @@
 
 ### 2026-05-05 23:45:11
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:49:40
+**역할: 구현 (implementation)**
+
+- **감시 요약 (직전 테스트 검증)**: `.ralph/progress.md`를 아래에서부터 읽어 최신 테스트 엔트리(2026-05-05 23:26 KST)와 그 이후 구현 기록을 대조했고, `git log -5`/현재 워크트리를 함께 확인했다. 테스트 단계가 닫은 범위(성장 항목 확장 + 기존 3개 `[x]` 전환)는 이후 구현 변경과 충돌하지 않아 handoff는 **승인**이다.
+- **오류 우선 재현 결과**: 활성 에러 큐 기준으로 루트에서 `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test`를 직렬 재실행했다. `build`/`test`는 모두 통과했고, `runtime:smoke`는 서버 미기동 시 안내 후 skip(exit 0) 계약을 유지해 현재 재현 가능한 compile/build/runtime blocker는 없다.
+- **이번 구현 작업**: 제품 코드 변경은 하지 않았다. 이번 이터는 에러 우선 정책에 따라 회귀 재현 여부를 확인하고 green 상태를 재검증하는 데 집중했다.
+- **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md` 마지막 3개 `[ ]`를 유지한다. 해당 항목은 브라우저 상호작용과 dev 서버 로그 확인이 필요해 완료 판정은 테스트 역할 소관이다.
+- **다음 인계(테스트)**: 1) 호스트에서 `npm run dev` 후 `/` 필터 요약 바 표시/칩 해제/전체 초기화의 URL·결과 동기화 확인. 2) 필터 포함 URL 첫 진입 시 `home_view_opened` 로그 1회 확인. 3) `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
