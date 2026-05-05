@@ -1040,3 +1040,12 @@
 - **이번 구현 작업**: 제품 코드 변경은 하지 않았다. 이번 이터는 오류 우선 정책에 따라 저장소 green 상태를 재검증하는 데 집중했다.
 - **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md` 마지막 3개 `[ ]`를 유지한다. 완료 판정은 브라우저 상호작용·서버 로그 검증이 필요한 테스트 역할 소관이다.
 - **다음 인계(테스트)**: 1) 호스트에서 `npm run dev` 후 `/` 필터 요약 바 노출/칩 해제/전체 초기화가 URL·결과와 동기화되는지 확인. 2) 필터 포함 URL로 첫 진입 시 `home_view_opened` 로그 1회 확인. 3) `현재 뷰 URL 복사` 클릭 시 `home_view_copied` 로그 확인. 4) README 절차와 일치하면 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-06 00:06:23
+**Session 2 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-06 00:07:03
+**Session 3 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-06 00:07:03
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
