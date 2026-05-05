@@ -581,3 +581,12 @@
 
 ### 2026-05-05 21:55:07
 **Session 1 ended** - Switching Codex model from 'gpt-5.2-codex' to fallback 'auto'
+
+### 2026-05-05 21:56:54
+**Session 1 started** — 역할: 구현 (`implementation`) · model: gpt-5.3-codex-mini
+
+### 2026-05-05 21:56:54
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:57:01
+**Session 1 ended** - Switching Codex model from 'gpt-5.3-codex-mini' to fallback 'auto'
