@@ -26,6 +26,10 @@ fi
 # Token thresholds
 WARN_THRESHOLD="${WARN_THRESHOLD:-70000}"
 ROTATE_THRESHOLD="${ROTATE_THRESHOLD:-80000}"
+RALPH_ACTIVITY_LOG_MAX_LINES="${RALPH_ACTIVITY_LOG_MAX_LINES:-400}"
+RALPH_ERRORS_LOG_MAX_LINES="${RALPH_ERRORS_LOG_MAX_LINES:-200}"
+RALPH_PROGRESS_READ_LINES="${RALPH_PROGRESS_READ_LINES:-120}"
+RALPH_ERRORS_READ_LINES="${RALPH_ERRORS_READ_LINES:-40}"
 
 # Iteration limits
 MAX_ITERATIONS="${MAX_ITERATIONS:-20}"
@@ -67,6 +71,25 @@ sedi() {
 get_ralph_dir() {
   local workspace="${1:-.}"
   echo "$workspace/.ralph"
+}
+
+ralph_trim_file_to_last_lines() {
+  local file="$1"
+  local max_lines="$2"
+  local tmp_file
+  local line_count
+
+  if [[ -z "$file" ]] || [[ -z "$max_lines" ]] || [[ ! -f "$file" ]]; then
+    return 0
+  fi
+
+  line_count=$(wc -l < "$file" 2>/dev/null | tr -d '[:space:]')
+  if [[ -z "$line_count" ]] || [[ "$line_count" -le "$max_lines" ]]; then
+    return 0
+  fi
+
+  tmp_file="${file}.tmp.$$"
+  tail -n "$max_lines" "$file" > "$tmp_file" && mv "$tmp_file" "$file"
 }
 
 # Cursor CLI: 공식 설치 바이너리는 `agent`(문서: cursor.com/docs/cli/installation).
@@ -139,6 +162,7 @@ log_activity() {
   
   mkdir -p "$ralph_dir"
   echo "[$timestamp] $message" >> "$ralph_dir/activity.log"
+  ralph_trim_file_to_last_lines "$ralph_dir/activity.log" "$RALPH_ACTIVITY_LOG_MAX_LINES"
 }
 
 # Log an error to errors.log
@@ -150,6 +174,7 @@ log_error() {
   
   mkdir -p "$ralph_dir"
   echo "[$timestamp] $message" >> "$ralph_dir/errors.log"
+  ralph_trim_file_to_last_lines "$ralph_dir/errors.log" "$RALPH_ERRORS_LOG_MAX_LINES"
 }
 
 # Log to progress.md (called by the loop, not the agent)
@@ -239,6 +264,9 @@ EOF
 
 EOF
   fi
+
+  ralph_trim_file_to_last_lines "$ralph_dir/activity.log" "$RALPH_ACTIVITY_LOG_MAX_LINES"
+  ralph_trim_file_to_last_lines "$ralph_dir/errors.log" "$RALPH_ERRORS_LOG_MAX_LINES"
 }
 
 # =============================================================================
@@ -624,8 +652,9 @@ _build_prompt_shared_body() {
 Before doing anything:
 1. Read \`RALPH_TASK.md\` - your task and completion criteria
 2. Read \`docs/ralph-guardrails.md\` - lessons from past failures (FOLLOW THESE)
-3. Read \`.ralph/progress.md\` - what's been accomplished
-4. Read \`.ralph/errors.log\` - recent failures to avoid
+3. Read only the latest state from \`.ralph/progress.md\` - use \`tail -n $RALPH_PROGRESS_READ_LINES .ralph/progress.md\`
+4. Read only recent failures from \`.ralph/errors.log\` - use \`tail -n $RALPH_ERRORS_READ_LINES .ralph/errors.log\`
+5. Do **not** read full \`.ralph/activity.log\` or full historical logs unless a recent line explicitly requires deeper inspection
 
 ## Working Directory (Critical)
 
@@ -686,7 +715,7 @@ $progress_rule
 ## Learning from Failures
 
 When something fails:
-1. Check \`.ralph/errors.log\` for failure history
+1. Check recent \`.ralph/errors.log\` history first with \`tail -n $RALPH_ERRORS_READ_LINES .ralph/errors.log\`
 2. Figure out the root cause
 3. Add a Sign to \`docs/ralph-guardrails.md\` using this format:
 

@@ -608,3 +608,16 @@
 
 ### 2026-05-05 21:59:28
 **Session 1 ended** - Switching Codex model from 'gpt-5.5-codex-mini' to fallback 'auto'
+
+### 2026-05-05 22:00:41
+**Session 1 started** — 역할: 구현 (`implementation`) · model: gpt-5.3-codex
+
+### 2026-05-05 22:00:41
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 활성 오류 큐의 unsupported model(400) 항목을 우선 재현 확인했다. 임시 `.ralph/errors.log`로 `ralph_try_known_autofix`를 실행한 결과, 현재 스크립트는 동일 오류에서 `MODEL=auto`·`RALPH_MODEL=auto`로 정상 폴백하고 `MODEL FALLBACK` 마커를 남긴다.
+- **구현 점검 결과**: `RALPH_TASK.md`의 남은 3개 `[ ]`(from/to URL 동기화, `source` 필터, 현재 뷰 URL 복사)는 코드/README에 이미 반영되어 있어 이번 이터에서 추가 코드 변경은 하지 않았다.
+- **검증**: 루트 `npm run build` 재실행 성공(Next.js/Prisma 포함 전체 워크스페이스 빌드 통과).
+- **다음 인계(테스트)**: dev 서버 기준으로 수동 검증만 남음 — (1) `from/to` 정규화(`Z`)와 단일 키 입력 시 URL 키 제거, (2) `source=`/미지 값 400 및 UI `source` 키 제거, (3) “현재 뷰 URL 복사” 후 시크릿 창 재현 일치. 통과 시 `RALPH_TASK.md` 3개 `[ ]`를 `[x]`로 전환.
