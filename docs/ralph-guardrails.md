@@ -37,3 +37,8 @@
 - **Trigger**: `git add/commit/checkout/push`에서 `Unable to create ... .git/index.lock: Operation not permitted` 또는 `.git/*`에 `touch`가 실패할 때
 - **Instruction**: 이 환경에서는 `.git/` 쓰기가 막힐 수 있다. 이 경우 **호스트 터미널에서** `git add -A && git commit ... && git push`를 수행하고, 에이전트는 `.ralph/progress.md`에 **변경 파일 목록 + 다음 인계**만 남긴다(“커밋/푸시를 에이전트가 대신”하려고 재시도 루프를 돌리지 말 것).
 - **Added after**: Iteration 1 — 2026-05-04에 Codex CLI 샌드박스에서 `.git/index.lock` 생성이 EPERM으로 차단됨
+
+### Sign: Next app route should expose a simple `GET` 405 stub when it is write-only
+- **Trigger**: `app/api/**/route.ts`에서 `POST` / `PATCH` / `DELETE` 같은 쓰기 전용 handler만 만들 때
+- **Instruction**: Next app route는 쓰기 전용이어도 **간단한 `GET` 405 응답**(`Allow` 헤더 포함)을 함께 export하는 것을 기본값으로 둔다. `POST` 전용 route를 만들고 끝내지 말고, 처음부터 `methodNotAllowed("POST")` 같은 공통 헬퍼를 같이 넣은 뒤 build를 확인한다.
+- **Added after**: Iteration 1 — 2026-05-05에 `/api/v1/events`가 `POST`만 export된 상태에서 `next build`의 route/page-data 수집 단계가 꼬이며 Ralph loop 시작 빌드를 막음

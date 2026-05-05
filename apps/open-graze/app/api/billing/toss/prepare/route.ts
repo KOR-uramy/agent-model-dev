@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { getTossSubscriptionAmountKrw } from "@/lib/toss-config";
 import { tossWidgetCustomerKeyForWorkspace } from "@/lib/toss-customer-key";
 import { prisma } from "@/lib/prisma";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { requireWorkspaceMember } from "@/lib/workspace-access";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -13,6 +14,10 @@ function newOrderId(): string {
   const hex = randomBytes(22).toString("hex");
   const id = `og_${hex}`;
   return id.length <= 64 ? id : id.slice(0, 64);
+}
+
+export async function GET() {
+  return methodNotAllowed("POST");
 }
 
 export async function POST(req: Request) {

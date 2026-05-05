@@ -1,3 +1,4 @@
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
@@ -13,6 +14,10 @@ const registerBody = z.object({
     .min(MIN_PASSWORD_LEN, { message: `비밀번호는 ${MIN_PASSWORD_LEN}자 이상이어야 합니다.` }),
   name: z.string().trim().max(120).optional().transform((s) => (s === "" ? undefined : s)),
 });
+
+export async function GET() {
+  return methodNotAllowed("POST");
+}
 
 export async function POST(req: Request) {
   let json: unknown;

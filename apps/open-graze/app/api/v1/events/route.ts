@@ -3,6 +3,7 @@ import {
   consumeIngestRateLimitToken,
   ingestRateLimitHeaders,
 } from "@/lib/ingest-rate-limit";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { prisma } from "@/lib/prisma";
 import { digestToken } from "@/lib/tokens";
 import { NextResponse } from "next/server";
@@ -12,6 +13,10 @@ const bodySchema = z.object({
   kind: z.string().min(1).max(120),
   data: z.record(z.string(), z.unknown()).optional(),
 });
+
+export async function GET() {
+  return methodNotAllowed("POST");
+}
 
 /**
  * 외부 앱·브라우저에서 이벤트 수집.

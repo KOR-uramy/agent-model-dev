@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { parseTelegramChatWorkspaceMap } from "@/lib/telegram-map";
 import { sendTelegramToChat } from "ralph-workspace-sdk";
 import { NextResponse } from "next/server";
@@ -18,6 +19,10 @@ type TelegramUpdate = {
 
 function getMessage(u: TelegramUpdate): TelegramMessage | undefined {
   return u.message ?? u.edited_message;
+}
+
+export async function GET() {
+  return methodNotAllowed("POST");
 }
 
 /**

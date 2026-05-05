@@ -1,10 +1,15 @@
 import { syncJsonlToTimeline } from "@/lib/timeline-feed";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const bodySchema = z.object({
   tail: z.number().int().min(1).max(20_000).optional(),
 });
+
+export async function GET() {
+  return methodNotAllowed("POST");
+}
 
 /**
  * `.ralph/events.jsonl` + `workspace-telemetry.jsonl`을 읽어 `TimelineEvent`(SQLite)에 적재.

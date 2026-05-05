@@ -3,11 +3,16 @@
  */
 import { auth } from "@/auth";
 import { getStripe } from "@/lib/stripe";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { requireWorkspaceMember } from "@/lib/workspace-access";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const schema = z.object({ slug: z.string().min(1) });
+
+export async function GET() {
+  return methodNotAllowed("POST");
+}
 
 export async function POST(req: Request) {
   const session = await auth();

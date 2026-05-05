@@ -3,6 +3,7 @@
  * 개발자센터에 `PAYMENT_STATUS_CHANGED` 등록 후 URL: `{APP}/api/webhooks/toss`
  */
 import { prisma } from "@/lib/prisma";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { verifyTossWebhookSignature } from "@/lib/toss-webhook";
 import { NextResponse } from "next/server";
 
@@ -12,6 +13,10 @@ function webhookSecret(): string | null {
     process.env.TOSS_SECRET_KEY?.trim() ||
     null
   );
+}
+
+export async function GET() {
+  return methodNotAllowed("POST");
 }
 
 export async function POST(req: Request) {

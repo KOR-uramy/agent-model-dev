@@ -2,10 +2,15 @@
  * 레거시 Stripe Webhook. 결제 표준은 토스 v2 — `RALPH_TASK.md`.
  */
 import { prisma } from "@/lib/prisma";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { getStripe } from "@/lib/stripe";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+
+export async function GET() {
+  return methodNotAllowed("POST");
+}
 
 export async function POST(req: Request) {
   const stripe = getStripe();

@@ -1,9 +1,14 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { requireWorkspaceMember } from "@/lib/workspace-access";
 import { NextResponse } from "next/server";
 
 type Ctx = { params: Promise<{ slug: string; keyId: string }> };
+
+export async function GET() {
+  return methodNotAllowed("DELETE");
+}
 
 export async function DELETE(_req: Request, ctx: Ctx) {
   const session = await auth();

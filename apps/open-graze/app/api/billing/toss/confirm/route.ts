@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { tossConfirmPayment } from "@/lib/toss-api";
 import { prisma } from "@/lib/prisma";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -10,6 +11,10 @@ const bodySchema = z.object({
   paymentKey: z.string().min(1),
   amount: z.number().int().positive(),
 });
+
+export async function GET() {
+  return methodNotAllowed("POST");
+}
 
 export async function POST(req: Request) {
   const secretKey = process.env.TOSS_SECRET_KEY?.trim();

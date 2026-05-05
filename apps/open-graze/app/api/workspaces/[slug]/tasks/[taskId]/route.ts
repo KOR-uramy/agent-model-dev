@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { methodNotAllowed } from "@/lib/route-method-not-allowed";
 import { requireWorkspaceMember } from "@/lib/workspace-access";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -19,6 +20,10 @@ const patchSchema = z.object({
   description: z.string().trim().max(8000).nullable().optional(),
   status: taskStatusZ.optional(),
 });
+
+export async function GET() {
+  return methodNotAllowed("PATCH");
+}
 
 export async function PATCH(req: Request, ctx: Ctx) {
   const session = await auth();
