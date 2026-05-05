@@ -636,3 +636,19 @@
 - **구현 범위 판단**: `RALPH_TASK.md`의 남은 3개 `[ ]`(from/to URL 동기화, `source` 필터, 현재 뷰 URL 복사)는 `apps/open-graze` 코드/README에 이미 반영되어 추가 구현 변경은 하지 않았다.
 - **검증**: 루트 `npm run build` 재실행 성공(워크스페이스 전체 빌드 통과).
 - **다음 인계(테스트 역할)**: 브라우저 실검증으로 3개 `[ ]` 최종 판정 필요 — (1) `?from`/`?to` 단일 입력 시 키 제거 + 쌍 입력 시 `Z` 정규화 유지, (2) `source=`/미지 값 API 400 및 UI에서 `source` 쿼리 제거, (3) “현재 뷰 URL 복사” 후 시크릿 창 재현 일치. 통과 시 해당 3개 체크를 `[x]`로 전환.
+
+### 2026-05-05 22:23:51
+**Session 1 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-05 22:23:51
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 22:40:00
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: `RALPH_TASK.md`, `docs/ralph-guardrails.md`, 최근 `.ralph/progress.md`/`.ralph/errors.log`, `git log` 기준으로 시작했다. unsupported-model 오류는 최근 로그에서 모두 `↪️ MODEL FALLBACK` 후속 마커가 있어 활성 blocker로 보지 않았고, 남은 제품 체크는 홈 타임라인의 `from/to`, `source`, URL 복사 축이었다.
+- **이번 구현**: [apps/open-graze/lib/timeline-feed.ts](/Users/uram/dev/agent-model-dev/apps/open-graze/lib/timeline-feed.ts) 의 `loadTimelineEventsInRange()`를 정리해 `source` 필터를 후처리가 아니라 **SQLite WHERE 조건**으로 밀어 넣었다. 이제 `GET /api/ralph/events/range`의 `source` 조합은 `role`·`sessionId`와 같은 단계에서 적용되므로 `limit`·`returnedCount`·`truncated` 의미가 실제 필터된 집합 기준으로 맞는다.
+- **구현 상태 재확인**: 홈 UI/URL/API 계약은 이미 코드에 있었다. [apps/open-graze/app/components/home-page-content.tsx](/Users/uram/dev/agent-model-dev/apps/open-graze/app/components/home-page-content.tsx) 에서 `?role=`·`?sessionId=`·`?from=`·`?to=`·`?source=` 양방향 동기화, invalid 쿼리 제거, `from/to`의 UTC `Z` 정규화, 클립보드 복사가 모두 구현돼 있고, [apps/open-graze/README.md](/Users/uram/dev/agent-model-dev/apps/open-graze/README.md) 에 검증용 URL/curl 예시도 있다.
+- **검증**: 루트 `npm run build` 재실행 성공(2026-05-05 22:3x KST, `ralph-workspace-sdk` + `open-graze` 전체 통과).
+- **다음 인계(테스트 역할)**: 체크박스 전환 전 실검증만 남았다. 1. `/`에서 `from`만 또는 `to`만 넣으면 주소줄에서 둘 다 제거되는지 확인. 2. `from/to` 쌍 입력 시 주소줄이 UTC `Z` 형식으로 정규화되고 새 탭/시크릿 창에서도 동일 뷰가 재현되는지 확인. 3. `source=` 빈 값·미지 값이 API 400이고, UI는 미지 `source`가 들어온 URL에서 쿼리 키를 제거하는지 확인. 4. `role`·`sessionId`·`from`·`to`·`source`를 모두 건 상태에서 “현재 뷰 URL 복사” 후 붙여넣은 창의 필터 UI와 행 집합이 일치하는지 확인.
+- **Git 상태**: 이 세션에서도 `.git` 쓰기 제한 가능성이 있어 커밋/푸시는 수행하지 않았다. 테스트 통과 후 호스트 터미널에서 커밋/푸시가 필요하다.

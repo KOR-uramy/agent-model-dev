@@ -86,48 +86,29 @@ export async function loadTimelineEventsInRange(
   const source = opts.source ?? null;
   const newestFirst = opts.newestFirst === true;
   const orderDir = newestFirst ? Prisma.raw("DESC") : Prisma.raw("ASC");
-
-  const rows =
-    role && sessionId
-      ? await prisma.$queryRaw<{ payload: string }[]>`
-        SELECT "payload"
-        FROM "TimelineEvent"
-        WHERE "workspaceKey" = ${workspaceKey}
-          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
-          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
-          AND json_extract("payload", '$.sessionId') = ${sessionId}
-          AND json_extract("payload", '$.detail.role') = ${role}
-        ORDER BY "ts" ${orderDir}
-        LIMIT ${capped}
-      `
-      : sessionId
-        ? await prisma.$queryRaw<{ payload: string }[]>`
-        SELECT "payload"
-        FROM "TimelineEvent"
-        WHERE "workspaceKey" = ${workspaceKey}
-          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
-          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
-          AND json_extract("payload", '$.sessionId') = ${sessionId}
-        ORDER BY "ts" ${orderDir}
-        LIMIT ${capped}
-      `
-        : role
-          ? await prisma.$queryRaw<{ payload: string }[]>`
-        SELECT "payload"
-        FROM "TimelineEvent"
-        WHERE "workspaceKey" = ${workspaceKey}
-          AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
-          AND strftime('%s', "ts") <= strftime('%s', ${toIso})
-          AND json_extract("payload", '$.detail.role') = ${role}
-        ORDER BY "ts" ${orderDir}
-        LIMIT ${capped}
-      `
-          : await prisma.$queryRaw<{ payload: string }[]>`
+  const whereParts: Prisma.Sql[] = [
+    Prisma.sql`"workspaceKey" = ${workspaceKey}`,
+    Prisma.sql`strftime('%s', "ts") >= strftime('%s', ${fromIso})`,
+    Prisma.sql`strftime('%s', "ts") <= strftime('%s', ${toIso})`,
+  ];
+  if (sessionId) {
+    whereParts.push(
+      Prisma.sql`json_extract("payload", '$.sessionId') = ${sessionId}`,
+    );
+  }
+  if (role) {
+    whereParts.push(
+      Prisma.sql`json_extract("payload", '$.detail.role') = ${role}`,
+    );
+  }
+  if (source) {
+    whereParts.push(Prisma.sql`"source" = ${source}`);
+  }
+  const whereSql = Prisma.join(whereParts, " AND ");
+  const rows = await prisma.$queryRaw<{ payload: string }[]>`
     SELECT "payload"
     FROM "TimelineEvent"
-    WHERE "workspaceKey" = ${workspaceKey}
-      AND strftime('%s', "ts") >= strftime('%s', ${fromIso})
-      AND strftime('%s', "ts") <= strftime('%s', ${toIso})
+    WHERE ${whereSql}
     ORDER BY "ts" ${orderDir}
     LIMIT ${capped}
   `;
@@ -139,8 +120,7 @@ export async function loadTimelineEventsInRange(
       if (
         ev &&
         typeof ev.ts === "string" &&
-        typeof ev.kind === "string" &&
-        (!source || ev.source === source)
+        typeof ev.kind === "string"
       ) {
         out.push(ev);
       }
