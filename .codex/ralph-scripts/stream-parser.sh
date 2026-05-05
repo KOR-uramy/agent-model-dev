@@ -29,6 +29,9 @@ mkdir -p "$RALPH_DIR"
 # Thresholds
 WARN_THRESHOLD=70000
 ROTATE_THRESHOLD=80000
+ACTIVITY_LOG_MAX_LINES="${RALPH_ACTIVITY_LOG_MAX_LINES:-400}"
+ERRORS_LOG_MAX_LINES="${RALPH_ERRORS_LOG_MAX_LINES:-200}"
+LOG_LINE_MAX_CHARS="${RALPH_LOG_LINE_MAX_CHARS:-400}"
 
 # Tracking state
 BYTES_READ=0
@@ -47,6 +50,25 @@ PROMPT_CHARS=3000
 FAILURES_FILE=$(mktemp)
 WRITES_FILE=$(mktemp)
 trap "rm -f $FAILURES_FILE $WRITES_FILE" EXIT
+
+trim_file_to_last_lines() {
+  local file="$1"
+  local max_lines="$2"
+  local tmp_file
+  local line_count
+
+  if [[ -z "$file" ]] || [[ -z "$max_lines" ]] || [[ ! -f "$file" ]]; then
+    return 0
+  fi
+
+  line_count=$(wc -l < "$file" 2>/dev/null | tr -d '[:space:]')
+  if [[ -z "$line_count" ]] || [[ "$line_count" -le "$max_lines" ]]; then
+    return 0
+  fi
+
+  tmp_file="${file}.tmp.$$"
+  tail -n "$max_lines" "$file" > "$tmp_file" && mv "$tmp_file" "$file"
+}
 
 # Get context health emoji
 get_health_emoji() {
@@ -107,7 +129,8 @@ log_activity() {
   local tokens=$(calc_tokens)
   local emoji=$(get_health_emoji $tokens)
   
-  echo "[$timestamp] $emoji $message" >> "$RALPH_DIR/activity.log"
+  echo "[$timestamp] $emoji $(truncate_inline_text "$message" "$LOG_LINE_MAX_CHARS")" >> "$RALPH_DIR/activity.log"
+  trim_file_to_last_lines "$RALPH_DIR/activity.log" "$ACTIVITY_LOG_MAX_LINES"
 }
 
 # Log to errors.log
@@ -115,7 +138,8 @@ log_error() {
   local message="$1"
   local timestamp=$(date '+%H:%M:%S')
   
-  echo "[$timestamp] $message" >> "$RALPH_DIR/errors.log"
+  echo "[$timestamp] $(truncate_inline_text "$message" "$LOG_LINE_MAX_CHARS")" >> "$RALPH_DIR/errors.log"
+  trim_file_to_last_lines "$RALPH_DIR/errors.log" "$ERRORS_LOG_MAX_LINES"
 }
 
 normalize_inline_text() {
@@ -173,7 +197,8 @@ log_token_status() {
   fi
   
   local breakdown="[read:$((BYTES_READ/1024))KB write:$((BYTES_WRITTEN/1024))KB assist:$((ASSISTANT_CHARS/1024))KB shell:$((SHELL_OUTPUT_CHARS/1024))KB]"
-  echo "[$timestamp] $emoji $status_msg $breakdown" >> "$RALPH_DIR/activity.log"
+  echo "[$timestamp] $emoji $(truncate_inline_text "$status_msg $breakdown" "$LOG_LINE_MAX_CHARS")" >> "$RALPH_DIR/activity.log"
+  trim_file_to_last_lines "$RALPH_DIR/activity.log" "$ACTIVITY_LOG_MAX_LINES"
   append_event "token_snapshot" "$(jq -nc --argjson t "$tokens" --argjson p "$pct" --arg s "$status_msg" --arg b "$breakdown" '{tokens:$t,contextPct:$p,summary:$s,breakdownLabel:$b}')"
 }
 

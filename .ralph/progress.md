@@ -621,3 +621,18 @@
 - **구현 점검 결과**: `RALPH_TASK.md`의 남은 3개 `[ ]`(from/to URL 동기화, `source` 필터, 현재 뷰 URL 복사)는 코드/README에 이미 반영되어 있어 이번 이터에서 추가 코드 변경은 하지 않았다.
 - **검증**: 루트 `npm run build` 재실행 성공(Next.js/Prisma 포함 전체 워크스페이스 빌드 통과).
 - **다음 인계(테스트)**: dev 서버 기준으로 수동 검증만 남음 — (1) `from/to` 정규화(`Z`)와 단일 키 입력 시 URL 키 제거, (2) `source=`/미지 값 400 및 UI `source` 키 제거, (3) “현재 뷰 URL 복사” 후 시크릿 창 재현 일치. 통과 시 `RALPH_TASK.md` 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-05 22:16:52
+**Session 1 started** — 역할: 구현 (`implementation`) · model: gpt-5.3-codex
+
+### 2026-05-05 22:16:52
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 22:19:10
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 직전 역할 산출물 없이 시작해 `RALPH_TASK.md`, `docs/ralph-guardrails.md`, 최근 `.ralph/progress.md`/`.ralph/errors.log`만 기준으로 상태를 재확인했다. 활성 오류 큐의 unsupported model 항목은 최근 로그에서 모두 `MODEL FALLBACK` 후속 마커가 붙어 있었다.
+- **오류 재현 점검(에러 우선)**: `ralph_try_known_autofix`를 임시 워크스페이스(`.ralph/errors.log`에 unsupported-model 400 주입)로 실행해, 스크립트가 즉시 `MODEL=auto`·`RALPH_MODEL=auto`로 전환하고 `↪️ MODEL FALLBACK` 로그를 남기는지 재검증했다. 결과는 재현 성공(자동 복구 정상).
+- **구현 범위 판단**: `RALPH_TASK.md`의 남은 3개 `[ ]`(from/to URL 동기화, `source` 필터, 현재 뷰 URL 복사)는 `apps/open-graze` 코드/README에 이미 반영되어 추가 구현 변경은 하지 않았다.
+- **검증**: 루트 `npm run build` 재실행 성공(워크스페이스 전체 빌드 통과).
+- **다음 인계(테스트 역할)**: 브라우저 실검증으로 3개 `[ ]` 최종 판정 필요 — (1) `?from`/`?to` 단일 입력 시 키 제거 + 쌍 입력 시 `Z` 정규화 유지, (2) `source=`/미지 값 API 400 및 UI에서 `source` 쿼리 제거, (3) “현재 뷰 URL 복사” 후 시크릿 창 재현 일치. 통과 시 해당 3개 체크를 `[x]`로 전환.
