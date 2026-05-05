@@ -546,6 +546,23 @@ ralph_file_mtime() {
   fi
 }
 
+ralph_is_resolution_log_line() {
+  local line="${1:-}"
+  [[ "$line" =~ (↪️[[:space:]]MODEL[[:space:]]FALLBACK|AUTO-HEAL[[:space:]]APPLIED|ERROR[[:space:]]RECOVERY[[:space:]]COMPLETE|ACTIVE[[:space:]]ERRORS[[:space:]]CLEARED) ]]
+}
+
+ralph_summarize_log_line() {
+  local line="${1:-}"
+  local max_chars="${2:-240}"
+
+  if [[ ${#line} -le $max_chars ]]; then
+    printf '%s\n' "$line"
+    return 0
+  fi
+
+  printf '%s… [truncated %d chars]\n' "${line:0:max_chars}" "${#line}"
+}
+
 ralph_has_active_errors() {
   local workspace="${1:-.}"
   local errors_file="$workspace/.ralph/errors.log"
@@ -564,7 +581,16 @@ ralph_has_active_errors() {
   file_ts=$(ralph_file_mtime "$errors_file")
   age=$((now_ts - file_ts))
 
-  [[ "$age" -le "$active_window" ]]
+  if [[ "$age" -gt "$active_window" ]]; then
+    return 1
+  fi
+
+  local last_line=""
+  last_line=$(grep -vE '^[[:space:]]*(#|$|>)' "$errors_file" | tail -n 1)
+  [[ -z "$last_line" ]] && return 1
+  ralph_is_resolution_log_line "$last_line" && return 1
+
+  return 0
 }
 
 ralph_recent_error_summary() {
@@ -577,7 +603,9 @@ ralph_recent_error_summary() {
     return 0
   fi
 
-  grep -vE '^[[:space:]]*(#|$|>)' "$errors_file" | tail -n 5
+  grep -vE '^[[:space:]]*(#|$|>)' "$errors_file" | tail -n 5 | while IFS= read -r line; do
+    ralph_summarize_log_line "$line" 240
+  done
 }
 
 ralph_cleanup_iteration_processes() {
