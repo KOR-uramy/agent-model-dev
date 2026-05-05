@@ -26,6 +26,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source common functions
 source "$SCRIPT_DIR/ralph-common.sh"
 
+trap 'ralph_interrupt_top_level "🛑 Ralph iteration interrupted."; exit 130' INT TERM
+
 # =============================================================================
 # FLAG PARSING
 # =============================================================================

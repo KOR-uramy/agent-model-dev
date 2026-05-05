@@ -557,6 +557,18 @@ ralph_cleanup_iteration_processes() {
   printf "\r\033[K" >&2
 }
 
+ralph_interrupt_top_level() {
+  local note="${1:-🛑 Interrupted.}"
+  local pid
+
+  for pid in $(jobs -pr 2>/dev/null); do
+    kill "$pid" 2>/dev/null || true
+  done
+  pkill -P $$ 2>/dev/null || true
+  printf "\r\033[K" >&2
+  echo "$note" >&2
+}
+
 # =============================================================================
 # PROMPT BUILDING
 # =============================================================================

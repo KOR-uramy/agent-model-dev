@@ -117,6 +117,25 @@ log_error() {
   echo "[$timestamp] $message" >> "$RALPH_DIR/errors.log"
 }
 
+normalize_inline_text() {
+  local text="${1:-}"
+  text="${text//$'\n'/ }"
+  text="${text//$'\r'/ }"
+  text="$(echo "$text" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+  echo "$text"
+}
+
+truncate_inline_text() {
+  local text
+  text="$(normalize_inline_text "${1:-}")"
+  local max_len="${2:-140}"
+  if [[ ${#text} -gt $max_len ]]; then
+    echo "${text:0:max_len}..."
+  else
+    echo "$text"
+  fi
+}
+
 # Check and log token status
 log_token_status() {
   local tokens=$(calc_tokens)
@@ -253,13 +272,6 @@ process_line() {
     echo "GUTTER" 2>/dev/null || true
   fi
 
-  if [[ "$line" == *"Reconnecting..."* ]]; then
-    log_error "API ERROR: $line"
-    log_activity "⏸️  RETRYABLE: $line"
-    append_event "api_error_defer" "$(jq -nc --arg m "$line" '{message:$m,retryable:true}')"
-    echo "DEFER" 2>/dev/null || true
-  fi
-  
   # Parse JSON type
   local type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null) || return
   local subtype=$(echo "$line" | jq -r '.subtype // empty' 2>/dev/null) || true
@@ -292,6 +304,65 @@ process_line() {
         echo "GUTTER" 2>/dev/null || true
       fi
       ;;
+
+    "item.started")
+      local item_type
+      item_type=$(echo "$line" | jq -r '.item.type // empty' 2>/dev/null) || item_type=""
+      case "$item_type" in
+        "command_execution")
+          local cmd
+          cmd=$(echo "$line" | jq -r '.item.command // empty' 2>/dev/null) || cmd=""
+          [[ -n "$cmd" ]] && log_activity "RUN $(truncate_inline_text "$cmd" 160)"
+          ;;
+      esac
+      ;;
+
+    "item.completed")
+      local item_type
+      item_type=$(echo "$line" | jq -r '.item.type // empty' 2>/dev/null) || item_type=""
+      case "$item_type" in
+        "command_execution")
+          local cmd exit_code aggregated_output output_chars
+          cmd=$(echo "$line" | jq -r '.item.command // "unknown"' 2>/dev/null) || cmd="unknown"
+          exit_code=$(echo "$line" | jq -r '.item.exit_code // .item.exitCode // 0' 2>/dev/null) || exit_code=0
+          aggregated_output=$(echo "$line" | jq -r '.item.aggregated_output // ""' 2>/dev/null) || aggregated_output=""
+          output_chars=${#aggregated_output}
+          SHELL_OUTPUT_CHARS=$((SHELL_OUTPUT_CHARS + output_chars))
+
+          if [[ "$exit_code" -eq 0 ]]; then
+            if [[ "$output_chars" -gt 0 ]]; then
+              log_activity "COMMAND $(truncate_inline_text "$cmd" 120) → exit 0 · $(truncate_inline_text "$aggregated_output" 180)"
+            else
+              log_activity "COMMAND $(truncate_inline_text "$cmd" 160) → exit 0"
+            fi
+          else
+            log_activity "COMMAND $(truncate_inline_text "$cmd" 160) → exit $exit_code"
+            track_shell_failure "$cmd" "$exit_code"
+          fi
+
+          append_event "tool_shell" "$(jq -nc --arg cmd "$cmd" --argjson ec "$exit_code" --argjson oc "$output_chars" '{command:$cmd,exitCode:$ec,outputChars:$oc,source:"command_execution"}')"
+          check_gutter
+          ;;
+        "assistant_message")
+          local text chars
+          text=$(echo "$line" | jq -r '.item.text // .item.content[0].text // .item.content[0].text.value // empty' 2>/dev/null) || text=""
+          if [[ -n "$text" ]]; then
+            chars=${#text}
+            ASSISTANT_CHARS=$((ASSISTANT_CHARS + chars))
+            log_activity "ASSISTANT $(truncate_inline_text "$text" 180)"
+            append_event "assistant_summary" "$(jq -nc --arg text "$(truncate_inline_text "$text" 400)" --argjson chars "$chars" '{text:$text,chars:$chars}')"
+          fi
+          ;;
+        "reasoning")
+          local summary
+          summary=$(echo "$line" | jq -r '.item.summary[0].text // .item.text // empty' 2>/dev/null) || summary=""
+          if [[ -n "$summary" ]]; then
+            log_activity "REASONING $(truncate_inline_text "$summary" 180)"
+            append_event "reasoning_summary" "$(jq -nc --arg text "$(truncate_inline_text "$summary" 400)" '{text:$text}')"
+          fi
+          ;;
+      esac
+      ;;
       
     "assistant")
       # Track assistant message characters
@@ -299,6 +370,8 @@ process_line() {
       if [[ -n "$text" ]]; then
         local chars=${#text}
         ASSISTANT_CHARS=$((ASSISTANT_CHARS + chars))
+        log_activity "ASSISTANT $(truncate_inline_text "$text" 180)"
+        append_event "assistant_summary" "$(jq -nc --arg text "$(truncate_inline_text "$text" 400)" --argjson chars "$chars" '{text:$text,chars:$chars}')"
         
         # Check for completion sigil
         if [[ "$text" == *"<ralph>COMPLETE</ralph>"* ]]; then

@@ -27,6 +27,8 @@ if [[ -f "$SCRIPT_DIR/ralph-parallel.sh" ]]; then
   source "$SCRIPT_DIR/ralph-parallel.sh"
 fi
 
+trap 'ralph_interrupt_top_level "🛑 Ralph setup interrupted."; exit 130' INT TERM
+
 # =============================================================================
 # GUM DETECTION
 # =============================================================================
