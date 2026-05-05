@@ -883,3 +883,13 @@
 
 ### 2026-05-05 23:30:04
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 23:33:10
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 최신 구현 기록(23:25 KST)과 현재 워크트리를 다시 대조했다. `RALPH_TASK.md`의 남은 3개 `[ ]`에 대응하는 제품 코드 변경은 이미 들어가 있으며, 이번 이터는 에러 큐에 남은 build/runtime 흔들림을 우선 정리하는 것이 맞다고 판단했다.
+- **오류 재현 결과**: 루트 `npm run build`는 단독 실행에서 통과했다. 다만 `npm run runtime:smoke` 첫 실행에서 `GET /api/v1/meta/limits`가 일시적으로 HTTP 500을 냈고, 같은 서버에 즉시 `curl`했을 때는 200으로 회복됐다. 이후 `npm run build && npm run runtime:smoke && npm test`를 한 번에 돌릴 때는 포트 3000의 기존 `next dev`와 `.next` 경합으로 `Cannot find module for page: /api/billing/toss/confirm`가 재현됐다.
+- **이번 구현**: [scripts/runtime-smoke.mjs](/Users/uram/dev/agent-model-dev/scripts/runtime-smoke.mjs)에 5xx(500/502/503/504) 짧은 재시도 로직을 추가해 dev 워밍업 구간 오탐을 줄였다. 같은 패턴 재발 방지를 위해 [docs/ralph-guardrails.md](/Users/uram/dev/agent-model-dev/docs/ralph-guardrails.md)에 “runtime smoke 첫 요청 500은 워밍업 가능성부터 확인하고 짧게 재시도” Sign을 추가했다.
+- **검증**: `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test` 직렬 실행으로 재검증했다. 결과는 build 통과, runtime smoke는 서버 미기동 안내 후 skip(exit 0) 처리, `npm test`(내부 `test:compile`→build) 통과다. 즉 활성 blocker는 코드 결함이 아니라 **동시 실행 금지 가드레일** 위반이었다.
+- **체크박스 상태**: 이번 이터에서도 `RALPH_TASK.md` 최신 3개 `[ ]`는 건드리지 않았다(브라우저/서버 로그 실검증은 테스트 역할 소관).
+- **다음 인계(테스트)**: 1) 호스트 터미널에서 `npm run dev` 후 `/` 필터 요약 바 표시/칩 해제/전체 초기화의 URL·결과 동기화 확인. 2) 필터 포함 URL 진입 시 `home_view_opened` 로그 1회 확인. 3) `현재 뷰 URL 복사` 시 `home_view_copied` 로그 확인. 4) README 절차와 일치 시 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.

@@ -82,3 +82,8 @@
 - **Trigger**: `app/api/**/route.ts` 가 Prisma, 로그 파일, 또는 런타임 쿼리 파라미터에 의존하는데 `next build` 후반 `Collecting page data` 에서 `Cannot find module for page: /api/...` 류 오류가 날 때
 - **Instruction**: 이런 route handler는 정적 수집 대상이 아니므로 `export const dynamic = "force-dynamic"` 를 명시한다. 특히 `GET /api/ralph/events*`, `POST /api/v1/events` 같은 DB/로그 기반 엔드포인트는 먼저 dynamic 설정 여부를 확인한 뒤 다시 빌드한다.
 - **Added after**: Iteration 10 — 2026-05-05에 홈 필터 요약 바 수정 후 재검증 중 `next build` 가 `/api/ralph/events/range`, `/api/v1/events` page-data 수집 단계에서 누락되어 실패했고, dynamic 고정 후 복구됨
+
+### Sign: Runtime smoke can hit transient 500 while `next dev` warms up
+- **Trigger**: `npm run runtime:smoke` 첫 호출에서 `/api/v1/meta/limits` 등 API가 500(또는 HTML 에러)로 실패하지만, 같은 서버에 즉시 `curl`하면 정상 응답으로 회복될 때
+- **Instruction**: 서버를 다시 띄우거나 코드부터 바꾸지 말고, 먼저 짧은 재시도(수백 ms~1s)를 적용해 워밍업 구간 오탐을 줄인다. 동시에 `next dev`와 `next build` 병렬 실행이 없는지 확인한다.
+- **Added after**: Iteration 1 — 2026-05-05 23:30 KST에 `runtime:smoke`가 첫 요청 500 후 즉시 정상화되어 false blocker로 기록됨

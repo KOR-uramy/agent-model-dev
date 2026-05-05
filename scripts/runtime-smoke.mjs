@@ -19,11 +19,35 @@ function exitSkipped(message) {
   process.exit(0);
 }
 
+const RETRYABLE_HTTP_STATUSES = new Set([500, 502, 503, 504]);
+const RETRY_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 700;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url, label, accept) {
+  let lastResponse = null;
+  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt += 1) {
+    const response = await fetch(url, { headers: { Accept: accept } });
+    lastResponse = response;
+    if (!RETRYABLE_HTTP_STATUSES.has(response.status) || attempt === RETRY_ATTEMPTS) {
+      return response;
+    }
+    console.warn(
+      `${label}: HTTP ${response.status} (시도 ${attempt}/${RETRY_ATTEMPTS}), 잠시 후 재시도합니다.`,
+    );
+    await sleep(RETRY_DELAY_MS);
+  }
+  return lastResponse;
+}
+
 async function getJson(path, label) {
   const url = `${base}${path}`;
   let res;
   try {
-    res = await fetch(url, { headers: { Accept: "application/json" } });
+    res = await fetchWithRetry(url, label, "application/json");
   } catch (e) {
     const err = e instanceof Error ? e.message : String(e);
     exitSkipped(
@@ -38,6 +62,21 @@ async function getJson(path, label) {
   try {
     json = JSON.parse(text);
   } catch {
+    if (RETRYABLE_HTTP_STATUSES.has(res.status)) {
+      try {
+        await sleep(RETRY_DELAY_MS);
+        const retryRes = await fetchWithRetry(url, `${label} (JSON 재확인)`, "application/json");
+        const retryText = await retryRes.text();
+        json = JSON.parse(retryText);
+        if (!retryRes.ok) {
+          console.error(`${label}: HTTP ${retryRes.status}`, json);
+          process.exit(1);
+        }
+        return json;
+      } catch {
+        // final error handling falls through
+      }
+    }
     console.error(`${label}: HTTP ${res.status}, 본문이 JSON이 아님:\n`, text.slice(0, 500));
     process.exit(1);
   }
