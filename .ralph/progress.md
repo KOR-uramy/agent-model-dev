@@ -5,11 +5,19 @@
 ## Summary
 
 - Iterations completed: 4 (+ 토스 v2 결제위젯·승인·웹훅)
-- Current status: **사이클 4 · 기획(1/4)** — `RALPH_TASK.md` Success 전부 `[x]` 뒤 성장 루프로 **차수 4** `- [ ]` 3건(`?from=`/`?to=` URL 동기화·`source` API+UI+README curl·“현재 뷰 복사”+검증 한 줄) 추가; 동종 Grafana Explore·Sentry Discover 한 줄. 다음 역할: **디자인**(시간 구간 vs `tail` 배타 규칙·`source` 허용 enum·복사 URL 스키마).
+- Current status: **사이클 4 · 구현(3/4)** — 성장 루프의 남은 3건 중 구현 범위는 URL/복사 UI + `source` 필터 API/README까지 반영되었고, 방금 `source=` 빈 문자열을 API 400으로 맞췄다. 다음 역할: **테스트**(`npm run build` 재확인, `source=`/미지 값 400, URL 복사·정규화 수동 검증 후 `[x]` 처리).
 
 ## Session History
 
 ### 2026-05-05
+
+**역할: 구현 (implementation)\**
+
+- **감시 요약**: 활성 오류 큐의 unsupported Codex model 400은 현재 스크립트에서 이미 auto-heal 대상인지 먼저 재현했다. `source .cursor/ralph-scripts/ralph-common.sh` 후 임시 `.ralph/errors.log`에 unsupported-model 400 한 줄을 넣고 `ralph_try_known_autofix`를 실행해 `MODEL=auto`, `RALPH_MODEL=auto`, `↪️ MODEL FALLBACK...`가 다시 찍히는 것을 확인했다.
+- **이번에 한 일(구현 범위)**: [`apps/open-graze/app/api/ralph/events/route.ts`](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/route.ts)·[`apps/open-graze/app/api/ralph/events/range/route.ts`](/Users/uram/dev/agent-model-dev/apps/open-graze/app/api/ralph/events/range/route.ts)에서 `source` 쿼리 검증을 tighten 해서, 체크리스트 계약대로 **`source=` 빈 문자열도 400**으로 거절하게 맞췄다(기존에는 빈 문자열이 생략처럼 통과했다). [`apps/open-graze/README.md`](/Users/uram/dev/agent-model-dev/apps/open-graze/README.md)도 같은 계약으로 갱신해 `GET /api/ralph/events`·`/range` 둘 다 “빈 문자열 `source=` 포함 invalid 값은 400”임을 명시했다.
+- **검증**: `npm run build` 성공. 셸 스모크: unsupported-model 오류를 넣은 임시 workspace에서 `ralph_try_known_autofix` 실행 → exit 0, `MODEL=auto`, `RALPH_MODEL=auto`, fallback 마커 추가 확인.
+- **다음 인계(테스트)**: (1) dev 서버에서 `curl -i 'http://localhost:3000/api/ralph/events?source='` 및 `curl -i 'http://localhost:3000/api/ralph/events/range?from=2026-05-01T00:00:00Z&to=2026-05-03T23:59:59Z&source='`가 둘 다 **400**인지 확인, (2) `/`에서 `source=bogus`·timezone 없는 `from/to`가 주소줄에서 제거/정규화되는지 확인, (3) “현재 뷰 URL 복사” 후 시크릿 창 재현이 맞으면 `RALPH_TASK.md`의 남은 3개 `[ ]`를 `[x]`로 바꾼다.
+- **주의(환경)**: `git add -A`는 여전히 `fatal: Unable to create '.git/index.lock': Operation not permitted`로 막혔다. 호스트 터미널에서 `git add -A && git commit -m 'ralph: reject empty source query and align timeline docs' && git push`가 필요하다.
 
 **역할: 구현 (implementation)\**
 
@@ -564,3 +572,12 @@
 
 ### 2026-05-05 21:53:47
 **Session 1 ended** - Switching Codex model from 'gpt-5.1-codex' to fallback 'auto'
+
+### 2026-05-05 21:55:00
+**Session 1 started** — 역할: 구현 (`implementation`) · model: gpt-5.2-codex
+
+### 2026-05-05 21:55:00
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-05 21:55:07
+**Session 1 ended** - Switching Codex model from 'gpt-5.2-codex' to fallback 'auto'
