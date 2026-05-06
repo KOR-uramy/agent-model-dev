@@ -29,6 +29,12 @@ type FlowPayload = {
     opsThread?: { layers: string[]; pendingChecklist: number; policy: string };
   };
   flow: {
+    coreSourcing?: {
+      workspaceRoot: string;
+      need: string;
+      action: string;
+      capabilityLogic: string;
+    };
     need: string;
     action: string;
     capabilityLogic: string;
@@ -96,8 +102,18 @@ export function RalphLoopShowcase() {
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-6 py-10">
       <header className="rounded-2xl border border-[var(--list-border)] bg-card p-6">
         <p className="text-xs uppercase tracking-[0.16em] text-muted">Ralph Loop Visualizer</p>
-        <h1 className="mt-2 text-2xl font-semibold">Need → Action → Capability+Logic → Usage → Presentation → UI</h1>
+        <h1 className="mt-2 text-2xl font-semibold">
+          Need → Action → Capability + Business Logic → Usage → Presentation → UI
+        </h1>
         <p className="mt-2 text-sm text-muted">{summary}</p>
+        {flow?.coreSourcing ? (
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            Core 소스: Need — {flow.coreSourcing.need} · Action — {flow.coreSourcing.action} · Capability —{" "}
+            {flow.coreSourcing.capabilityLogic}
+            <br />
+            <span className="opacity-80">workspaceRoot: {flow.coreSourcing.workspaceRoot}</span>
+          </p>
+        ) : null}
         <p className="mt-1 text-xs text-muted">
           데이터 갱신: {payload?.generatedAt ? new Date(payload.generatedAt).toLocaleString() : "미수집"}
         </p>
@@ -221,8 +237,8 @@ export function RalphLoopShowcase() {
             ))}
           </div>
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground">Ops Thread</p>
-            {opsLayers.map((layer) => (
+            <p className="text-xs font-semibold text-foreground">Presentation Thread</p>
+            {presentationLayers.map((layer) => (
               <article key={layer.key} className="rounded-xl border border-[var(--list-border)] p-3">
                 <p className="text-sm font-semibold">
                   {layer.order}. {layer.title}
@@ -246,8 +262,8 @@ export function RalphLoopShowcase() {
             ))}
           </div>
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground">Presentation Thread</p>
-            {presentationLayers.map((layer) => (
+            <p className="text-xs font-semibold text-foreground">Ops Thread</p>
+            {opsLayers.map((layer) => (
               <article key={layer.key} className="rounded-xl border border-[var(--list-border)] p-3">
                 <p className="text-sm font-semibold">
                   {layer.order}. {layer.title}
