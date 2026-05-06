@@ -47,11 +47,23 @@
    - 태그는 기본 `[runtime-release]`; 테스트·다른 파이프는 `RUNTIME_ERROR_SIGNAL_TAG`로 구분 가능.  
    - 소스 수정만으로는 이미 떠 있는 프로세스에 반영되지 않는다 → 스크립트를 다시 실행해 새 스냅샷을 띄운다.
 
+## 장애 디버그 빠른 절차 (운영자용)
+
+아래는 **포트·스냅샷·로그 신호**를 의심할 때 그대로 따라 할 수 있는 순서다.
+
+1. **정적 계약 재확인** — `sh scripts/test-release-ops-invariants.sh` (exit 0이면 스크립트 계약은 유지됨).
+2. **최신 신호 한 줄** — 워크스페이스 루트에서 `tail -n 1 .ralph/errors.log` (비어 있으면 릴리스 프로세스가 아직 에러 패턴을 내지 않았거나, 파이프가 끊긴 상태일 수 있음).
+3. **실제 LISTEN 포트** — 기본 `3000`. 바꿨다면 `OPEN_GRAZE_RELEASE_PORT`와 브라우저 URL을 동일하게 맞출 것. `sh scripts/kill-port.sh <포트>`로 좀비 LISTEN 정리 후 재기동.
+4. **스냅샷 일치** — `.release/open-graze/current`가 가리키는 디렉터리가 콘솔 `Layer 08 context`의 `SNAPSHOT_DIR`과 같은지 확인. 다르면 오래된 프로세스가 떠 있을 수 있음.
+5. **재배포** — 소스/환경 수정 후에는 반드시 `npm run release:open-graze`(또는 `sh scripts/release-open-graze.sh`)로 **새 타임스탬프 스냅샷**을 만들고 다시 띄운다(`next dev`로 대체하지 않는다).
+
+디버그 시 워크스페이스 루트는 환경 변수 `RALPH_WORKSPACE_ROOT`로 노출되므로, 스냅샷 cwd와 혼동하지 말 것.
+
 **요약 표**
 
 | 항목 | 기대 |
 |------|------|
-| LISTEN | `OPEN_GRAZE_RELEASE_PORT` 미설정 시 **3000** |
+| LISTEN | `OPEN_GRAZE_RELEASE_PORT` 미설정 시 **3000**; 기동 시 `PORT`와 `next start -p` 동일 |
 | 서버 | `next start`만 (`next dev` 금지) |
 | cwd | `.release/open-graze/<stamp>/` (불변 복사본) |
 | 최신 에러 | `$REPO_ROOT/.ralph/errors.log` 단일 줄 덮어쓰기 |

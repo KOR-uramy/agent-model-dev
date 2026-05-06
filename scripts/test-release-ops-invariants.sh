@@ -37,10 +37,22 @@ grep -Fq 'ln -sfn "$SNAPSHOT_DIR" "$LATEST_LINK"' "$REL" \
   || fail "release-open-graze.sh must refresh current symlink to the new snapshot"
 grep -Fq 'PORT must equal OPEN_GRAZE_RELEASE_PORT' "$REL" \
   || fail "release-open-graze.sh must guard PORT vs OPEN_GRAZE_RELEASE_PORT alignment"
+grep -Fq 'cd "$SNAPSHOT_DIR"' "$REL" \
+  || fail "release-open-graze.sh must cd into the snapshot before next start"
+grep -Fq 'export RALPH_WORKSPACE_ROOT="$ROOT"' "$REL" \
+  || fail "release-open-graze.sh must export RALPH_WORKSPACE_ROOT for workspace-scoped debug"
+grep -Fq '.ralph/errors.log' "$REL" \
+  || fail "release-open-graze.sh must reference .ralph/errors.log in operator output"
+grep -Fq 'Layer 08 context' "$REL" \
+  || fail "release-open-graze.sh must print Layer 08 context (ops checklist hook)"
+grep -Fq 'next" start -p "${PORT}"' "$REL" \
+  || fail "release-open-graze.sh must pass next start -p from PORT (aligned with OPEN_GRAZE_RELEASE_PORT)"
 
 grep -q '> "$ERRORS_LOG"' "$MON" \
   || fail "runtime-error-monitor.sh must overwrite errors.log (latest signal only)"
 grep -q 'is_error_line' "$MON" || fail "runtime-error-monitor.sh must define is_error_line"
+grep -Fq 'SIGNAL_TAG="${RUNTIME_ERROR_SIGNAL_TAG:-runtime-release}"' "$MON" \
+  || fail "runtime-error-monitor.sh must default SIGNAL_TAG to runtime-release"
 
 # Behavioral: latest error overwrites previous (temp workspace root)
 TMP="$(mktemp -d)"
