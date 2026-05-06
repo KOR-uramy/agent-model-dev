@@ -36,7 +36,9 @@ function resolveWorkspaceRoot() {
 }
 
 async function readLayerDocs(): Promise<LayerDoc[]> {
-  const dir = path.join(process.cwd(), "content", "ralph-layers");
+  const localDir = path.join(process.cwd(), "content", "ralph-layers");
+  const workspaceDir = path.join(resolveWorkspaceRoot(), "apps", "open-graze", "content", "ralph-layers");
+  const dir = existsSync(localDir) ? localDir : workspaceDir;
   const files = (await readdir(dir))
     .filter((name) => name.endsWith(".md"))
     .sort((a, b) => a.localeCompare(b));

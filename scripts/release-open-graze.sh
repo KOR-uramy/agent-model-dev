@@ -25,6 +25,7 @@ mkdir -p "$SNAPSHOT_DIR"
 # Minimal runtime set for next start
 cp -R "$APP_DIR/.next" "$SNAPSHOT_DIR/.next"
 cp -R "$APP_DIR/public" "$SNAPSHOT_DIR/public"
+cp -R "$APP_DIR/content" "$SNAPSHOT_DIR/content"
 cp "$APP_DIR/package.json" "$SNAPSHOT_DIR/package.json"
 [ -f "$APP_DIR/.env" ] && cp "$APP_DIR/.env" "$SNAPSHOT_DIR/.env" || true
 [ -f "$APP_DIR/next.config.js" ] && cp "$APP_DIR/next.config.js" "$SNAPSHOT_DIR/next.config.js" || true

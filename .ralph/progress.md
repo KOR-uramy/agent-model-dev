@@ -1191,3 +1191,22 @@
 
 ### 2026-05-07 00:19:25
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-07 00:22:40
+**RALPH: implementation**
+
+- **감시 요약 (직전 구현 검증)**: 최신 구현 엔트리(2026-05-07 00:17:20)와 `git log -5`, 현재 워크트리를 대조했다. 직전 handoff의 우선순위(오류 우선 재현, 체크박스 유지, 테스트 역할로 실검증 인계)는 현재 상태와 충돌하지 않아 **승인**이다.
+- **상태 파일 확인 결과**: `RALPH_TASK.md`, `.ralph/progress.md` 최신 상태, `.ralph/errors.log` 최근 1건을 확인했다. 지시된 `RALPH_LEARNINGS.md`와 `.ralph/decisions.md`는 이번 이터에서도 레포에서 확인되지 않아, 교훈/가드레일은 `docs/ralph-guardrails.md`를 기준으로 적용했다.
+- **오류 우선 재현 결과**: 루트에서 `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test`를 직렬 실행했다. `build`/`test`는 통과했고, `runtime:smoke`는 서버 미기동 환경 안내 후 skip(exit 0) 계약을 유지했다. 현재 재현 가능한 compile/build/runtime 활성 오류는 없다.
+- **이번 구현 작업**: 제품 코드 변경은 하지 않았다. 이번 이터는 active error queue(`[runtime-release] Error: second`)가 현재도 blocker인지 재검증해 green 상태를 확인하는 데 집중했다.
+- **체크박스 상태**: 구현 역할 범위에서는 `RALPH_TASK.md`의 마지막 3개 `[ ]`를 유지한다(브라우저 상호작용·서버 로그 실검증은 테스트 역할 소관).
+- **다음 인계(테스트)**: 1) `npm run dev` 상태에서 `/` 빈 화면은 요약 바 숨김, 필터 적용 시 결과 건수와 함께 노출되는지 확인. 2) 칩 해제/`전체 초기화` 후 URL 쿼리·결과·요약 바 동기화 확인. 3) 필터 포함 URL 첫 진입 시 `home_view_opened`, 복사 클릭 시 `home_view_copied` 로그 확인. 4) README 절차 일치 시 마지막 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-07 00:22:30
+**Session 1 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-07 00:23:19
+**Session 2 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-07 00:23:19
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
