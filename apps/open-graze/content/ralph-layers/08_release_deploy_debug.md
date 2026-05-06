@@ -20,8 +20,38 @@
 
 ## Ops 체크리스트 (Layer 08 실행)
 
-- [ ] 루트에서 `npm run build -w open-graze`가 통과하는지 확인한다(릴리스 스크립트가 동일 빌드를 호출한다).
-- [ ] `npm run release:open-graze`(또는 `sh scripts/release-open-graze.sh`)로 기동할 때 콘솔에 `port 3000`(또는 설정한 `OPEN_GRAZE_RELEASE_PORT`)·`next start`·스냅샷 경로가 기대와 일치하는지 확인한다.
-- [ ] 브라우저에서 `http://127.0.0.1:3000` 접속이 되는지 확인한다.
-- [ ] 장애 시 `.ralph/errors.log`의 **마지막 줄**만 보고 복구 우선순위를 잡고, 수정 후 파일을 비우거나 재기동 후 다시 확인한다.
-- [ ] 정적 계약 검증: `sh scripts/test-release-ops-invariants.sh`
+아래 순서대로 실행하면 포트·`next start`·스냅샷·에러 신호 루프가 한 번에 검증된다.
+
+1. **정적 계약 (CI/로컬 공통)**  
+   - 루트에서: `sh scripts/test-release-ops-invariants.sh`  
+   - 기대: `OK: release ops invariants (...)` 한 줄로 종료(exit 0).
+
+2. **프로덕션 빌드**  
+   - `npm run build -w open-graze`  
+   - 릴리스 스크립트가 동일 명령을 호출하므로, 여기서 실패하면 릴리스도 실패한다.
+
+3. **로컬 릴리스 기동**  
+   - `npm run release:open-graze` 또는 `sh scripts/release-open-graze.sh`  
+   - 기본 포트는 **3000** (`OPEN_GRAZE_RELEASE_PORT`로만 오버라이드).  
+   - 콘솔에 `Layer 08 context` 블록이 출력되면 다음을 눈으로 확인한다.  
+     - `LISTEN_PORT`가 3000(또는 설정값)인지  
+     - `SNAPSHOT_DIR`·`CURRENT_SYMLINK`가 `.release/open-graze/<타임스탬프>`를 가리키는지  
+     - `SERVER_CMD=next start`, `NODE_ENV=production`인지  
+     - `ERROR_SIGNAL` 경로가 워크스페이스 루트 `.ralph/errors.log`인지  
+
+4. **동작 확인**  
+   - 브라우저: `http://127.0.0.1:3000` (포트를 바꿨다면 그 번호로 접속).  
+
+5. **장애 시**  
+   - API/에이전트는 `.ralph/errors.log`의 **마지막 한 줄**만 “최신 장애”로 본다(덮어쓰기, 누적 없음).  
+   - 태그는 기본 `[runtime-release]`; 테스트·다른 파이프는 `RUNTIME_ERROR_SIGNAL_TAG`로 구분 가능.  
+   - 소스 수정만으로는 이미 떠 있는 프로세스에 반영되지 않는다 → 스크립트를 다시 실행해 새 스냅샷을 띄운다.
+
+**요약 표**
+
+| 항목 | 기대 |
+|------|------|
+| LISTEN | `OPEN_GRAZE_RELEASE_PORT` 미설정 시 **3000** |
+| 서버 | `next start`만 (`next dev` 금지) |
+| cwd | `.release/open-graze/<stamp>/` (불변 복사본) |
+| 최신 에러 | `$REPO_ROOT/.ralph/errors.log` 단일 줄 덮어쓰기 |
