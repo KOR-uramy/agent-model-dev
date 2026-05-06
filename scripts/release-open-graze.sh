@@ -50,6 +50,19 @@ cd "$SNAPSHOT_DIR"
 export NODE_ENV=production
 export PORT="$OPEN_GRAZE_RELEASE_PORT"
 export RALPH_WORKSPACE_ROOT="$ROOT"
+
+# Single source of truth: LISTEN port must match env (Next honors PORT; we also pass -p).
+if [ "${PORT:-}" != "$OPEN_GRAZE_RELEASE_PORT" ]; then
+  echo "release-open-graze: invariant failed (PORT must equal OPEN_GRAZE_RELEASE_PORT)" >&2
+  exit 1
+fi
+
+echo "==> Layer 08 context (ops checklist — verify before trusting the server)"
+echo "    LISTEN_PORT=$OPEN_GRAZE_RELEASE_PORT  (kill-port + export PORT + next start -p)"
+echo "    SNAPSHOT_DIR=$SNAPSHOT_DIR"
+echo "    CURRENT_SYMLINK=$LATEST_LINK -> $(readlink "$LATEST_LINK" 2>/dev/null || echo "?")"
+echo "    SERVER_CMD=next start  NODE_ENV=$NODE_ENV"
+echo "    ERROR_SIGNAL=$ROOT/.ralph/errors.log  (single-line overwrite, tag [runtime-release])"
 echo "==> Runtime error monitor enabled (.ralph/errors.log; latest error only, overwrite)"
 node "$ROOT/node_modules/next/dist/bin/next" start -p "$OPEN_GRAZE_RELEASE_PORT" 2>&1 \
   | "$ROOT/scripts/runtime-error-monitor.sh" "$ROOT"
