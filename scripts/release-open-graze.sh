@@ -64,5 +64,6 @@ echo "    CURRENT_SYMLINK=$LATEST_LINK -> $(readlink "$LATEST_LINK" 2>/dev/null 
 echo "    SERVER_CMD=next start  NODE_ENV=$NODE_ENV"
 echo "    ERROR_SIGNAL=$ROOT/.ralph/errors.log  (single-line overwrite, tag [runtime-release])"
 echo "==> Runtime error monitor enabled (.ralph/errors.log; latest error only, overwrite)"
-node "$ROOT/node_modules/next/dist/bin/next" start -p "$OPEN_GRAZE_RELEASE_PORT" 2>&1 \
+# -p must track PORT (already asserted equal to OPEN_GRAZE_RELEASE_PORT above).
+node "$ROOT/node_modules/next/dist/bin/next" start -p "${PORT}" 2>&1 \
   | "$ROOT/scripts/runtime-error-monitor.sh" "$ROOT"
