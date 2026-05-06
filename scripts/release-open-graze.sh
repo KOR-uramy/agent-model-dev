@@ -58,11 +58,12 @@ if [ "${PORT:-}" != "$OPEN_GRAZE_RELEASE_PORT" ]; then
 fi
 
 echo "==> Layer 08 context (ops checklist — verify before trusting the server)"
-echo "    LISTEN_PORT=$OPEN_GRAZE_RELEASE_PORT  (kill-port + export PORT + next start -p)"
-echo "    SNAPSHOT_DIR=$SNAPSHOT_DIR"
+echo "    LISTEN_PORT=$OPEN_GRAZE_RELEASE_PORT  (default 3000; kill-port + export PORT + next start -p)"
+echo "    SNAPSHOT_DIR=$SNAPSHOT_DIR  (immutable copy; cwd for this process)"
 echo "    CURRENT_SYMLINK=$LATEST_LINK -> $(readlink "$LATEST_LINK" 2>/dev/null || echo "?")"
-echo "    SERVER_CMD=next start  NODE_ENV=$NODE_ENV"
+echo "    SERVER_CMD=next start  NODE_ENV=$NODE_ENV  (production only, never dev mode)"
 echo "    ERROR_SIGNAL=$ROOT/.ralph/errors.log  (single-line overwrite, tag [runtime-release])"
+echo "    DEBUG_ROOT=$RALPH_WORKSPACE_ROOT  (repo root; not snapshot cwd)"
 echo "==> Runtime error monitor enabled (.ralph/errors.log; latest error only, overwrite)"
 # -p must track PORT (already asserted equal to OPEN_GRAZE_RELEASE_PORT above).
 node "$ROOT/node_modules/next/dist/bin/next" start -p "${PORT}" 2>&1 \

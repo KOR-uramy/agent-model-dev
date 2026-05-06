@@ -45,6 +45,10 @@ grep -Fq '.ralph/errors.log' "$REL" \
   || fail "release-open-graze.sh must reference .ralph/errors.log in operator output"
 grep -Fq 'Layer 08 context' "$REL" \
   || fail "release-open-graze.sh must print Layer 08 context (ops checklist hook)"
+grep -Fq 'DEBUG_ROOT=$RALPH_WORKSPACE_ROOT' "$REL" \
+  || fail "release-open-graze.sh must print DEBUG_ROOT for workspace vs snapshot cwd"
+grep -Fq 'production only, never dev mode' "$REL" \
+  || fail "release-open-graze.sh must remind operators that dev mode is not used"
 grep -Fq 'next" start -p "${PORT}"' "$REL" \
   || fail "release-open-graze.sh must pass next start -p from PORT (aligned with OPEN_GRAZE_RELEASE_PORT)"
 
@@ -71,5 +75,15 @@ grep -Fq 'Error: second failure' "$TMP/.ralph/errors.log" \
   || fail "errors.log should show the latest error"
 grep -Fq 'Error: first failure' "$TMP/.ralph/errors.log" \
   && fail "errors.log must not accumulate; first error should be overwritten"
+lines="$(wc -l < "$TMP/.ralph/errors.log" | tr -d ' ')"
+[ "$lines" = 1 ] || fail "errors.log must be exactly one line (latest signal only), got $lines"
+
+printf '%s\n' 'non-error noise only' \
+  | RUNTIME_ERROR_SIGNAL_TAG=ops-invariant-test sh "$MON" "$TMP" >/dev/null 2>&1 \
+  || fail "runtime-error-monitor should accept stdin with no error patterns"
+grep -Fq 'Error: second failure' "$TMP/.ralph/errors.log" \
+  || fail "errors.log should be unchanged when no new error line matches"
+lines2="$(wc -l < "$TMP/.ralph/errors.log" | tr -d ' ')"
+[ "$lines2" = 1 ] || fail "errors.log must stay single-line after non-error stdin, got $lines2"
 
 echo "OK: release ops invariants (port 3000 default, next start, snapshot, error signal loop)"
