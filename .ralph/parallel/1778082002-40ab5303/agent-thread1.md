@@ -26,4 +26,4 @@
 
 - **`.ralph/progress.md`**: 병렬 에이전트 지침에 따라 수정하지 않았다. `flow.action`은 progress tail + 02 md 미완 체크이므로, progress가 비어 있으면 02 체크만으로도 트리거 맥락이 드러난다.
 - **`RALPH_TASK.md`**: 오케스트레이터 전용으로 요청대로 변경하지 않았다.
-- **`.ralph/progress.md`**: 병렬 과제 지시에 따라 건드리지 않음(머지 충돌 방지).
+- **보고서 경로 `.ralph/parallel/`**: 기본 `.gitignore`에 걸려 있을 수 있어, 커밋 시 `git add -f .ralph/parallel/1778082002-40ab5303/agent-thread1.md`가 필요할 수 있다.
