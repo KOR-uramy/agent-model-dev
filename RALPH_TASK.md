@@ -1,3 +1,100 @@
+# Ralph Task: Nova Hub Ralph Loop (Single Source of Truth)
+
+## Goal
+
+사용자 요청 구조를 기준으로 Ralph 루프와 시각화 앱을 운영한다.
+
+- 핵심 흐름: `Need -> Action -> Capability+Business Logic -> Usage Data -> Presentation Builder -> Presentation Data -> UI`
+- 운영 레이어: `Release / Deploy / Debug` (8단계)
+- 체크리스트 기반 트리거: 각 단계의 작업 트리거는 "전 단계가 남긴 해당 단계 md의 미완 체크리스트([ ])"
+
+## Loop Policy
+
+- Role cycle: `planning -> implementation -> test` (3-phase)
+- `RALPH_ROLE_MODE=cycle` 기본
+- 체크리스트가 모두 `[x]`가 되면 종료하지 않고 `planning`으로 돌아가 새 `[ ]`를 추가
+- 자동 확장 기본값: `RALPH_AUTO_EXPAND_ON_COMPLETE=1`
+
+## Architecture Policy
+
+### Layer Model
+
+1. Need
+2. Action
+3. Capability + Business Logic
+4. Usage Data
+5. Presentation Builder
+6. Presentation Data
+7. UI
+8. Release / Deploy / Debug
+
+### Trigger Rule
+
+- 단계 `N`의 실행 트리거는 단계 `N-1`에서 작성된 단계 `N` 문서의 미완 체크리스트다.
+- Need(1단계)는 루프 입력 자체가 트리거다.
+
+### Parallel Thread Rule
+
+- Core thread: 1~3
+- Presentation thread: 4~7
+- Ops thread: 8
+
+세 스레드는 병렬 운영하며, 8단계는 1~3/4~7의 체크리스트 근거를 받아 배포·디버깅 게이트를 담당한다.
+
+## Deployment & Runtime Error Policy
+
+- 배포 포트는 항상 `3000`
+- 배포는 반드시 빌드 산출물(`next start`)로만 실행
+- 배포 프로세스는 immutable snapshot 디렉터리에서 실행 (핫픽스 영향 차단)
+- 런타임 에러는 `.ralph/errors.log`에 자동 기록
+- `errors.log`는 누적이 아니라 최신 1건만 유지(업데이트 방식)
+- 에러가 존재하면 Ralph 루프는 디버깅 우선 모드로 진입
+
+## Source of Truth Paths
+
+| 영역 | 위치 |
+|------|------|
+| 루프 기준 구현 | `.codex/ralph-scripts/` |
+| Cursor shim 경로(선택) | `.cursor/ralph-scripts/` (`.codex` 위임 전용) |
+| 앱 작업 대상 | `apps/open-graze` |
+| 레이어 문서 | `apps/open-graze/content/ralph-layers/*.md` |
+| 루프 로그 | `.ralph/progress.md`, `.ralph/errors.log`, `.ralph/activity.log` |
+
+## Success Criteria
+
+### A. 문서/정합성
+
+- [ ] `RALPH_TASK.md`는 본 문서 한 개만 기준으로 유지된다(중복 태스크 섹션 금지).
+- [ ] 레이어 규칙(1~8), 트리거 규칙, 병렬 스레드 규칙이 문서/코드/UI에 동일하게 반영된다.
+
+### B. 루프 동작
+
+- [ ] `ralph-loop.sh -y` 실행 시 배너 이후 실제 이터레이션이 정상 시작된다.
+- [ ] 이터레이션 헤더에 `Flow map`과 `Flow now`가 출력된다.
+- [ ] 모든 체크가 완료되어도 planning 자동 확장으로 새 `[ ]` 생성 라운드가 시작된다.
+
+### C. 앱 시각화
+
+- [ ] `/api/ralph/layer-flow`가 실제 데이터(need/action/capability/usage/presentation/ui/releaseDebug)를 반환한다.
+- [ ] UI에서 8단계 카드와 스레드(core/presentation/ops) 상태가 보인다.
+- [ ] Release/Deploy/Debug 카드에서 최신 에러 상태가 보인다.
+
+### D. 배포/운영
+
+- [ ] `npm run release:open-graze`가 포트 3000에서 빌드 산출물 서버를 실행한다.
+- [ ] snapshot 실행에서도 workspace 루트를 정확히 찾는다(`RALPH_WORKSPACE_ROOT` 사용).
+- [ ] 런타임 에러 발생 시 `.ralph/errors.log`가 최신 1건으로 갱신된다.
+
+### E. 검증
+
+- [ ] 루트 `npm run build` 통과
+- [ ] `npm run runtime:smoke` 통과
+
+## Notes
+
+- 기준은 Codex이며 Cursor는 shim이다.
+- 기능 차이는 기본 모델 주입 외 허용하지 않는다.
+- 실행 중 오류가 있으면 신규 기능보다 오류 복구를 우선한다.
 # Ralph Task: Nova Hub (새 앱 부트스트랩)
 
 ## Goal
