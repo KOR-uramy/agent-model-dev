@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # OpenGraze release runner
 # - Always uses port 3000
 # - Always serves built artifacts (next start)
 # - Runs from immutable snapshot dir to avoid dev hotfix edits affecting live process
 
-set -eu
+set -euo pipefail
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 APP_DIR="$ROOT/apps/open-graze"
@@ -42,4 +42,6 @@ echo "==> Start release server (port 3000, built files only)"
 cd "$SNAPSHOT_DIR"
 export NODE_ENV=production
 export PORT=3000
-exec node "$ROOT/node_modules/next/dist/bin/next" start -p 3000
+echo "==> Runtime error monitor enabled (.ralph/errors.log)"
+node "$ROOT/node_modules/next/dist/bin/next" start -p 3000 2>&1 \
+  | "$ROOT/scripts/runtime-error-monitor.sh" "$ROOT"

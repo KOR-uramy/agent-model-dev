@@ -38,6 +38,7 @@ http://localhost:3000/?role=planning&sessionId=ralph-session-example&from=2026-0
 - 배포 서버는 **항상 3000 포트**에서만 실행한다.
 - 배포는 개발 서버(`next dev`)가 아니라 **빌드 산출물 기반**(`next start`)으로만 띄운다.
 - 작업 중 소스 변경/핫픽스가 떠 있는 배포 프로세스에 바로 반영되지 않도록, 루트 `npm run release:open-graze`는 빌드 후 `.release/open-graze/<timestamp>` 스냅샷에서 서버를 실행한다(`.release/open-graze/current` 링크 갱신).
+- 배포 런타임 로그는 `scripts/runtime-error-monitor.sh`를 통해 감시되며, 런타임 에러 패턴(`TypeError`, `ReferenceError`, `failed to compile` 등)은 자동으로 루트 `.ralph/errors.log`에 기록된다. 따라서 Ralph 루프는 다음 이터에서 **error recovery 우선 모드**로 진입할 수 있다.
 
 ```bash
 # 루트에서
