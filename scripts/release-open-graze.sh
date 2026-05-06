@@ -42,6 +42,7 @@ echo "==> Start release server (port 3000, built files only)"
 cd "$SNAPSHOT_DIR"
 export NODE_ENV=production
 export PORT=3000
+export RALPH_WORKSPACE_ROOT="$ROOT"
 echo "==> Runtime error monitor enabled (.ralph/errors.log)"
 node "$ROOT/node_modules/next/dist/bin/next" start -p 3000 2>&1 \
   | "$ROOT/scripts/runtime-error-monitor.sh" "$ROOT"

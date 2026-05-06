@@ -1,4 +1,5 @@
 import { readdir, readFile } from "fs/promises";
+import { existsSync } from "fs";
 import path from "path";
 import { loadTimelineFromDb } from "@/lib/timeline-feed";
 import { NextResponse } from "next/server";
@@ -12,7 +13,25 @@ type LayerDoc = {
   thread: "core" | "presentation" | "ops";
 };
 
-function repoRootFromCwd() {
+function resolveWorkspaceRoot() {
+  const envRoot = process.env.RALPH_WORKSPACE_ROOT?.trim();
+  if (envRoot) {
+    return path.resolve(envRoot);
+  }
+
+  let current = process.cwd();
+  while (true) {
+    const taskPath = path.join(current, "RALPH_TASK.md");
+    if (existsSync(taskPath)) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+
   return path.resolve(process.cwd(), "..", "..");
 }
 
@@ -54,7 +73,7 @@ async function readLayerDocs(): Promise<LayerDoc[]> {
 }
 
 async function readFirstUncheckedNeed(): Promise<string> {
-  const taskPath = path.join(repoRootFromCwd(), "RALPH_TASK.md");
+  const taskPath = path.join(resolveWorkspaceRoot(), "RALPH_TASK.md");
   const text = await readFile(taskPath, "utf-8");
   const lines = text.split("\n");
   const pending = lines.find((line) =>
@@ -65,7 +84,7 @@ async function readFirstUncheckedNeed(): Promise<string> {
 }
 
 async function readLatestProgressAction(): Promise<string> {
-  const p = path.join(repoRootFromCwd(), ".ralph", "progress.md");
+  const p = path.join(resolveWorkspaceRoot(), ".ralph", "progress.md");
   const text = await readFile(p, "utf-8");
   const lines = text
     .split("\n")
@@ -75,7 +94,7 @@ async function readLatestProgressAction(): Promise<string> {
 }
 
 async function readCapabilitySummary(): Promise<string> {
-  const p = path.join(repoRootFromCwd(), ".codex", "ralph-scripts", "ralph-common.sh");
+  const p = path.join(resolveWorkspaceRoot(), ".codex", "ralph-scripts", "ralph-common.sh");
   const text = await readFile(p, "utf-8");
   const roleCycle = text.includes("% 3")
     ? "역할 사이클: 3단계(기획→구현→검증)"
@@ -88,7 +107,7 @@ async function readCapabilitySummary(): Promise<string> {
 
 async function readLatestErrorLine(): Promise<string | null> {
   try {
-    const p = path.join(repoRootFromCwd(), ".ralph", "errors.log");
+    const p = path.join(resolveWorkspaceRoot(), ".ralph", "errors.log");
     const text = await readFile(p, "utf-8");
     const lines = text
       .split("\n")

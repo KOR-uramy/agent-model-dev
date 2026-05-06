@@ -181,7 +181,7 @@ ralph_archive_stale_errors() {
     return 0
   fi
 
-  last_clear_line=$(grep -n 'ACTIVE ERRORS CLEARED:' "$errors_file" | tail -n 1 | cut -d: -f1)
+  last_clear_line=$(grep -n 'ACTIVE ERRORS CLEARED:' "$errors_file" | tail -n 1 | cut -d: -f1 || true)
   if [[ -z "$last_clear_line" ]] || [[ "$last_clear_line" -le 1 ]]; then
     return 0
   fi
@@ -591,6 +591,19 @@ ralph_role_label_ko() {
     test) echo "검증" ;;
     *) echo "$1" ;;
   esac
+}
+
+ralph_flow_segment_for_role() {
+  case "$1" in
+    planning) echo "Need → Action" ;;
+    implementation) echo "Capability+Logic → Usage" ;;
+    test) echo "Presentation → UI" ;;
+    *) echo "Need → Action → Capability+Logic → Usage → Presentation → UI" ;;
+  esac
+}
+
+ralph_flow_map() {
+  echo "Need → Action → Capability+Logic → Usage → Presentation → UI"
 }
 
 # 직전 iteration의 역할 (감시 대상). iteration 1이면 빈 문자열.
@@ -1019,9 +1032,10 @@ run_iteration() {
   if [[ -n "$role_key" ]]; then
     local _rk _cyc _ph
     _rk=$(ralph_role_label_ko "$role_key")
-    _cyc=$(( (iteration - 1) / 4 + 1 ))
-    _ph=$(( (iteration - 1) % 4 + 1 ))
-    echo "🐛 Ralph Iteration $iteration — 역할: $_rk ($role_key) · 사이클 $_cyc · 단계 $_ph/4" >&2
+    _cyc=$(( (iteration - 1) / 3 + 1 ))
+    _ph=$(( (iteration - 1) % 3 + 1 ))
+    echo "🐛 Ralph Iteration $iteration — 역할: $_rk ($role_key) · 사이클 $_cyc · 단계 $_ph/3" >&2
+    echo "Flow:      $(ralph_flow_segment_for_role "$role_key")" >&2
   else
     echo "🐛 Ralph Iteration $iteration (RALPH_ROLE_MODE=mono)" >&2
   fi
@@ -1030,6 +1044,10 @@ run_iteration() {
   echo "Workspace: $workspace" >&2
   echo "Model:     $MODEL" >&2
   echo "Role mode: ${RALPH_ROLE_MODE:-cycle}" >&2
+  echo "Flow map:  $(ralph_flow_map)" >&2
+  if [[ -n "$role_key" ]]; then
+    echo "Flow now:  $(ralph_flow_segment_for_role "$role_key")" >&2
+  fi
   echo "Goal:      $session_goal" >&2
   echo "Monitor:   tail -f $workspace/.ralph/activity.log" >&2
   local recent_errors
