@@ -64,6 +64,7 @@ Options:
   --branch NAME          Sequential: create/work on branch; Parallel: integration branch name
   --pr                   Sequential: open PR (requires --branch); Parallel: open ONE integration PR (branch optional)
   --parallel             Run tasks in parallel with worktrees
+  --parallel-threads     Run fixed 3 thread agents (1~3 / 4~7 / 8)
   --max-parallel N       Max parallel agents (default: 3). With --infinite: after a batch, if no unchecked items, one planning pass adds new - [ ] then parallel resumes (growth loop).
   --no-merge             Skip auto-merge in parallel mode
   -y, --yes              Skip confirmation prompt
@@ -105,6 +106,7 @@ ralph_checkbox_stats() {
 
 # Parallel mode settings
 PARALLEL_MODE=false
+PARALLEL_THREADS_MODE=false
 MAX_PARALLEL=3
 SKIP_MERGE=false
 # 1이면 «전부 [x]» 조기 종료를 건너뜀 (--force 또는 환경 변수 FORCE_RALPH_TASK_GUARD=1)
@@ -143,6 +145,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --parallel)
       PARALLEL_MODE=true
+      shift
+      ;;
+    --parallel-threads)
+      PARALLEL_MODE=true
+      PARALLEL_THREADS_MODE=true
       shift
       ;;
     --max-parallel)
@@ -258,6 +265,7 @@ main() {
   [[ -n "$USE_BRANCH" ]] && echo "Branch:   $USE_BRANCH"
   [[ "$OPEN_PR" == "true" ]] && echo "Open PR:  Yes"
   [[ "$PARALLEL_MODE" == "true" ]] && echo "Parallel: Yes ($MAX_PARALLEL agents)"
+  [[ "$PARALLEL_THREADS_MODE" == "true" ]] && echo "Threaded: Yes (core/presentation/ops)"
   [[ "$SKIP_MERGE" == "true" ]] && echo "Merge:    Skipped"
   echo ""
   
@@ -305,6 +313,10 @@ main() {
     # Check if parallel functions are available
     if ! type run_parallel_tasks &>/dev/null; then
       echo "❌ Parallel execution not available (ralph-parallel.sh not found)"
+      exit 1
+    fi
+    if [[ "$PARALLEL_THREADS_MODE" == "true" ]] && ! type run_parallel_threads &>/dev/null; then
+      echo "❌ Parallel thread execution not available (run_parallel_threads missing)"
       exit 1
     fi
     
@@ -382,7 +394,11 @@ main() {
       fi
 
       _expand_noop_streak=0
-      run_parallel_tasks "$WORKSPACE" "$MAX_PARALLEL" "$base_branch" "$USE_BRANCH" || exit $?
+      if [[ "$PARALLEL_THREADS_MODE" == "true" ]]; then
+        run_parallel_threads "$WORKSPACE" "$base_branch" "$USE_BRANCH" || exit $?
+      else
+        run_parallel_tasks "$WORKSPACE" "$MAX_PARALLEL" "$base_branch" "$USE_BRANCH" || exit $?
+      fi
     done
   else
     # Run the sequential loop

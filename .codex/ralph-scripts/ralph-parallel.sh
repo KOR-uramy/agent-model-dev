@@ -1206,6 +1206,148 @@ $commit_body"
   return 0
 }
 
+# Run fixed 3-thread agents in parallel:
+# - core(1~3), presentation(4~7), ops(8)
+# Args: workspace, base_branch, integration_branch(optional)
+run_parallel_threads() {
+  local workspace="${1:-.}"
+  local base_branch="${2:-$(git -C "$workspace" rev-parse --abbrev-ref HEAD)}"
+  local integration_branch="${3:-}"
+
+  acquire_parallel_lock "$workspace" || return 1
+
+  local base_sha
+  base_sha=$(git -C "$workspace" rev-parse "$base_branch" 2>/dev/null) || {
+    echo "❌ Failed to resolve base branch: $base_branch" >&2
+    release_parallel_lock "$workspace"
+    return 1
+  }
+
+  RUN_ID="$(generate_unique_id)"
+  RUN_DIR="$(init_parallel_run_dir "$workspace" "$RUN_ID")"
+  export MODEL
+  export BASE_SHA="$base_sha"
+  export BASE_BRANCH="$base_branch"
+  export RUN_ID
+  export RUN_DIR
+
+  if ! can_use_worktrees "$workspace"; then
+    echo "❌ Cannot use worktrees (already in a worktree or no .git directory)"
+    release_parallel_lock "$workspace"
+    return 1
+  fi
+
+  local original_dir worktree_base
+  original_dir="$(cd "$workspace" && pwd)"
+  worktree_base="$(get_worktree_base "$workspace")"
+
+  local merge_target="$base_branch"
+  if [[ -n "$integration_branch" ]]; then
+    merge_target="$integration_branch"
+  fi
+
+  if [[ "$merge_target" != "$base_branch" ]]; then
+    git -C "$original_dir" checkout -B "$merge_target" "$BASE_SHA" 2>/dev/null || {
+      echo "❌ Failed to create/reset integration branch: $merge_target" >&2
+      release_parallel_lock "$workspace"
+      return 1
+    }
+  fi
+
+  echo ""
+  echo "═══════════════════════════════════════════════════════════════════"
+  echo "🚀 Thread Parallel: core(1~3) / presentation(4~7) / ops(8)"
+  echo "═══════════════════════════════════════════════════════════════════"
+  echo "Base branch:   $base_branch"
+  echo "Merge target:  $merge_target"
+  echo "Run state dir: $RUN_DIR"
+  echo ""
+
+  local task_ids=("thread_core" "thread_presentation" "thread_ops")
+  local task_descs=(
+"Core thread owner (Layer 1~3):
+- Own layers: Need, Action, Capability+Business Logic.
+- Read: RALPH_TASK.md and apps/open-graze/content/ralph-layers/01_*.md ~ 03_*.md.
+- Work rule: create/maintain unchecked checklist items for next handoff quality.
+- Deliverables: updates in layer md/docs/code needed for 1~3 integrity."
+"Presentation thread owner (Layer 4~7):
+- Own layers: Usage Data, Presentation Builder, Presentation Data, UI.
+- Read: apps/open-graze/content/ralph-layers/04_*.md ~ 07_*.md and UI/API files.
+- Work rule: keep triggers aligned to previous stage unchecked checklist.
+- Deliverables: updates in layer md + UI/API rendering consistency."
+"Ops thread owner (Layer 8):
+- Own layer: Release/Deploy/Debug.
+- Read: apps/open-graze/content/ralph-layers/08_*.md, scripts/release-open-graze.sh, scripts/runtime-error-monitor.sh.
+- Work rule: enforce port3000 + next start + immutable snapshot + latest error signal loop.
+- Deliverables: deployment/debug pipeline consistency and actionable ops checklist."
+  )
+
+  local pids=() worktree_dirs=() branch_names=() status_files=() output_files=() log_files=() job_ids=()
+  local i
+  for ((i = 0; i < 3; i++)); do
+    local task_id="${task_ids[$i]}"
+    local task_desc="${task_descs[$i]}"
+    local job_id="thread$((i + 1))"
+
+    local wt_result
+    wt_result=$(create_agent_worktree "$task_id" "$task_id" "$job_id" "$worktree_base" "$original_dir")
+    local worktree_dir="${wt_result%%|*}"
+    local branch_name="${wt_result#*|}"
+
+    local status_file="$RUN_DIR/${job_id}.status"
+    local output_file="$RUN_DIR/${job_id}.output"
+    local log_file="$RUN_DIR/${job_id}.log"
+    echo "waiting" > "$status_file"
+    : > "$output_file"
+    : > "$log_file"
+
+    worktree_dirs+=("$worktree_dir")
+    branch_names+=("$branch_name")
+    status_files+=("$status_file")
+    output_files+=("$output_file")
+    log_files+=("$log_file")
+    job_ids+=("$job_id")
+
+    cp "$workspace/RALPH_TASK.md" "$worktree_dir/" 2>/dev/null || true
+    (
+      run_agent_in_worktree "$task_id" "$task_desc" "$((i + 1))" "$job_id" "$worktree_dir" "$log_file" "$status_file" "$output_file"
+    ) &
+    pids+=($!)
+  done
+
+  for pid in "${pids[@]}"; do
+    wait "$pid" 2>/dev/null || true
+  done
+
+  echo "📦 Thread merge phase..."
+  local merged_count=0
+  for ((i = 0; i < 3; i++)); do
+    local output status output_status
+    status="$(cat "${status_files[$i]}" 2>/dev/null || echo "failed")"
+    output="$(cat "${output_files[$i]}" 2>/dev/null || echo "error|0")"
+    output_status="${output%%|*}"
+    if [[ "$status" == "done" ]] && [[ "$output_status" == "success" ]]; then
+      printf "  Merging %-55s " "${branch_names[$i]}..."
+      local result
+      result=$(merge_agent_branch "${branch_names[$i]}" "$merge_target" "$original_dir" "$RUN_DIR/merge-errors.log")
+      if [[ "$result" == "success" ]]; then
+        echo "✅"
+        merged_count=$((merged_count + 1))
+        delete_local_branch "${branch_names[$i]}" "$original_dir"
+      else
+        echo "⚠️  ($result)"
+      fi
+    else
+      echo "  ⚠️  Skip merge: ${branch_names[$i]} ($status/$output_status)"
+    fi
+  done
+
+  echo ""
+  echo "✅ Thread parallel complete: merged ${merged_count}/3 branch(es) into $merge_target"
+  ralph_try_push_workspace "$original_dir"
+  release_parallel_lock "$workspace"
+}
+
 # =============================================================================
 # CLI INTERFACE (when run directly)
 # =============================================================================

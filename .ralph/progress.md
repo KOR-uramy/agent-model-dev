@@ -1220,3 +1220,12 @@
 - **이번 구현 작업**: 제품 코드 추가 수정은 하지 않았다. 현재 워크트리에서 `GET /api/ralph/layer-flow`의 workspace fallback 경로, Prisma의 `DATABASE_URL` fallback, release snapshot의 `content` 포함 및 `RALPH_WORKSPACE_ROOT` 설정이 이미 반영된 상태를 확인했다.
 - **체크박스 상태**: 구현 역할 범위에서 `RALPH_TASK.md` 체크박스 변경은 하지 않았다(브라우저 상호작용/서버 로그 실검증은 테스트 역할 소관).
 - **다음 인계(테스트)**: 1) `npm run dev` 후 `/` 빈 상태 요약 바 숨김/필터 적용 시 노출 확인. 2) 칩 해제/`전체 초기화` 시 URL 쿼리·결과·요약 바 동기화 확인. 3) 필터 포함 URL 첫 진입 `home_view_opened`, 복사 클릭 `home_view_copied` 로그 확인. 4) README 절차 일치 시 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-07 00:25:23
+**Session 2 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-07 00:26:09
+**Session 3 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-07 00:26:09
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
