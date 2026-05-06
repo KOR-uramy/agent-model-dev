@@ -1,13 +1,5 @@
-import { Suspense } from "react";
-import {
-  HomeLoadingFallback,
-  HomePageContent,
-} from "@/app/components/home-page-content";
+import { RalphLoopShowcase } from "@/app/components/ralph-loop-showcase";
 
 export default function HomePage() {
-  return (
-    <Suspense fallback={<HomeLoadingFallback />}>
-      <HomePageContent />
-    </Suspense>
-  );
+  return <RalphLoopShowcase />;
 }

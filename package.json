@@ -10,6 +10,7 @@
     "kill:3000": "sh scripts/kill-port.sh 3000",
     "dev": "sh scripts/dev-open-graze.sh",
     "dev:open-graze": "sh scripts/dev-open-graze.sh",
+    "release:open-graze": "sh scripts/release-open-graze.sh",
     "platform:self-test": "sh -c 'set -a; [ -f .env ] && . ./.env; set +a; exec node scripts/platform-self-test.mjs'",
     "runtime:smoke": "node scripts/runtime-smoke.mjs",
     "sync:feed": "npm run sync:feed -w open-graze"

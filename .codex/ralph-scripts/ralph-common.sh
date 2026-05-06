@@ -568,7 +568,7 @@ ralph_try_push_workspace() {
 }
 
 # =============================================================================
-# ROLE PIPELINE (기획 → 디자인 → 구현 → 테스트, 순환)
+# ROLE PIPELINE (기획 → 구현 → 검증, 순환)
 # =============================================================================
 # RALPH_ROLE_MODE=cycle (기본): iteration마다 역할이 바뀌고, 직전 역할 산출물을 감시한다.
 # RALPH_ROLE_MODE=mono: 역할 구분 없이 기존 단일 프롬프트만 사용.
@@ -576,21 +576,19 @@ ralph_try_push_workspace() {
 # 1-based iteration → role key
 ralph_role_for_iteration() {
   local i="${1:-1}"
-  local r=$(( (i - 1) % 4 ))
+  local r=$(( (i - 1) % 3 ))
   case $r in
     0) echo "planning" ;;
-    1) echo "design" ;;
-    2) echo "implementation" ;;
-    3) echo "test" ;;
+    1) echo "implementation" ;;
+    2) echo "test" ;;
   esac
 }
 
 ralph_role_label_ko() {
   case "$1" in
     planning) echo "기획" ;;
-    design) echo "디자인" ;;
     implementation) echo "구현" ;;
-    test) echo "테스트" ;;
+    test) echo "검증" ;;
     *) echo "$1" ;;
   esac
 }
@@ -880,13 +878,13 @@ EOF
   role_ko=$(ralph_role_label_ko "$role_key")
   prior_key=$(ralph_prior_role_for_iteration "$iteration")
   prior_ko=$(ralph_prior_role_label_ko "$prior_key")
-  phase_idx=$(( (iteration - 1) % 4 + 1 ))
-  cycle_num=$(( (iteration - 1) / 4 + 1 ))
+  phase_idx=$(( (iteration - 1) % 3 + 1 ))
+  cycle_num=$(( (iteration - 1) / 3 + 1 ))
 
   cat << EOF
-# Ralph Iteration $iteration — 역할: **$role_ko** (\`$role_key\`) · 사이클 $cycle_num · 단계 $phase_idx/4
+# Ralph Iteration $iteration — 역할: **$role_ko** (\`$role_key\`) · 사이클 $cycle_num · 단계 $phase_idx/3
 
-You are one stage in a **four-role pipeline**: 기획(planning) → 디자인(design) → 구현(implementation) → 테스트(test), then repeat. The next agent run will be the next role; you must make handoff easy.
+You are one stage in a **three-role pipeline**: 기획(planning) → 구현(implementation) → 검증(test), then repeat. The next agent run will be the next role; you must make handoff easy.
 
 EOF
 
@@ -898,7 +896,7 @@ EOF
 - Anchor every proposal in \`RALPH_TASK.md\` **Goal (본질)** and **Success** north-star items — multi-agent role monitoring, observability, trust, reproducibility, workspace platform checks. **Reject or defer** feature churn, trends, or “completeness” that do not clearly serve that essence; if something might still matter, write **one line linking it to the essence** before suggesting new \`[ ]\` items.
 - Clarify scope, priorities, acceptance hints, and risks **only** along that spine; growth/benchmark gaps must tighten the same story, not a parallel product.
 - Do **not** write production code unless the repo is red and a minimal error-recovery patch is required to restore build/runtime health; otherwise you may edit docs and task checklists only when they describe intent, not implementation.
-- Prefer short, checkable bullets the **디자인** role can turn into contracts/sketches.
+- Prefer short, checkable bullets the **구현** role can execute directly.
 
 EOF
       if [[ "${RALPH_PLANNING_EXPAND_ONLY:-0}" == "1" ]]; then
@@ -910,33 +908,23 @@ EOF
 EOF
       fi
       ;;
-    design)
-      cat << EOF
-## Role Boundaries — 디자인 (design)
-
-- Turn planning output into concrete UX/API/data contracts, file touch list, or pseudocode **where it helps implementation**.
-- Do **not** land large production patches unless trivial; leave heavy coding to **구현**.
-- Call out ambiguities and send corrections back via \`.ralph/progress.md\` if planning was insufficient.
-
-EOF
-      ;;
     implementation)
       cat << EOF
 ## Role Boundaries — 구현 (implementation)
 
-- Implement according to \`RALPH_TASK.md\`, guardrails, and the latest **디자인** notes in \`.ralph/progress.md\` / git.
-- Prefer small commits with messages prefixed or tagged so **테스트** can trace intent.
-- Do **not** declare criteria \`[x]\` without leaving verifiable steps for the test role.
+- Implement according to \`RALPH_TASK.md\`, guardrails, and the latest **기획** notes in \`.ralph/progress.md\` / git.
+- Prefer small commits with messages that make **검증(test)** evidence easy to trace.
+- Do **not** declare criteria \`[x]\` without leaving reproducible verification steps for the test role.
 
 EOF
       ;;
     test)
       cat << EOF
-## Role Boundaries — 테스트 (test)
+## Role Boundaries — 검증 (test)
 
 - Run the repo’s documented checks (e.g. \`npm run build\`, tests in \`RALPH_TASK.md\`).
 - Compile verification is mandatory in this role: run \`npm test\` when available; otherwise run the repo’s documented compile/build command before approving or flipping any \`[x]\`.
-- Report pass/fail with evidence; fix only what is necessary for green builds or file minimal issues for **구현**/**디자인**.
+- Report pass/fail with evidence; fix only what is necessary for green builds or file minimal issues for **구현**/**기획**.
 - You **own** flipping checkboxes to \`[x]\` when verification matches the criterion.
 
 EOF
@@ -1202,6 +1190,22 @@ run_ralph_loop() {
     fi
     
     if [[ "$task_status" == "COMPLETE" ]] && [[ "$active_errors" -eq 0 ]]; then
+      if [[ "${RALPH_AUTO_EXPAND_ON_COMPLETE:-1}" == "1" ]]; then
+        echo ""
+        echo "♻️  체크리스트가 모두 완료되어 자동 확장(planning) 1회를 실행합니다."
+        export RALPH_ROLE_OVERRIDE=planning
+        export RALPH_PLANNING_EXPAND_ONLY=1
+        signal=$(run_iteration "$workspace" "$((iteration + 1))" "" "$script_dir")
+        unset RALPH_ROLE_OVERRIDE RALPH_PLANNING_EXPAND_ONLY
+        refresh_task_cache "$workspace"
+        task_status=$(check_task_complete "$workspace")
+        if [[ "$task_status" == "COMPLETE" ]]; then
+          echo "⚠️  자동 확장 후에도 새 [ ] 항목이 없어 루프를 종료합니다 (RALPH_AUTO_EXPAND_ON_COMPLETE=0 으로 비활성 가능)."
+        else
+          iteration=$((iteration + 1))
+          continue
+        fi
+      fi
       log_progress "$workspace" "**Session $iteration ended** - ✅ TASK COMPLETE"
       echo ""
       echo "═══════════════════════════════════════════════════════════════════"
@@ -1231,6 +1235,20 @@ run_ralph_loop() {
       "COMPLETE")
         # Agent signaled completion - verify with checkbox check
         if [[ "$task_status" == "COMPLETE" ]] && [[ "$active_errors" -eq 0 ]]; then
+          if [[ "${RALPH_AUTO_EXPAND_ON_COMPLETE:-1}" == "1" ]]; then
+            echo ""
+            echo "♻️  COMPLETE 신호 수신: 자동 확장(planning) 1회를 실행합니다."
+            export RALPH_ROLE_OVERRIDE=planning
+            export RALPH_PLANNING_EXPAND_ONLY=1
+            signal=$(run_iteration "$workspace" "$((iteration + 1))" "" "$script_dir")
+            unset RALPH_ROLE_OVERRIDE RALPH_PLANNING_EXPAND_ONLY
+            refresh_task_cache "$workspace"
+            task_status=$(check_task_complete "$workspace")
+            if [[ "$task_status" != "COMPLETE" ]]; then
+              iteration=$((iteration + 1))
+              continue
+            fi
+          fi
           log_progress "$workspace" "**Session $iteration ended** - ✅ TASK COMPLETE (agent signaled)"
           echo ""
           echo "═══════════════════════════════════════════════════════════════════"

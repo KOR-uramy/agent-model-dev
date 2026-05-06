@@ -1,3 +1,54 @@
+# Ralph Task: Nova Hub (새 앱 부트스트랩)
+
+## Goal
+
+이 레포의 목표를 기존 OpenGraze 중심에서 분리하고, `apps/open-graze`를 **새 Next.js 앱(Nova Hub)** 기준으로 재구성한다.  
+Ralph 루프는 **3단계 사이클(기획 → 구현 → 검증)**로 고정하며, 체크리스트가 모두 완료되면 기획 단계에서 새 `[ ]`를 자동 추가해 확장 라운드를 이어 간다.
+
+## Loop Policy
+
+- Role cycle: `planning -> implementation -> test` (3-phase)
+- `RALPH_ROLE_MODE=cycle` 기본, `mono`는 예외
+- 체크리스트 완료 시 자동 확장 기본값: `RALPH_AUTO_EXPAND_ON_COMPLETE=1`
+- 자동 확장 비활성: `RALPH_AUTO_EXPAND_ON_COMPLETE=0`
+
+## Context
+
+| 영역 | 위치 |
+|------|------|
+| 루프 기준 구현 | `.codex/ralph-scripts/` |
+| Cursor 실행 경로 | `.cursor/ralph-scripts/` (codex 위임 shim, 기본 모델만 다름) |
+| 앱 작업 대상 | `apps/open-graze` |
+| 진행 로그 | `.ralph/progress.md`, `.ralph/errors.log` |
+
+## Success Criteria
+
+### 메타
+
+- [ ] `apps/open-graze`를 Nova Hub 기준의 새 앱 설명/랜딩으로 교체한다.
+- [ ] `apps/open-graze/README.md`를 Nova Hub 기준으로 전면 갱신한다.
+- [ ] 루트 `README.md`에서 OpenGraze 전용 설명을 Nova Hub 기준으로 정리한다.
+
+### 루프
+
+- [ ] `.codex/ralph-scripts/ralph-common.sh`의 역할 순환이 3단계(기획/구현/검증)로 동작한다.
+- [ ] 프롬프트 Role Boundaries에서 `design` 단계를 제거하고 3단계 설명으로 맞춘다.
+- [ ] 완료 시 자동 확장 정책(`RALPH_AUTO_EXPAND_ON_COMPLETE`)이 동작한다.
+
+### 런타임/검증
+
+- [ ] 루트 `npm run build`가 통과한다.
+- [ ] 개발 서버에서 `npm run runtime:smoke`가 통과한다.
+
+### 성장 루프
+
+- [ ] 위 항목이 모두 완료되면, Nova Hub 기준 신규 개선 과제 2개 이상을 새 `[ ]`로 추가한다.
+
+## Notes
+
+- Codex가 기준이며 Cursor는 따라온다.
+- 기능 차이는 모델 기본값 외 허용하지 않는다.
+- 실행 중 오류가 있으면 새 기능보다 오류 복구를 우선한다.
 # Ralph Task: OpenGraze (= Workspace Platform) / 관측 가능한 워크스페이스 플랫폼
 
 ## Goal (본질)

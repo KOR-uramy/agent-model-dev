@@ -33,6 +33,17 @@ http://localhost:3000/?role=planning&sessionId=ralph-session-example&from=2026-0
 
 기본 포트 **3000**만 사용한다. 루트에서 `npm run dev` 시 이미 `3000`이 쓰이 중이면 먼저 종료 후 기동(`scripts/dev-open-graze.sh`).
 
+### 배포 실행 규칙(로컬 운영)
+
+- 배포 서버는 **항상 3000 포트**에서만 실행한다.
+- 배포는 개발 서버(`next dev`)가 아니라 **빌드 산출물 기반**(`next start`)으로만 띄운다.
+- 작업 중 소스 변경/핫픽스가 떠 있는 배포 프로세스에 바로 반영되지 않도록, 루트 `npm run release:open-graze`는 빌드 후 `.release/open-graze/<timestamp>` 스냅샷에서 서버를 실행한다(`.release/open-graze/current` 링크 갱신).
+
+```bash
+# 루트에서
+npm run release:open-graze
+```
+
 ## 개발
 
 저장소 루트:
