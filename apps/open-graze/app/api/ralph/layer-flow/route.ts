@@ -75,36 +75,52 @@ async function readLayerDocs(): Promise<LayerDoc[]> {
 }
 
 async function readFirstUncheckedNeed(): Promise<string> {
-  const taskPath = path.join(resolveWorkspaceRoot(), "RALPH_TASK.md");
-  const text = await readFile(taskPath, "utf-8");
-  const lines = text.split("\n");
-  const pending = lines.find((line) =>
-    /^[\s]*([-*]|[0-9]+\.)\s+\[ \]\s+/.test(line),
-  );
-  if (!pending) return "현재 미완 Need가 없습니다(체크리스트 완료).";
-  return pending.replace(/^[\s]*([-*]|[0-9]+\.)\s+\[ \]\s+/, "").trim();
+  try {
+    const taskPath = path.join(resolveWorkspaceRoot(), "RALPH_TASK.md");
+    const text = await readFile(taskPath, "utf-8");
+    const lines = text.split("\n");
+    const pending = lines.find((line) =>
+      /^[\s]*([-*]|[0-9]+\.)\s+\[ \]\s+/.test(line),
+    );
+    if (!pending) return "현재 미완 Need가 없습니다(체크리스트 완료).";
+    return pending.replace(/^[\s]*([-*]|[0-9]+\.)\s+\[ \]\s+/, "").trim();
+  } catch {
+    return "RALPH_TASK.md를 읽을 수 없습니다. RALPH_WORKSPACE_ROOT와 워크스페이스 루트를 확인하세요.";
+  }
 }
 
 async function readLatestProgressAction(): Promise<string> {
   const p = path.join(resolveWorkspaceRoot(), ".ralph", "progress.md");
-  const text = await readFile(p, "utf-8");
-  const lines = text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith("#") && !line.startsWith(">"));
-  return lines.at(-1) ?? "최근 진행 메모가 없습니다.";
+  try {
+    const text = await readFile(p, "utf-8");
+    const lines = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith("#") && !line.startsWith(">"));
+    return lines.at(-1) ?? "최근 진행 메모가 없습니다.";
+  } catch {
+    return "`.ralph/progress.md`가 없거나 읽을 수 없습니다. 병렬 모드에서는 `.ralph/parallel/*/agent-*.md`와 본 레이어 md 체크리스트를 Action 근거로 삼습니다.";
+  }
 }
 
 async function readCapabilitySummary(): Promise<string> {
   const p = path.join(resolveWorkspaceRoot(), ".codex", "ralph-scripts", "ralph-common.sh");
-  const text = await readFile(p, "utf-8");
-  const roleCycle = text.includes("% 3")
-    ? "역할 사이클: 3단계(기획→구현→검증)"
-    : "역할 사이클: 확인 필요";
-  const autoExpand = text.includes("RALPH_AUTO_EXPAND_ON_COMPLETE")
-    ? "완료 후 자동 확장: 활성 코드 존재"
-    : "완료 후 자동 확장: 비활성/미구현";
-  return `${roleCycle} / ${autoExpand}`;
+  try {
+    const text = await readFile(p, "utf-8");
+    const hasThreeRole =
+      /0\)\s*echo\s+"planning"/.test(text) &&
+      /1\)\s*echo\s+"implementation"/.test(text) &&
+      /2\)\s*echo\s+"test"/.test(text);
+    const roleCycle = hasThreeRole
+      ? "역할 사이클: 기획→구현→검증(순환, ralph_role_for_iteration)"
+      : "역할 사이클: ralph-common.sh에서 확인 필요";
+    const autoExpand = /\$\{RALPH_AUTO_EXPAND_ON_COMPLETE:-1\}/.test(text)
+      ? "전체 완료 시 자동 확장: 기본 활성(planning 1회, RALPH_AUTO_EXPAND_ON_COMPLETE=0으로 끔)"
+      : "전체 완료 시 자동 확장: 스크립트에서 확인 필요";
+    return `${roleCycle} / ${autoExpand}`;
+  } catch {
+    return "Capability 요약: `.codex/ralph-scripts/ralph-common.sh`를 읽지 못했습니다.";
+  }
 }
 
 async function readLatestErrorLine(): Promise<string | null> {
