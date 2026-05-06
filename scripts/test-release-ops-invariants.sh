@@ -55,6 +55,8 @@ grep -Fq 'next" start -p "${PORT}"' "$REL" \
 grep -q '> "$ERRORS_LOG"' "$MON" \
   || fail "runtime-error-monitor.sh must overwrite errors.log (latest signal only)"
 grep -q 'is_error_line' "$MON" || fail "runtime-error-monitor.sh must define is_error_line"
+grep -q '_ERROR_PATTERN' "$MON" \
+  || fail "runtime-error-monitor.sh must centralize the error ERE in _ERROR_PATTERN"
 grep -Fq 'SIGNAL_TAG="${RUNTIME_ERROR_SIGNAL_TAG:-runtime-release}"' "$MON" \
   || fail "runtime-error-monitor.sh must default SIGNAL_TAG to runtime-release"
 

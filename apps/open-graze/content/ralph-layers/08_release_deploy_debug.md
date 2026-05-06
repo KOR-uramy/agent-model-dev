@@ -22,6 +22,16 @@
 
 아래 순서대로 실행하면 포트·`next start`·스냅샷·에러 신호 루프가 한 번에 검증된다.
 
+### 실행 순서 요약 (단일 파이프라인)
+
+| 단계 | 명령 / 산출물 | 불변식 |
+|------|----------------|--------|
+| 1 | `npm run build -w open-graze` | 프로덕션 `.next` 생성 |
+| 2 | `.release/open-graze/<STAMP>/`에 복사 + `current` 갱신 | cwd = 불변 스냅샷 |
+| 3 | `kill-port.sh` → `PORT` / `OPEN_GRAZE_RELEASE_PORT` 정렬 | 기본 **3000** |
+| 4 | `next start -p "$PORT"` (표준출력·표준에러 파이프) | **`next dev` 금지** |
+| 5 | `runtime-error-monitor.sh` | `.ralph/errors.log` **한 줄 덮어쓰기** |
+
 ### 최소 검증 (약 30초, 터미널만)
 
 워크스페이스 루트에서 그대로 붙여 넣기:
@@ -71,6 +81,12 @@ sh scripts/test-release-ops-invariants.sh && \
 5. **재배포** — 소스/환경 수정 후에는 반드시 `npm run release:open-graze`(또는 `sh scripts/release-open-graze.sh`)로 **새 타임스탬프 스냅샷**을 만들고 다시 띄운다(`next dev`로 대체하지 않는다).
 
 디버그 시 워크스페이스 루트는 환경 변수 `RALPH_WORKSPACE_ROOT`로 노출되므로, 스냅샷 cwd와 혼동하지 말 것.
+
+### 운영 시 주의 (gotchas)
+
+- **에러 신호는 패턴 일치 시에만 갱신된다.** `runtime-error-monitor.sh`의 ERE에 걸리지 않는 로그 줄은 `.ralph/errors.log`를 바꾸지 않는다. 새 형태의 스택 트레이스가 보이면 스크립트의 `_ERROR_PATTERN`을 보강한 뒤 `test-release-ops-invariants.sh`로 회귀 검증한다.
+- **프로세스가 살아 있는데 `errors.log`가 오래됐다면**, 실제로는 에러가 없거나 파이프가 끊긴 경우일 수 있다. `Layer 08 context`에 찍힌 `SNAPSHOT_DIR`과 `current` 심볼릭 링크를 먼저 맞춘다.
+- **LISTEN 확인 (선택):** macOS/Linux에서 `lsof -nP -iTCP:3000 -sTCP:LISTEN`으로 포트 점유를 확인할 수 있다(기본 포트를 바꿨다면 해당 번호로 조회).
 
 **요약 표**
 

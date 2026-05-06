@@ -13,9 +13,13 @@ SIGNAL_TAG="${RUNTIME_ERROR_SIGNAL_TAG:-runtime-release}"
 mkdir -p "$RALPH_DIR"
 touch "$ERRORS_LOG"
 
+# POSIX ERE (works under /bin/sh); keep in sync with Layer 08 docs / invariant tests.
+_ERROR_PATTERN='Error:|TypeError:|ReferenceError:|SyntaxError:|Unhandled|EADDRINUSE|ECONNREFUSED|ECONNRESET|\[Error\]|Error[[:space:]]+occurred|Internal[[:space:]]+Server[[:space:]]+Error|(failed|Failed)[[:space:]]+to[[:space:]]+compile|Next\.js[[:space:]]+build[[:space:]]+worker[[:space:]]+exited'
+
 is_error_line() {
-  local line="${1:-}"
-  [[ "$line" =~ (Error:|TypeError:|ReferenceError:|SyntaxError:|Unhandled|EADDRINUSE|ECONNREFUSED|ECONNRESET|\[Error\]|Error[[:space:]]occurred|Internal[[:space:]]Server[[:space:]]Error|(failed|Failed)[[:space:]]to[[:space:]]compile|Next\.js[[:space:]]build[[:space:]]worker[[:space:]]exited) ]]
+  line="${1-}"
+  [ -n "$line" ] || return 1
+  printf '%s\n' "$line" | grep -qE "$_ERROR_PATTERN"
 }
 
 while IFS= read -r line; do
