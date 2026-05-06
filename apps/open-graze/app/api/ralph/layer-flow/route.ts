@@ -2,6 +2,11 @@ import { readdir, readFile } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { loadTimelineFromDb } from "@/lib/timeline-feed";
+import {
+  parseChecklistItems,
+  summarizeActionForFlow,
+  summarizeCapabilityLayerMarkdown,
+} from "@/lib/ralph-layer-markdown";
 import { NextResponse } from "next/server";
 
 type LayerDoc = {
@@ -51,15 +56,7 @@ async function readLayerDocs(): Promise<LayerDoc[]> {
     const key = m[2] ?? file.replace(".md", "");
     const full = path.join(dir, file);
     const content = await readFile(full, "utf-8");
-    const checklist = content
-      .split("\n")
-      .map((line) => line.trim())
-      .map((line) => {
-        const m = line.match(/^[-*]\s+\[( |x|X)\]\s+(.+)$/);
-        if (!m) return null;
-        return { checked: m[1].toLowerCase() === "x", text: m[2].trim() };
-      })
-      .filter((x): x is { text: string; checked: boolean } => x != null);
+    const checklist = parseChecklistItems(content);
     const titleLine = content.split("\n").find((line) => line.startsWith("# "));
     const title = titleLine ? titleLine.replace(/^#\s+/, "").trim() : key;
     out.push({
@@ -95,18 +92,6 @@ async function readLatestProgressAction(): Promise<string> {
   return lines.at(-1) ?? "최근 진행 메모가 없습니다.";
 }
 
-async function readCapabilitySummary(): Promise<string> {
-  const p = path.join(resolveWorkspaceRoot(), ".codex", "ralph-scripts", "ralph-common.sh");
-  const text = await readFile(p, "utf-8");
-  const roleCycle = text.includes("% 3")
-    ? "역할 사이클: 3단계(기획→구현→검증)"
-    : "역할 사이클: 확인 필요";
-  const autoExpand = text.includes("RALPH_AUTO_EXPAND_ON_COMPLETE")
-    ? "완료 후 자동 확장: 활성 코드 존재"
-    : "완료 후 자동 확장: 비활성/미구현";
-  return `${roleCycle} / ${autoExpand}`;
-}
-
 async function readLatestErrorLine(): Promise<string | null> {
   try {
     const p = path.join(resolveWorkspaceRoot(), ".ralph", "errors.log");
@@ -123,14 +108,24 @@ async function readLatestErrorLine(): Promise<string | null> {
 
 export async function GET() {
   try {
-    const [layers, payload, need, action, capability, latestError] = await Promise.all([
+    const [layers, payload, need, progressTail, latestError] = await Promise.all([
       readLayerDocs(),
       loadTimelineFromDb(25, null, null),
       readFirstUncheckedNeed(),
       readLatestProgressAction(),
-      readCapabilitySummary(),
       readLatestErrorLine(),
     ]);
+
+    const layer02 = layers.find((l) => l.order === 2);
+    const layer03 = layers.find((l) => l.order === 3);
+    const action = summarizeActionForFlow(progressTail, layer02?.checklist ?? []);
+    const capability = layer03
+      ? summarizeCapabilityLayerMarkdown({
+          title: layer03.title,
+          content: layer03.content,
+          checklist: layer03.checklist,
+        })
+      : "레이어 03 (Capability + Business Logic) md를 찾지 못했습니다.";
 
     const usageEvents = payload.events.slice(-8).map((e) => {
       const ts = e.ts ?? "";
