@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# OpenGraze release runner
-# - Always uses port 3000
-# - Always serves built artifacts (next start)
-# - Runs from immutable snapshot dir to avoid dev hotfix edits affecting live process
+# OpenGraze release runner (Layer 08 — Release/Deploy/Debug)
+# Invariants:
+#   1) LISTEN port == OPEN_GRAZE_RELEASE_PORT (default 3000)
+#   2) next start only (not the dev-mode server) on production .next output
+#   3) Process cwd is an immutable timestamped snapshot under .release/open-graze/
+#   4) Stderr/stdout piped through runtime-error-monitor → latest line in .ralph/errors.log
 
 set -euo pipefail
+
+# Override for tests only: OPEN_GRAZE_RELEASE_PORT=3xxx sh scripts/release-open-graze.sh
+OPEN_GRAZE_RELEASE_PORT="${OPEN_GRAZE_RELEASE_PORT:-3000}"
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 APP_DIR="$ROOT/apps/open-graze"
@@ -30,20 +35,21 @@ cp "$APP_DIR/package.json" "$SNAPSHOT_DIR/package.json"
 [ -f "$APP_DIR/.env" ] && cp "$APP_DIR/.env" "$SNAPSHOT_DIR/.env" || true
 [ -f "$APP_DIR/next.config.js" ] && cp "$APP_DIR/next.config.js" "$SNAPSHOT_DIR/next.config.js" || true
 [ -f "$APP_DIR/next.config.mjs" ] && cp "$APP_DIR/next.config.mjs" "$SNAPSHOT_DIR/next.config.mjs" || true
+[ -f "$APP_DIR/next.config.ts" ] && cp "$APP_DIR/next.config.ts" "$SNAPSHOT_DIR/next.config.ts" || true
 
 # Workspace-level node_modules reuse (no install in snapshot)
 ln -sfn "$ROOT/node_modules" "$SNAPSHOT_DIR/node_modules"
 
 ln -sfn "$SNAPSHOT_DIR" "$LATEST_LINK"
 
-echo "==> Ensure port 3000 is free"
-sh "$ROOT/scripts/kill-port.sh" 3000
+echo "==> Ensure port $OPEN_GRAZE_RELEASE_PORT is free"
+sh "$ROOT/scripts/kill-port.sh" "$OPEN_GRAZE_RELEASE_PORT"
 
-echo "==> Start release server (port 3000, built files only)"
+echo "==> Start release server (port $OPEN_GRAZE_RELEASE_PORT, next start, snapshot cwd)"
 cd "$SNAPSHOT_DIR"
 export NODE_ENV=production
-export PORT=3000
+export PORT="$OPEN_GRAZE_RELEASE_PORT"
 export RALPH_WORKSPACE_ROOT="$ROOT"
-echo "==> Runtime error monitor enabled (.ralph/errors.log)"
-node "$ROOT/node_modules/next/dist/bin/next" start -p 3000 2>&1 \
+echo "==> Runtime error monitor enabled (.ralph/errors.log; latest error only, overwrite)"
+node "$ROOT/node_modules/next/dist/bin/next" start -p "$OPEN_GRAZE_RELEASE_PORT" 2>&1 \
   | "$ROOT/scripts/runtime-error-monitor.sh" "$ROOT"
