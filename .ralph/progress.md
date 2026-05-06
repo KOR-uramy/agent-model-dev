@@ -1210,3 +1210,13 @@
 
 ### 2026-05-07 00:23:19
 **Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.
+
+### 2026-05-07 00:27:11
+**RALPH: implementation**
+
+- **감시 요약 (직전 기획 검증)**: 최신 기획 엔트리(2026-05-06 23:59:40)의 우선순위/인수조건과 현재 코드베이스(`layer-flow`, release snapshot, Prisma 런타임 경로)를 대조했다. 기존 구현 상태와 충돌이 없어 handoff는 **승인**이다.
+- **검증한 갭**: 지시된 `RALPH_LEARNINGS.md`는 이번 이터에서도 레포에서 확인되지 않았다. 대신 `docs/ralph-guardrails.md`를 교훈 소스로 적용했다. `.ralph/decisions.md` 부재 이슈도 계속 관찰되며, 다음 기획 루프에서 상태 파일 경로 합의가 필요하다.
+- **오류 우선 재현 결과**: 루트에서 `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test`를 직렬 실행했다. `build`/`test`는 통과했고 `runtime:smoke`는 서버 미기동 환경 안내 후 skip(exit 0) 계약을 유지했다. 활성 compile/build/runtime blocker는 현재 재현되지 않는다.
+- **이번 구현 작업**: 제품 코드 추가 수정은 하지 않았다. 현재 워크트리에서 `GET /api/ralph/layer-flow`의 workspace fallback 경로, Prisma의 `DATABASE_URL` fallback, release snapshot의 `content` 포함 및 `RALPH_WORKSPACE_ROOT` 설정이 이미 반영된 상태를 확인했다.
+- **체크박스 상태**: 구현 역할 범위에서 `RALPH_TASK.md` 체크박스 변경은 하지 않았다(브라우저 상호작용/서버 로그 실검증은 테스트 역할 소관).
+- **다음 인계(테스트)**: 1) `npm run dev` 후 `/` 빈 상태 요약 바 숨김/필터 적용 시 노출 확인. 2) 칩 해제/`전체 초기화` 시 URL 쿼리·결과·요약 바 동기화 확인. 3) 필터 포함 URL 첫 진입 `home_view_opened`, 복사 클릭 `home_view_copied` 로그 확인. 4) README 절차 일치 시 `RALPH_TASK.md` 마지막 3개 `[ ]`를 `[x]`로 전환.
