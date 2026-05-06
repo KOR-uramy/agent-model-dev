@@ -22,6 +22,19 @@
 
 아래 순서대로 실행하면 포트·`next start`·스냅샷·에러 신호 루프가 한 번에 검증된다.
 
+### 최소 검증 (약 30초, 터미널만)
+
+워크스페이스 루트에서 그대로 붙여 넣기:
+
+```sh
+sh scripts/test-release-ops-invariants.sh && \
+  echo "LISTEN default:" && grep -F 'OPEN_GRAZE_RELEASE_PORT="${OPEN_GRAZE_RELEASE_PORT:-3000}"' scripts/release-open-graze.sh && \
+  echo "errors.log (마지막 줄 = 최신 장애 신호):" && tail -n 1 .ralph/errors.log 2>/dev/null || echo "(파일 없음 또는 비어 있음 — 정상일 수 있음)"
+```
+
+- 첫 줄이 `OK: release ops invariants`로 끝나면 **포트 기본값·`next start`·스냅샷·에러 덮어쓰기 계약**은 스크립트 수준에서 유지된 것이다.
+- `tail` 결과는 릴리스를 한 번도 안 띄웠거나 에러가 없으면 비어 있을 수 있다(누적 로그가 아니라 **한 줄 덮어쓰기**이므로).
+
 1. **정적 계약 (CI/로컬 공통)**  
    - 루트에서: `sh scripts/test-release-ops-invariants.sh`  
    - 기대: `OK: release ops invariants (...)` 한 줄로 종료(exit 0).
