@@ -1135,3 +1135,22 @@
 
 ### 2026-05-06 23:58:56
 **Session 2 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-07 00:02:04
+**역할: 구현 (implementation)**
+
+- **감시 요약 (직전 기획 검증)**: `.ralph/progress.md` 최신 기획 엔트리(2026-05-06 23:59:40), `git log -8`, 현재 워크트리(clean)를 대조했다. 기획이 고정한 우선순위(필터 요약 바 → 공유 URL 사용 신호 → 감사 링크 카피)와 저장소 구현 상태는 충돌하지 않아 handoff는 **승인**이다.
+- **갭/보완 필요 사항**: 지시된 상태 파일 중 `.ralph/decisions.md`는 이번 이터에서도 레포에서 확인되지 않았다. blocker는 아니지만 다음 기획 루프에서 파일 경로 합의가 필요하다.
+- **구현 인수조건 대조**: 홈 코드 기준으로 `HomeTimelineSection`의 적용 중 필터 요약 바/칩 해제/전체 초기화, `HomePageContent`의 canonical 쿼리 기반 상태 전달, `GET /api/ralph/events`의 `home_view_opened`/`home_view_copied` 신호 로그(JSON `kind`·필터 축·시각)까지 모두 존재함을 확인했다. 이번 이터의 추가 제품 코드 변경은 없다.
+- **오류 우선 재현 결과**: 루트에서 `npm run kill:3000 && npm run build && npm run runtime:smoke && npm test`를 직렬 실행했다. `build`/`test`는 통과했고 `runtime:smoke`는 서버 미기동 환경 안내 후 skip(exit 0) 계약을 유지했다. 현재 재현 가능한 compile/build/runtime 활성 오류는 없다.
+- **체크박스 상태**: 구현 역할에서는 `RALPH_TASK.md` 마지막 3개 `[ ]`를 유지한다. 완료 판정은 브라우저 상호작용·서버 로그 실검증이 필요한 테스트 역할 소관이다.
+- **다음 인계(테스트)**: 1) `npm run dev` 상태에서 `/` 빈 화면은 요약 바 숨김, 필터 적용 시 결과 건수와 함께 노출되는지 확인. 2) 칩 해제/`전체 초기화` 후 URL 쿼리·결과·요약 바 동기화 확인. 3) 필터 포함 URL 첫 진입 시 `home_view_opened`, 복사 클릭 시 `home_view_copied` 로그 확인. 4) README 절차 일치 시 마지막 3개 `[ ]`를 `[x]`로 전환.
+
+### 2026-05-07 00:02:33
+**Session 2 ended** - Active errors remain; continuing in recovery mode
+
+### 2026-05-07 00:04:01
+**Session 3 started** — 역할: 구현 (`implementation`) · model: auto
+
+### 2026-05-07 00:04:01
+**Error recovery mode** — recent entries in `.ralph/errors.log` forced this iteration to prioritize unresolved failures before checklist work.

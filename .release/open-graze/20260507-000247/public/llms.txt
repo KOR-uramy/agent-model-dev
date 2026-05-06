@@ -1,0 +1,27 @@
+# OpenGraze / Workspace Platform — LLM·연동 인덱스 (짧은 요약)
+# UTF-8. 배포 시 이 파일은 https://<호스트>/llms.txt 로 제공됩니다.
+
+## 수집 이벤트 (Bearer API 키)
+POST {BASE_URL}/api/v1/events
+Authorization: Bearer <og_live_전체키>
+Content-Type: application/json
+
+{"kind":"string_1_to_120_chars","data":{}}  # data 생략 가능
+
+성공: HTTP 200, 본문에 ok:true 가량.
+429/413/401 등: docs/opengraze-llms-guide.md 의 오류 표·재시도 절 참고.
+공개 한도 스냅샷(JSON, 비인증): GET {BASE_URL}/api/v1/meta/limits
+BASE_URL 기본: http://localhost:3000 (개발)
+
+## 환경 변수 (권장 이름 — 어떤 앱·CI에서도 동일)
+OPENGRAZE_PLATFORM_URL   선택 — 기본 http://localhost:3000
+OPENGRAZE_PLATFORM_API_KEY  필수 — 대시보드에서 발급한 og_live_... 전체
+
+## 이 레포에서 스모크
+루트 .env 에 위 변수 설정 후: npm run platform:self-test
+
+## 전체 가이드 (스키마·Task API·에러표)
+저장소의 docs/opengraze-llms-guide.md (한글, LLM·개발자용 장문)
+
+## 앱 README (마이그레이션·로그인·결제)
+apps/open-graze/README.md
