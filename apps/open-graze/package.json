@@ -8,6 +8,7 @@
     "dev": "rm -rf .next && next dev --turbopack",
     "build": "sh ../../scripts/with-open-graze-build-lock.sh sh -c 'prisma generate && rm -rf .next && next build'",
     "start": "next start",
+    "release:open-graze": "sh ../../scripts/release-open-graze.sh",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.cjs",
