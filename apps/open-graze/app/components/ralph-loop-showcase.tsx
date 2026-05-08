@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type LayerDoc = {
   order: number;
@@ -30,11 +30,30 @@ type FlowPayload = {
   };
   flow: {
     need: string;
+    needSource?: "app" | "ralph_task" | "empty";
     action: string;
     capabilityLogic: string;
-    usageData: string[];
+    usageData: {
+      ts: string;
+      source: string;
+      kind: string;
+      sessionId: string;
+    }[];
     presentationBuilder: string;
-    presentationData: Record<string, unknown>;
+    presentationData: {
+      status: "empty" | "healthy" | "warning";
+      metrics: { usageCount: number; recentSources: string[] };
+      latestEvent: {
+        ts: string;
+        kind: string;
+        source: string;
+        sessionId: string;
+      } | null;
+      highlightedText: string;
+      recommendation: string;
+      updatedAt: string;
+      completeness: "complete";
+    };
     ui: string;
     releaseDebug?: string;
   };
@@ -42,8 +61,13 @@ type FlowPayload = {
 
 export function RalphLoopShowcase() {
   const [payload, setPayload] = useState<FlowPayload | null>(null);
+  /** 수동 새로고침(버튼) 전용 — SSE와 분리해 로딩이 끝없이 걸리지 않게 함 */
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needDraft, setNeedDraft] = useState("");
+  const [needSaving, setNeedSaving] = useState(false);
+  const [needFeedback, setNeedFeedback] = useState<string | null>(null);
+  const fetchInFlight = useRef(false);
   const flow = payload?.flow;
   const layers = payload?.layers ?? [];
   const coreLayers = layers.filter((l) => l.thread === "core");
@@ -52,7 +76,9 @@ export function RalphLoopShowcase() {
   const layerTriggers = payload?.layerTriggers ?? [];
   const usageCount = flow?.usageData.length ?? 0;
   const latestUsage =
-    usageCount > 0 ? flow?.usageData[usageCount - 1] ?? "없음" : "없음";
+    usageCount > 0
+      ? flow?.usageData[usageCount - 1]
+      : null;
 
   const summary = useMemo(() => {
     if (!flow?.ui) return "실데이터를 불러오면 현재 UI 결론이 표시됩니다.";
@@ -60,7 +86,8 @@ export function RalphLoopShowcase() {
   }, [flow?.ui]);
 
   const reload = useCallback(async () => {
-    if (isLoading) return;
+    if (fetchInFlight.current) return;
+    fetchInFlight.current = true;
     setIsLoading(true);
     setError(null);
     try {
@@ -75,22 +102,107 @@ export function RalphLoopShowcase() {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
     } finally {
+      fetchInFlight.current = false;
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, []);
 
   useEffect(() => {
-    void reload();
-    const id = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      void reload();
-    }, 10000);
-    return () => window.clearInterval(id);
-  }, [reload]);
+    void (async () => {
+      try {
+        const res = await fetch("/api/ralph/app-need", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = (await res.json()) as { need: string | null };
+        if (typeof j.need === "string" && j.need.length > 0) {
+          setNeedDraft(j.need);
+        }
+      } catch {
+        // 무시: 로컬 전용 API
+      }
+    })();
+  }, []);
 
-  const presentationDataJson = flow?.presentationData
-    ? JSON.stringify(flow.presentationData, null, 2)
-    : "데이터 없음";
+  useEffect(() => {
+    const source = new EventSource("/api/ralph/layer-flow/stream");
+
+    source.addEventListener("layer-flow", (event) => {
+      try {
+        const data = JSON.parse((event as MessageEvent).data) as FlowPayload;
+        setPayload(data);
+        setError(null);
+        setIsLoading(false);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(`SSE 파싱 실패: ${msg}`);
+      }
+    });
+
+    return () => source.close();
+  }, []);
+
+  const presentationData = flow?.presentationData;
+  const usageDataBody =
+    usageCount === 0
+      ? "기록 없음"
+      : flow?.usageData
+          .slice(-3)
+          .map((item) => `${item.ts} | ${item.source} | ${item.kind} | ${item.sessionId}`)
+          .join("\n") ?? "기록 없음";
+  const statusLabel =
+    presentationData?.status === "empty"
+      ? "EMPTY"
+      : presentationData?.status === "warning"
+        ? "WARNING"
+        : "HEALTHY";
+
+  const needSourceLabel = (() => {
+    const s = flow?.needSource;
+    if (s === "app") return "출처: 앱 입력 (.ralph/app_need.txt) — RALPH_TASK.md보다 우선";
+    if (s === "ralph_task") return "출처: RALPH_TASK.md 첫 미완 [ ]";
+    if (s === "empty") return "출처: 없음 — 아래에서 니즈를 입력하거나 과제 파일을 채우세요";
+    return null;
+  })();
+
+  const saveAppNeed = useCallback(async () => {
+    setNeedSaving(true);
+    setNeedFeedback(null);
+    try {
+      const res = await fetch("/api/ralph/app-need", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ need: needDraft }),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(text.slice(0, 240));
+      }
+      setNeedFeedback("저장했습니다. 잠시 후 스트림이 갱신됩니다.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setNeedFeedback(`저장 실패: ${msg}`);
+    } finally {
+      setNeedSaving(false);
+    }
+  }, [needDraft]);
+
+  const clearAppNeed = useCallback(async () => {
+    setNeedSaving(true);
+    setNeedFeedback(null);
+    try {
+      const res = await fetch("/api/ralph/app-need", { method: "DELETE" });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text.slice(0, 240));
+      }
+      setNeedDraft("");
+      setNeedFeedback("앱 니즈를 지웠습니다. RALPH_TASK.md 기준으로 다시 표시됩니다.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setNeedFeedback(`초기화 실패: ${msg}`);
+    } finally {
+      setNeedSaving(false);
+    }
+  }, []);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-6 py-10">
@@ -117,8 +229,47 @@ export function RalphLoopShowcase() {
         {error ? <p className="mt-3 text-xs text-red-500">{error}</p> : null}
       </section>
 
+      <section className="rounded-2xl border border-[var(--list-border)] bg-card p-5">
+        <p className="text-xs uppercase tracking-[0.16em] text-muted">니즈 입력 (앱 → 워크스페이스)</p>
+        <p className="mt-2 text-xs text-muted leading-relaxed">
+          저장하면 레포 루트 <code className="rounded bg-muted px-1 py-0.5 text-[11px]">.ralph/app_need.txt</code>에
+          기록되고, 위 플로우 카드의 Need는 이 내용을 RALPH_TASK.md보다 우선해 표시합니다.
+        </p>
+        <textarea
+          className="mt-3 min-h-[100px] w-full resize-y rounded-xl border border-[var(--list-border)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted"
+          placeholder="지금 루프에 넣고 싶은 Need를 한 줄 이상 입력하세요."
+          value={needDraft}
+          onChange={(e) => setNeedDraft(e.target.value)}
+          disabled={needSaving}
+          maxLength={8000}
+        />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background disabled:opacity-60"
+            onClick={() => void saveAppNeed()}
+            disabled={needSaving}
+          >
+            {needSaving ? "저장 중…" : "니즈 저장"}
+          </button>
+          <button
+            type="button"
+            className="rounded-lg border border-[var(--list-border)] px-3 py-2 text-sm font-medium disabled:opacity-60"
+            onClick={() => void clearAppNeed()}
+            disabled={needSaving}
+          >
+            앱 니즈 지우기
+          </button>
+        </div>
+        {needFeedback ? <p className="mt-2 text-xs text-muted">{needFeedback}</p> : null}
+      </section>
+
       <section className="grid gap-4 md:grid-cols-2">
-        <StageCard title="1) Need" body={flow?.need ?? "대기 중..."} />
+        <StageCard
+          title="1) Need"
+          subtitle={needSourceLabel}
+          body={flow?.need ?? "대기 중..."}
+        />
         <StageCard title="2) Action" body={flow?.action ?? "대기 중..."} />
         <StageCard
           title="3) Capability + Business Logic"
@@ -126,18 +277,42 @@ export function RalphLoopShowcase() {
         />
         <StageCard
           title="4) Usage Data"
-          body={`${usageCount ? `${usageCount}건 누적` : "기록 없음"}\n최근: ${latestUsage}`}
+          body={`${usageCount ? `${usageCount}건 누적` : "기록 없음"}\n${usageDataBody}`}
         />
         <StageCard
           title="5) Presentation Builder"
           body={flow?.presentationBuilder ?? "대기 중..."}
         />
-        <StageCard title="6) Presentation Data" body={presentationDataJson} />
+        <StageCard
+          title="6) Presentation Data"
+          body={
+            presentationData
+              ? [
+                  `status: ${presentationData.status}`,
+                  `usageCount: ${presentationData.metrics.usageCount}`,
+                  `recentSources: ${presentationData.metrics.recentSources.join(", ") || "-"}`,
+                  `highlightedText: ${presentationData.highlightedText}`,
+                  `recommendation: ${presentationData.recommendation}`,
+                ].join("\n")
+              : "데이터 없음"
+          }
+        />
       </section>
 
       <section className="rounded-2xl border border-[var(--list-border)] bg-card p-5">
         <p className="text-xs uppercase tracking-[0.16em] text-muted">7) UI</p>
+        <div className="mt-2 inline-flex items-center rounded-full border border-[var(--list-border)] px-2 py-1 text-[11px] font-medium">
+          상태 배지: {statusLabel}
+        </div>
         <p className="mt-2 text-sm leading-relaxed">{flow?.ui || "아직 UI 결과가 없습니다."}</p>
+        <p className="mt-2 text-xs text-muted">
+          {presentationData?.latestEvent
+            ? `최신 이벤트: ${presentationData.latestEvent.ts} | ${presentationData.latestEvent.source} | ${presentationData.latestEvent.kind}`
+            : `최신 이벤트: ${latestUsage ? `${latestUsage.ts} | ${latestUsage.source} | ${latestUsage.kind}` : "없음"}`}
+        </p>
+        <p className="mt-2 text-xs text-muted">
+          추천 동선: {presentationData?.recommendation ?? "아직 추천이 없습니다."}
+        </p>
         <p className="mt-4 text-xs text-muted">UI는 Need 수행을 지원하고, 다음 Need로 반복됩니다.</p>
       </section>
       <section className="rounded-2xl border border-[var(--list-border)] bg-card p-5">
@@ -306,10 +481,19 @@ export function RalphLoopShowcase() {
   );
 }
 
-function StageCard({ title, body }: { title: string; body: string }) {
+function StageCard({
+  title,
+  subtitle,
+  body,
+}: {
+  title: string;
+  subtitle?: string | null;
+  body: string;
+}) {
   return (
     <article className="rounded-2xl border border-[var(--list-border)] bg-card p-4">
       <p className="text-xs uppercase tracking-[0.14em] text-muted">{title}</p>
+      {subtitle ? <p className="mt-1 text-[11px] leading-snug text-muted">{subtitle}</p> : null}
       <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{body || "대기 중..."}</p>
     </article>
   );
