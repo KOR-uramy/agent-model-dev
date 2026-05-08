@@ -30,7 +30,7 @@ type FlowPayload = {
   };
   flow: {
     need: string;
-    needSource?: "app" | "ralph_task" | "empty";
+    needSource?: "app" | "layer_doc" | "ralph_task" | "empty";
     action: string;
     capabilityLogic: string;
     usageData: {
@@ -158,6 +158,7 @@ export function RalphLoopShowcase() {
   const needSourceLabel = (() => {
     const s = flow?.needSource;
     if (s === "app") return "출처: 앱 입력 (.ralph/app_need.txt) — RALPH_TASK.md보다 우선";
+    if (s === "layer_doc") return "출처: 01_need.md 미완 체크리스트";
     if (s === "ralph_task") return "출처: RALPH_TASK.md 첫 미완 [ ]";
     if (s === "empty") return "출처: 없음 — 아래에서 니즈를 입력하거나 과제 파일을 채우세요";
     return null;
@@ -456,7 +457,7 @@ export function RalphLoopShowcase() {
       <section className="rounded-2xl border border-[var(--list-border)] bg-card p-5">
         <p className="text-xs uppercase tracking-[0.16em] text-muted">Stage Triggers</p>
         <p className="mt-2 text-xs text-muted">
-          각 단계의 작업 트리거는 해당 단계 md의 미완 체크리스트이며, 전단계가 이를 작성한다는 규칙을 따릅니다.
+          각 단계의 작업 트리거는 직전 단계 md의 미완 체크리스트를 기준으로 계산합니다.
         </p>
         <div className="mt-3 grid gap-3">
           {layerTriggers.map((t) => (

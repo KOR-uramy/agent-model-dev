@@ -2,6 +2,7 @@
 
 Capability 계층이 실행되며 남긴 사용 기록이다.  
 예: timeline 이벤트, `.ralph/events.jsonl`/DB 적재 결과, 최근 kind/source/session 데이터.
+다음 단계(05)의 트리거는 이 문서에서 미완으로 남긴 체크리스트다.
 
 ## Checklist (작성자: 03 Capability + Business Logic 단계)
 

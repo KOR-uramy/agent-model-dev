@@ -2,6 +2,7 @@
 
 Builder가 결정한 결과를 렌더링 가능한 데이터 구조로 만든다.  
 예: status, metrics, highlightedText, latestEvent, recommendation.
+다음 단계(07)의 트리거는 이 문서에서 미완으로 남긴 체크리스트다.
 
 ## Checklist (작성자: 05 Presentation Builder 단계)
 

@@ -32,8 +32,8 @@ export type LayerFlowPayload = {
   };
   flow: {
     need: string;
-    /** `app`: `.ralph/app_need.txt` · `ralph_task`: RALPH_TASK.md 첫 미완 항목 · `empty`: 둘 다 없음 */
-    needSource: "app" | "ralph_task" | "empty";
+    /** `app`: `.ralph/app_need.txt` · `layer_doc`: 01_need.md 미완 체크 · `ralph_task`: RALPH_TASK.md 첫 미완 항목 · `empty`: 모두 없음 */
+    needSource: "app" | "layer_doc" | "ralph_task" | "empty";
     action: string;
     capabilityLogic: string;
     usageData: {
@@ -130,10 +130,23 @@ async function readLayerDocs(): Promise<LayerDoc[]> {
   return out.sort((a, b) => a.order - b.order);
 }
 
-async function resolveDisplayedNeed(): Promise<{ need: string; needSource: "app" | "ralph_task" | "empty" }> {
+function firstUncheckedItem(layer: LayerDoc | undefined): string | null {
+  if (!layer) return null;
+  const pending = layer.checklist.find((item) => !item.checked);
+  return pending?.text ?? null;
+}
+
+async function resolveDisplayedNeed(
+  layers: LayerDoc[],
+): Promise<{ need: string; needSource: "app" | "layer_doc" | "ralph_task" | "empty" }> {
   const appNeed = await readAppNeed();
   if (appNeed) {
     return { need: appNeed, needSource: "app" };
+  }
+  const needLayer = layers.find((layer) => layer.order === 1);
+  const layerNeed = firstUncheckedItem(needLayer);
+  if (layerNeed) {
+    return { need: layerNeed, needSource: "layer_doc" };
   }
   const taskPath = path.join(resolveWorkspaceRoot(), "RALPH_TASK.md");
   const text = await readFile(taskPath, "utf-8");
@@ -152,17 +165,14 @@ async function resolveDisplayedNeed(): Promise<{ need: string; needSource: "app"
   };
 }
 
-async function readLatestProgressAction(): Promise<string> {
-  const progressPath = path.join(resolveWorkspaceRoot(), ".ralph", "progress.md");
-  const text = await readFile(progressPath, "utf-8");
-  const lines = text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith("#") && !line.startsWith(">"));
-  return lines.at(-1) ?? "최근 진행 메모가 없습니다.";
+function resolveActionFromLayer(layers: LayerDoc[]): string {
+  const actionLayer = layers.find((layer) => layer.order === 2);
+  const pending = firstUncheckedItem(actionLayer);
+  if (pending) return pending;
+  return "02_action.md에 미완 체크리스트를 추가하세요.";
 }
 
-async function readCapabilitySummary(): Promise<string> {
+async function readCapabilitySummary(layers: LayerDoc[]): Promise<string> {
   const commonPath = path.join(resolveWorkspaceRoot(), ".codex", "ralph-scripts", "ralph-common.sh");
   const text = await readFile(commonPath, "utf-8");
   const roleCycle = text.includes("% 3")
@@ -171,7 +181,12 @@ async function readCapabilitySummary(): Promise<string> {
   const autoExpand = text.includes("RALPH_AUTO_EXPAND_ON_COMPLETE")
     ? "완료 후 자동 확장: 활성 코드 존재"
     : "완료 후 자동 확장: 비활성/미구현";
-  return `${roleCycle} / ${autoExpand}`;
+  const capabilityLayer = layers.find((layer) => layer.order === 3);
+  const pendingCapability = firstUncheckedItem(capabilityLayer);
+  const layerSummary = pendingCapability
+    ? `우선 규칙: ${pendingCapability}`
+    : "03_capability_business_logic.md에 미완 체크리스트를 추가하세요.";
+  return `${layerSummary} / ${roleCycle} / ${autoExpand}`;
 }
 
 async function readLatestErrorLine(): Promise<string | null> {
@@ -189,14 +204,14 @@ async function readLatestErrorLine(): Promise<string | null> {
 }
 
 export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
-  const [layers, payload, needBlock, action, capability, latestError] = await Promise.all([
-    readLayerDocs(),
+  const layers = await readLayerDocs();
+  const [payload, needBlock, capability, latestError] = await Promise.all([
     loadTimelineFromDb(25, null, null),
-    resolveDisplayedNeed(),
-    readLatestProgressAction(),
-    readCapabilitySummary(),
+    resolveDisplayedNeed(layers),
+    readCapabilitySummary(layers),
     readLatestErrorLine(),
   ]);
+  const action = resolveActionFromLayer(layers);
   const { need, needSource } = needBlock;
 
   const usageEvents = payload.events.slice(-8).map((event) => ({
@@ -260,11 +275,12 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
 
   const layerTriggers = layers.map((layer, idx) => {
     const prev = layers[idx - 1];
-    const triggers = layer.checklist.filter((c) => !c.checked).map((c) => c.text);
+    const triggers =
+      idx === 0 ? [] : (prev?.checklist ?? []).filter((c) => !c.checked).map((c) => c.text);
     const triggerSource =
       idx === 0
         ? "첫 단계(Need)는 루프 시작 입력 자체가 트리거"
-        : `전단계(${prev?.title ?? "unknown"})가 이 md에 남긴 미완 체크리스트`;
+        : `직전 단계(${prev?.title ?? "unknown"})의 미완 체크리스트`;
     return {
       key: layer.key,
       title: layer.title,
