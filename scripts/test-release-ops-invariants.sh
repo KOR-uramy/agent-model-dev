@@ -48,8 +48,12 @@ grep -Fq 'Layer 08 context' "$REL" \
   || fail "release-open-graze.sh must print Layer 08 context (ops checklist hook)"
 grep -Fq 'Actionable ops checklist' "$REL" \
   || fail "release-open-graze.sh must print actionable ops checklist commands"
-grep -Fq 'check-open-graze-release-runtime.sh' "$REL" \
-  || fail "release-open-graze.sh must print runtime checklist command in ops checklist"
+grep -Fq 'sh \"$ROOT/scripts/check-open-graze-release-runtime.sh\"' "$REL" \
+  || fail "release-open-graze.sh must print runtime checklist with repo-root absolute path"
+grep -Fq 'tail -n 1 \"$ROOT/.ralph/errors.log\"' "$REL" \
+  || fail "release-open-graze.sh must print latest error signal check with repo-root path"
+grep -Fq 'readlink \"$ROOT/.release/open-graze/current\"' "$REL" \
+  || fail "release-open-graze.sh must print current snapshot check with repo-root path"
 grep -Fq 'DEBUG_ROOT=$RALPH_WORKSPACE_ROOT' "$REL" \
   || fail "release-open-graze.sh must print DEBUG_ROOT for workspace vs snapshot cwd"
 grep -Fq 'production only, never dev mode' "$REL" \

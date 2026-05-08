@@ -69,9 +69,9 @@ echo "    SERVER_CMD=next start  NODE_ENV=$NODE_ENV  (production only, never dev
 echo "    ERROR_SIGNAL=$ROOT/.ralph/errors.log  (single-line overwrite, tag [runtime-release])"
 echo "    DEBUG_ROOT=$RALPH_WORKSPACE_ROOT  (repo root; not snapshot cwd)"
 echo "==> Actionable ops checklist (run after server starts)"
-echo "    sh scripts/check-open-graze-release-runtime.sh"
-echo "    tail -n 1 .ralph/errors.log 2>/dev/null || echo \"(latest error signal 없음)\""
-echo "    readlink .release/open-graze/current"
+echo "    sh \"$ROOT/scripts/check-open-graze-release-runtime.sh\""
+echo "    tail -n 1 \"$ROOT/.ralph/errors.log\" 2>/dev/null || echo \"(latest error signal 없음)\""
+echo "    readlink \"$ROOT/.release/open-graze/current\""
 echo "==> Runtime error monitor enabled (.ralph/errors.log; latest error only, overwrite)"
 # -p must track PORT (already asserted equal to OPEN_GRAZE_RELEASE_PORT above).
 node "$ROOT/node_modules/next/dist/bin/next" start -p "${PORT}" 2>&1 \
