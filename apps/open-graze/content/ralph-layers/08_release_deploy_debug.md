@@ -45,6 +45,17 @@ sh scripts/test-release-ops-invariants.sh && \
 - 첫 줄이 `OK: release ops invariants`로 끝나면 **포트 기본값·`next start`·스냅샷·에러 덮어쓰기 계약**은 스크립트 수준에서 유지된 것이다.
 - `tail` 결과는 릴리스를 한 번도 안 띄웠거나 에러가 없으면 비어 있을 수 있다(누적 로그가 아니라 **한 줄 덮어쓰기**이므로).
 
+### 런타임 체크리스트 (기동 직후 10초)
+
+아래 명령은 "지금 떠 있는 프로세스"가 불변식을 실제로 만족하는지 확인한다.
+
+```sh
+sh scripts/check-open-graze-release-runtime.sh
+```
+
+- 확인 항목: `3000`(또는 설정 포트) LISTEN, `next start` 명령, 프로세스 cwd=`.release/open-graze/current` 실체, `.ralph/errors.log` 최신 신호 가시성.
+- 실패 시: 메시지의 항목(포트 점유/프로세스 종류/current 링크/cwd 불일치/에러 신호 파일)을 순서대로 정리 후 `npm run release:open-graze`로 재배포한다.
+
 1. **정적 계약 (CI/로컬 공통)**  
    - 루트에서: `sh scripts/test-release-ops-invariants.sh`  
    - 기대: `OK: release ops invariants (...)` 한 줄로 종료(exit 0).

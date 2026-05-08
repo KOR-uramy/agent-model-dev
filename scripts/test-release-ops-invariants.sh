@@ -7,6 +7,7 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 REL="$ROOT/scripts/release-open-graze.sh"
 MON="$ROOT/scripts/runtime-error-monitor.sh"
+CHK="$ROOT/scripts/check-open-graze-release-runtime.sh"
 
 fail() {
   echo "FAIL: $1" >&2
@@ -52,6 +53,17 @@ grep -Fq 'production only, never dev mode' "$REL" \
 grep -Fq 'next" start -p "${PORT}"' "$REL" \
   || fail "release-open-graze.sh must pass next start -p from PORT (aligned with OPEN_GRAZE_RELEASE_PORT)"
 
+[ -f "$CHK" ] || fail "runtime checklist script is missing: $CHK"
+[ -x "$CHK" ] || fail "runtime checklist script must be executable: $CHK"
+grep -Fq 'OPEN_GRAZE_RELEASE_PORT:-3000' "$CHK" \
+  || fail "runtime checklist must default OPEN_GRAZE_RELEASE_PORT to 3000"
+grep -Fq 'next start' "$CHK" \
+  || fail "runtime checklist must verify next start process"
+grep -Fq '.release/open-graze/current' "$CHK" \
+  || fail "runtime checklist must validate current snapshot symlink"
+grep -Fq '.ralph/errors.log' "$CHK" \
+  || fail "runtime checklist must check latest error signal file"
+
 grep -q '> "$ERRORS_LOG"' "$MON" \
   || fail "runtime-error-monitor.sh must overwrite errors.log (latest signal only)"
 grep -q 'is_error_line' "$MON" || fail "runtime-error-monitor.sh must define is_error_line"
@@ -88,4 +100,4 @@ grep -Fq 'Error: second failure' "$TMP/.ralph/errors.log" \
 lines2="$(wc -l < "$TMP/.ralph/errors.log" | tr -d ' ')"
 [ "$lines2" = 1 ] || fail "errors.log must stay single-line after non-error stdin, got $lines2"
 
-echo "OK: release ops invariants (port 3000 default, next start, snapshot, error signal loop)"
+echo "OK: release ops invariants (port 3000 default, next start, snapshot, error signal loop, runtime checklist)"
