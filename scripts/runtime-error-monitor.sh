@@ -22,7 +22,7 @@ is_error_line() {
   printf '%s\n' "$line" | grep -qE "$_ERROR_PATTERN"
 }
 
-while IFS= read -r line; do
+while IFS= read -r line || [ -n "${line-}" ]; do
   printf '%s\n' "$line"
 
   if is_error_line "$line"; then

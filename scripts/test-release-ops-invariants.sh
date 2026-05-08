@@ -127,4 +127,12 @@ grep -Fq 'Error: second failure' "$TMP/.ralph/errors.log" \
 lines2="$(wc -l < "$TMP/.ralph/errors.log" | tr -d ' ')"
 [ "$lines2" = 1 ] || fail "errors.log must stay single-line after non-error stdin, got $lines2"
 
+printf '%s' 'Error: third failure (no trailing newline)' \
+  | RUNTIME_ERROR_SIGNAL_TAG=ops-invariant-test sh "$MON" "$TMP" >/dev/null 2>&1 \
+  || fail "runtime-error-monitor should handle final line without trailing newline"
+grep -Fq 'Error: third failure (no trailing newline)' "$TMP/.ralph/errors.log" \
+  || fail "errors.log should update from a final unterminated line"
+lines3="$(wc -l < "$TMP/.ralph/errors.log" | tr -d ' ')"
+[ "$lines3" = 1 ] || fail "errors.log must remain single-line after unterminated input, got $lines3"
+
 echo "OK: release ops invariants (port 3000 default, next start, snapshot, error signal loop, runtime checklist)"
