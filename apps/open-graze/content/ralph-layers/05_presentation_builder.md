@@ -8,3 +8,4 @@ Usage Data를 분석해 어떤 정보를 UI에서 강조할지 결정한다.
 
 - [x] usage 데이터에서 강조할 핵심 지표/이벤트(usageCount, latestEvent, recentSources)를 선택했다.
 - [x] 빈 상태/오류(경고) 상태/정상 상태의 분기 규칙을 정의했다.
+- [x] stage4 Usage Data와 stage6 metrics가 같은 usage 표본을 보도록 빌더 기준을 고정했다.

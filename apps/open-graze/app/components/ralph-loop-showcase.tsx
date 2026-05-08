@@ -32,7 +32,18 @@ type FlowPayload = {
     need: string;
     needSource?: "app" | "layer_doc" | "ralph_task" | "empty";
     action: string;
+    actionItems?: string[];
     capabilityLogic: string;
+    capabilityLogicStructured?: {
+      policy: string;
+      constraints: string;
+      errorHandling: string;
+    };
+    coreIntegrity?: {
+      ok: boolean;
+      issues: ("need" | "action" | "capabilityLogic")[];
+      fields: Record<"need" | "action" | "capabilityLogic", boolean>;
+    };
     usageData: {
       ts: string;
       source: string;
@@ -67,6 +78,7 @@ export function RalphLoopShowcase() {
   const [needDraft, setNeedDraft] = useState("");
   const [needSaving, setNeedSaving] = useState(false);
   const [needFeedback, setNeedFeedback] = useState<string | null>(null);
+  const [handoffWarning, setHandoffWarning] = useState<string | null>(null);
   const fetchInFlight = useRef(false);
   const flow = payload?.flow;
   const layers = payload?.layers ?? [];
@@ -98,6 +110,13 @@ export function RalphLoopShowcase() {
       }
       const j = JSON.parse(text) as FlowPayload;
       setPayload(j);
+      if (j.flow.coreIntegrity?.ok === false) {
+        setHandoffWarning(
+          `핸드오프 경고: core 무결성 이슈 (${j.flow.coreIntegrity.issues.join(", ")})`,
+        );
+      } else {
+        setHandoffWarning(null);
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -129,11 +148,32 @@ export function RalphLoopShowcase() {
       try {
         const data = JSON.parse((event as MessageEvent).data) as FlowPayload;
         setPayload(data);
+        if (data.flow.coreIntegrity?.ok === false) {
+          setHandoffWarning(
+            `핸드오프 경고: core 무결성 이슈 (${data.flow.coreIntegrity.issues.join(", ")})`,
+          );
+        } else {
+          setHandoffWarning(null);
+        }
         setError(null);
         setIsLoading(false);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setError(`SSE 파싱 실패: ${msg}`);
+      }
+    });
+
+    source.addEventListener("core-integrity-warning", (event) => {
+      try {
+        const data = JSON.parse((event as MessageEvent).data) as {
+          message?: string;
+          coreIntegrity?: { issues?: string[] };
+        };
+        const issues = data.coreIntegrity?.issues?.join(", ");
+        const suffix = issues ? ` (${issues})` : "";
+        setHandoffWarning(`${data.message ?? "core 무결성 경고"}${suffix}`);
+      } catch {
+        setHandoffWarning("core 무결성 경고 이벤트를 수신했습니다.");
       }
     });
 
@@ -228,6 +268,7 @@ export function RalphLoopShowcase() {
           </button>
         </div>
         {error ? <p className="mt-3 text-xs text-red-500">{error}</p> : null}
+        {handoffWarning ? <p className="mt-3 text-xs text-amber-500">{handoffWarning}</p> : null}
       </section>
 
       <section className="rounded-2xl border border-[var(--list-border)] bg-card p-5">
@@ -271,7 +312,23 @@ export function RalphLoopShowcase() {
           subtitle={needSourceLabel}
           body={flow?.need ?? "대기 중..."}
         />
-        <StageCard title="2) Action" body={flow?.action ?? "대기 중..."} />
+        <article className="rounded-2xl border border-[var(--list-border)] bg-card p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-muted">2) Action</p>
+          {flow?.actionItems?.length ? (
+            <ol className="mt-2 space-y-2 text-sm leading-relaxed">
+              {flow.actionItems.slice(0, 3).map((item, idx) => (
+                <li key={`action-item-${idx}`} className="rounded-lg border border-[var(--list-border)] p-2">
+                  <p className="text-[11px] uppercase tracking-[0.1em] text-muted">
+                    Priority {idx + 1} · Core Thread
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap">{item}</p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{flow?.action ?? "대기 중..."}</p>
+          )}
+        </article>
         <StageCard
           title="3) Capability + Business Logic"
           body={flow?.capabilityLogic ?? "대기 중..."}
@@ -294,6 +351,8 @@ export function RalphLoopShowcase() {
                   `recentSources: ${presentationData.metrics.recentSources.join(", ") || "-"}`,
                   `highlightedText: ${presentationData.highlightedText}`,
                   `recommendation: ${presentationData.recommendation}`,
+                  `updatedAt: ${presentationData.updatedAt}`,
+                  `completeness: ${presentationData.completeness}`,
                 ].join("\n")
               : "데이터 없음"
           }
@@ -313,6 +372,12 @@ export function RalphLoopShowcase() {
         </p>
         <p className="mt-2 text-xs text-muted">
           추천 동선: {presentationData?.recommendation ?? "아직 추천이 없습니다."}
+        </p>
+        <p className="mt-2 text-xs text-muted">
+          데이터 상태:{" "}
+          {presentationData
+            ? `${new Date(presentationData.updatedAt).toLocaleString()} / ${presentationData.completeness}`
+            : "미수집"}
         </p>
         <p className="mt-4 text-xs text-muted">UI는 Need 수행을 지원하고, 다음 Need로 반복됩니다.</p>
       </section>

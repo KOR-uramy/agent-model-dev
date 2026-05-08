@@ -218,7 +218,17 @@ type CapabilityComputed = {
   structured: CapabilityLogicStructured;
 };
 
-async function readCapabilitySummary(layers: LayerDoc[]): Promise<CapabilityComputed> {
+function buildErrorHandlingPolicy(latestError: string | null): string {
+  if (!latestError) {
+    return "활성 에러 없음: 일반 체크리스트를 진행하되, 새 오류 발생 시 즉시 복구 우선으로 전환";
+  }
+  return `활성 에러 감지: 일반 체크리스트보다 복구를 우선 (${latestError})`;
+}
+
+async function readCapabilitySummary(
+  layers: LayerDoc[],
+  latestError: string | null,
+): Promise<CapabilityComputed> {
   const commonPath = path.join(resolveWorkspaceRoot(), ".codex", "ralph-scripts", "ralph-common.sh");
   const text = await readFile(commonPath, "utf-8");
   const roleCycle = text.includes("% 3")
@@ -233,8 +243,7 @@ async function readCapabilitySummary(layers: LayerDoc[]): Promise<CapabilityComp
     ? `우선 규칙: ${pendingCapability}`
     : CAPABILITY_PLACEHOLDER;
   const constraints = `${roleCycle} / ${autoExpand}`;
-  const errorHandling =
-    ".ralph/errors.log 최신 1건 기준으로 일반 체크리스트보다 복구를 우선";
+  const errorHandling = buildErrorHandlingPolicy(latestError);
   return {
     summary: `${policy} / ${constraints}`,
     structured: { policy, constraints, errorHandling },
@@ -283,12 +292,12 @@ async function readLatestErrorLine(): Promise<string | null> {
 
 export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
   const layers = await readLayerDocs();
-  const [payload, needBlock, capability, latestError] = await Promise.all([
+  const [payload, needBlock, latestError] = await Promise.all([
     loadTimelineFromDb(25, null, null),
     resolveDisplayedNeed(layers),
-    readCapabilitySummary(layers),
     readLatestErrorLine(),
   ]);
+  const capability = await readCapabilitySummary(layers, latestError);
   const actionItems = resolveActionItemsFromLayer(layers);
   const action = actionItems[0] ?? ACTION_PLACEHOLDER;
   const { need, needSource } = needBlock;
@@ -318,7 +327,8 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
   const presentationData = {
     status,
     metrics: {
-      usageCount: payload.events.length,
+      // UI 4단계(usageData 목록)와 6단계(metrics.usageCount)가 같은 표본(최근 8건)을 보게 맞춘다.
+      usageCount: usageEvents.length,
       recentSources,
     },
     latestEvent:
