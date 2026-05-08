@@ -61,6 +61,12 @@ sh scripts/check-open-graze-release-runtime.sh
 릴리스 직후 아래 3개 명령으로 "기동 상태 + 최신 장애 신호 + 스냅샷 경로"를 바로 확인한다.
 
 ```sh
+sh scripts/open-graze-ops-checklist.sh
+```
+
+동일 내용을 개별 명령으로 실행하려면:
+
+```sh
 sh scripts/check-open-graze-release-runtime.sh
 tail -n 1 .ralph/errors.log 2>/dev/null || echo "(latest error signal 없음)"
 readlink .release/open-graze/current

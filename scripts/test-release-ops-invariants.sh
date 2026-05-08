@@ -8,6 +8,7 @@ ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 REL="$ROOT/scripts/release-open-graze.sh"
 MON="$ROOT/scripts/runtime-error-monitor.sh"
 CHK="$ROOT/scripts/check-open-graze-release-runtime.sh"
+OPS="$ROOT/scripts/open-graze-ops-checklist.sh"
 
 fail() {
   echo "FAIL: $1" >&2
@@ -22,7 +23,7 @@ grep -Fq 'next" start' "$REL" \
   || fail "release-open-graze.sh must run next start"
 grep -Fq 'kill-port.sh" "$OPEN_GRAZE_RELEASE_PORT"' "$REL" \
   || fail "release-open-graze.sh must free OPEN_GRAZE_RELEASE_PORT via kill-port"
-grep -q 'mkdir -p "$SNAPSHOT_DIR"' "$REL" \
+grep -Eq 'mkdir[[:space:]]+"\$SNAPSHOT_DIR"' "$REL" \
   || fail "release-open-graze.sh must create timestamped snapshot"
 grep -q 'runtime-error-monitor.sh' "$REL" \
   || fail "release-open-graze.sh must pipe logs through runtime-error-monitor"
@@ -48,6 +49,8 @@ grep -Fq 'Layer 08 context' "$REL" \
   || fail "release-open-graze.sh must print Layer 08 context (ops checklist hook)"
 grep -Fq 'Actionable ops checklist' "$REL" \
   || fail "release-open-graze.sh must print actionable ops checklist commands"
+grep -Fq 'sh \"$ROOT/scripts/open-graze-ops-checklist.sh\"' "$REL" \
+  || fail "release-open-graze.sh must print one-shot ops checklist command"
 grep -Fq 'sh \"$ROOT/scripts/check-open-graze-release-runtime.sh\"' "$REL" \
   || fail "release-open-graze.sh must print runtime checklist with repo-root absolute path"
 grep -Fq 'tail -n 1 \"$ROOT/.ralph/errors.log\"' "$REL" \
@@ -60,9 +63,19 @@ grep -Fq 'production only, never dev mode' "$REL" \
   || fail "release-open-graze.sh must remind operators that dev mode is not used"
 grep -Fq 'next" start -p "${PORT}"' "$REL" \
   || fail "release-open-graze.sh must pass next start -p from PORT (aligned with OPEN_GRAZE_RELEASE_PORT)"
+grep -Fq '[ ! -e "$SNAPSHOT_DIR" ] || {' "$REL" \
+  || fail "release-open-graze.sh must fail when snapshot path already exists (immutable snapshot)"
 
 [ -f "$CHK" ] || fail "runtime checklist script is missing: $CHK"
 [ -x "$CHK" ] || fail "runtime checklist script must be executable: $CHK"
+[ -f "$OPS" ] || fail "ops checklist script is missing: $OPS"
+[ -x "$OPS" ] || fail "ops checklist script must be executable: $OPS"
+grep -Fq 'check-open-graze-release-runtime.sh' "$OPS" \
+  || fail "ops checklist must execute runtime checklist first"
+grep -Fq 'tail -n 1 "$ERRORS_LOG"' "$OPS" \
+  || fail "ops checklist must expose latest error signal line"
+grep -Fq 'readlink "$CURRENT_LINK"' "$OPS" \
+  || fail "ops checklist must print active snapshot link"
 grep -Fq 'OPEN_GRAZE_RELEASE_PORT:-3000' "$CHK" \
   || fail "runtime checklist must default OPEN_GRAZE_RELEASE_PORT to 3000"
 grep -Fq 'next start' "$CHK" \

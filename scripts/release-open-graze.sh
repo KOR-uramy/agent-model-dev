@@ -14,8 +14,6 @@ OPEN_GRAZE_RELEASE_PORT="${OPEN_GRAZE_RELEASE_PORT:-3000}"
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 APP_DIR="$ROOT/apps/open-graze"
 RELEASE_ROOT="$ROOT/.release/open-graze"
-STAMP="$(date '+%Y%m%d-%H%M%S')"
-SNAPSHOT_DIR="$RELEASE_ROOT/$STAMP"
 LATEST_LINK="$RELEASE_ROOT/current"
 
 mkdir -p "$RELEASE_ROOT"
@@ -24,8 +22,18 @@ echo "==> Build open-graze production artifacts"
 cd "$ROOT"
 npm run build -w open-graze
 
+STAMP="$(date '+%Y%m%d-%H%M%S')"
+SNAPSHOT_DIR="$RELEASE_ROOT/$STAMP"
+if [ -e "$SNAPSHOT_DIR" ]; then
+  # Immutable snapshot contract: never reuse an existing timestamp directory.
+  SNAPSHOT_DIR="$RELEASE_ROOT/${STAMP}-$$"
+fi
+[ ! -e "$SNAPSHOT_DIR" ] || {
+  echo "release-open-graze: invariant failed (snapshot path already exists: $SNAPSHOT_DIR)" >&2
+  exit 1
+}
 echo "==> Create release snapshot: $SNAPSHOT_DIR"
-mkdir -p "$SNAPSHOT_DIR"
+mkdir "$SNAPSHOT_DIR"
 
 # Minimal runtime set for next start
 cp -R "$APP_DIR/.next" "$SNAPSHOT_DIR/.next"
@@ -69,6 +77,7 @@ echo "    SERVER_CMD=next start  NODE_ENV=$NODE_ENV  (production only, never dev
 echo "    ERROR_SIGNAL=$ROOT/.ralph/errors.log  (single-line overwrite, tag [runtime-release])"
 echo "    DEBUG_ROOT=$RALPH_WORKSPACE_ROOT  (repo root; not snapshot cwd)"
 echo "==> Actionable ops checklist (run after server starts)"
+echo "    sh \"$ROOT/scripts/open-graze-ops-checklist.sh\""
 echo "    sh \"$ROOT/scripts/check-open-graze-release-runtime.sh\""
 echo "    tail -n 1 \"$ROOT/.ralph/errors.log\" 2>/dev/null || echo \"(latest error signal 없음)\""
 echo "    readlink \"$ROOT/.release/open-graze/current\""
