@@ -76,6 +76,12 @@ grep -Fq 'tail -n 1 "$ERRORS_LOG"' "$OPS" \
   || fail "ops checklist must expose latest error signal line"
 grep -Fq 'readlink "$CURRENT_LINK"' "$OPS" \
   || fail "ops checklist must print active snapshot link"
+grep -Fq 'OPEN_GRAZE_RELEASE_PORT:-3000' "$OPS" \
+  || fail "ops checklist must default OPEN_GRAZE_RELEASE_PORT to 3000"
+grep -Fq 'missing current snapshot symlink' "$OPS" \
+  || fail "ops checklist must fail with actionable message when current symlink is missing"
+grep -Fq 'release/deploy/debug checklist complete' "$OPS" \
+  || fail "ops checklist must print completion marker for operators"
 grep -Fq 'OPEN_GRAZE_RELEASE_PORT:-3000' "$CHK" \
   || fail "runtime checklist must default OPEN_GRAZE_RELEASE_PORT to 3000"
 grep -Fq 'next start' "$CHK" \
