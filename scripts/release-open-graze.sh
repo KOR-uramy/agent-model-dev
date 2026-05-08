@@ -37,6 +37,10 @@ cp "$APP_DIR/package.json" "$SNAPSHOT_DIR/package.json"
 [ -f "$APP_DIR/next.config.mjs" ] && cp "$APP_DIR/next.config.mjs" "$SNAPSHOT_DIR/next.config.mjs" || true
 [ -f "$APP_DIR/next.config.ts" ] && cp "$APP_DIR/next.config.ts" "$SNAPSHOT_DIR/next.config.ts" || true
 
+# next start 재로드 시 next.config.* 가 ./lib/load-env-files 를 require 함 — 스냅샷에 동일 경로 필요
+mkdir -p "$SNAPSHOT_DIR/lib"
+cp "$APP_DIR/lib/load-env-files.ts" "$SNAPSHOT_DIR/lib/load-env-files.ts"
+
 # Workspace-level node_modules reuse (no install in snapshot)
 ln -sfn "$ROOT/node_modules" "$SNAPSHOT_DIR/node_modules"
 
@@ -64,6 +68,10 @@ echo "    CURRENT_SYMLINK=$LATEST_LINK -> $(readlink "$LATEST_LINK" 2>/dev/null 
 echo "    SERVER_CMD=next start  NODE_ENV=$NODE_ENV  (production only, never dev mode)"
 echo "    ERROR_SIGNAL=$ROOT/.ralph/errors.log  (single-line overwrite, tag [runtime-release])"
 echo "    DEBUG_ROOT=$RALPH_WORKSPACE_ROOT  (repo root; not snapshot cwd)"
+echo "==> Actionable ops checklist (run after server starts)"
+echo "    sh scripts/check-open-graze-release-runtime.sh"
+echo "    tail -n 1 .ralph/errors.log 2>/dev/null || echo \"(latest error signal 없음)\""
+echo "    readlink .release/open-graze/current"
 echo "==> Runtime error monitor enabled (.ralph/errors.log; latest error only, overwrite)"
 # -p must track PORT (already asserted equal to OPEN_GRAZE_RELEASE_PORT above).
 node "$ROOT/node_modules/next/dist/bin/next" start -p "${PORT}" 2>&1 \

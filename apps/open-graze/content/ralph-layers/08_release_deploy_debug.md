@@ -56,6 +56,20 @@ sh scripts/check-open-graze-release-runtime.sh
 - 확인 항목: `3000`(또는 설정 포트) LISTEN, `next start` 명령, 프로세스 cwd=`.release/open-graze/current` 실체, `.ralph/errors.log` 최신 신호 가시성.
 - 실패 시: 메시지의 항목(포트 점유/프로세스 종류/current 링크/cwd 불일치/에러 신호 파일)을 순서대로 정리 후 `npm run release:open-graze`로 재배포한다.
 
+### 운영자 즉시 실행 체크리스트 (복붙용)
+
+릴리스 직후 아래 3개 명령으로 "기동 상태 + 최신 장애 신호 + 스냅샷 경로"를 바로 확인한다.
+
+```sh
+sh scripts/check-open-graze-release-runtime.sh
+tail -n 1 .ralph/errors.log 2>/dev/null || echo "(latest error signal 없음)"
+readlink .release/open-graze/current
+```
+
+- 첫 줄이 `OK: release runtime checklist complete ...`면 포트/`next start`/cwd 스냅샷 정렬은 통과다.
+- 두 번째 줄은 최신 장애 신호 1줄만 보여준다(빈 출력이면 아직 매칭 에러 없음).
+- 세 번째 줄은 현재 활성 스냅샷 타임스탬프 디렉터리를 보여준다.
+
 1. **정적 계약 (CI/로컬 공통)**  
    - 루트에서: `sh scripts/test-release-ops-invariants.sh`  
    - 기대: `OK: release ops invariants (...)` 한 줄로 종료(exit 0).
