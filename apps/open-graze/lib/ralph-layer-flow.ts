@@ -42,6 +42,14 @@ export type CapabilityLogicStructured = {
   errorHandling: string;
 };
 
+export type ActionItemStatus = "pending" | "in_progress" | "done";
+
+export type ActionItemDraft = {
+  text: string;
+  status: ActionItemStatus;
+  owner: "core";
+};
+
 export type LayerFlowPayload = {
   generatedAt: string;
   layers: LayerDoc[];
@@ -66,6 +74,8 @@ export type LayerFlowPayload = {
     action: string;
     /** 02_action.md 미완 체크리스트 상위 1~3개(우선순위 = 작성 순서). `action`은 `actionItems[0]`과 동일 */
     actionItems: string[];
+    /** Stage 2 표시 스키마 초안: 대기/진행/완료 상태 + 책임자 */
+    actionItemDrafts: ActionItemDraft[];
     capabilityLogic: string;
     /** capabilityLogic을 정책·제약·실패처리 3축으로 구조화한 본문 */
     capabilityLogicStructured: CapabilityLogicStructured;
@@ -94,6 +104,10 @@ export type LayerFlowPayload = {
       recommendation: string;
       updatedAt: string;
       completeness: "complete";
+      consistency: {
+        usageSampleAligned: boolean;
+        latestEventAligned: boolean;
+      };
     };
     ui: string;
     releaseDebug: string;
@@ -213,16 +227,31 @@ function resolveActionItemsFromLayer(layers: LayerDoc[]): string[] {
   return uncheckedItems(actionLayer, CORE_ACTION_ITEMS_MAX);
 }
 
+function buildActionItemDrafts(actionItems: string[]): ActionItemDraft[] {
+  return actionItems.map((text, index) => ({
+    text,
+    status: index === 0 ? "in_progress" : "pending",
+    owner: "core",
+  }));
+}
+
 type CapabilityComputed = {
   summary: string;
   structured: CapabilityLogicStructured;
 };
 
-function buildErrorHandlingPolicy(latestError: string | null): string {
+function buildReleaseDebugMessage(latestError: string | null): string {
   if (!latestError) {
-    return "활성 에러 없음: 일반 체크리스트를 진행하되, 새 오류 발생 시 즉시 복구 우선으로 전환";
+    return "현재 활성 에러 신호 없음. 빌드/배포 체크리스트를 진행하세요.";
   }
-  return `활성 에러 감지: 일반 체크리스트보다 복구를 우선 (${latestError})`;
+  return `최근 에러 로그 감지: ${latestError}`;
+}
+
+function buildErrorHandlingPolicy(latestError: string | null, releaseDebug: string): string {
+  if (!latestError) {
+    return `releaseDebug=${releaseDebug} / 복구 우선 단계: 탐지(에러 신호 모니터링) → 분류(영향 범위 식별) → 복구(체크리스트보다 우선 처리) → 검증(runtime:smoke/핵심 플로우 재확인)`;
+  }
+  return `releaseDebug=${releaseDebug} / 복구 우선 단계: 탐지(${latestError}) → 분류(런타임/빌드/배포) → 복구(핫스팟 우선 수정) → 검증(runtime:smoke + 재발 확인)`;
 }
 
 async function readCapabilitySummary(
@@ -243,7 +272,8 @@ async function readCapabilitySummary(
     ? `우선 규칙: ${pendingCapability}`
     : CAPABILITY_PLACEHOLDER;
   const constraints = `${roleCycle} / ${autoExpand}`;
-  const errorHandling = buildErrorHandlingPolicy(latestError);
+  const releaseDebug = buildReleaseDebugMessage(latestError);
+  const errorHandling = buildErrorHandlingPolicy(latestError, releaseDebug);
   return {
     summary: `${policy} / ${constraints}`,
     structured: { policy, constraints, errorHandling },
@@ -299,9 +329,11 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
   ]);
   const capability = await readCapabilitySummary(layers, latestError);
   const actionItems = resolveActionItemsFromLayer(layers);
+  const actionItemDrafts = buildActionItemDrafts(actionItems);
   const action = actionItems[0] ?? ACTION_PLACEHOLDER;
   const { need, needSource } = needBlock;
   const coreIntegrity = computeCoreIntegrity(need, action, capability.summary);
+  const releaseDebug = buildReleaseDebugMessage(latestError);
 
   const usageEvents = payload.events.slice(-8).map((event) => ({
     ts: event.ts ?? "",
@@ -324,6 +356,26 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
   const status: "empty" | "healthy" | "warning" =
     usageEvents.length === 0 ? "empty" : hasWarning ? "warning" : "healthy";
   const recentSources = [...new Set(usageEvents.map((event) => event.source))];
+  const latestUsage = usageEvents.at(-1) ?? null;
+  const latestEventFromTimeline =
+    latest == null
+      ? null
+      : {
+          ts: latest.ts ?? "",
+          kind: latest.kind ?? "unknown",
+          source: latest.source ?? "unknown",
+          sessionId: typeof latest.sessionId === "string" ? latest.sessionId : "unknown",
+        };
+  const usageSampleAligned = usageEvents.length === Math.min(8, payload.events.length);
+  const latestEventAligned =
+    latestUsage == null && latestEventFromTimeline == null
+      ? true
+      : latestUsage != null &&
+        latestEventFromTimeline != null &&
+        latestUsage.ts === latestEventFromTimeline.ts &&
+        latestUsage.kind === latestEventFromTimeline.kind &&
+        latestUsage.source === latestEventFromTimeline.source &&
+        latestUsage.sessionId === latestEventFromTimeline.sessionId;
   const presentationData = {
     status,
     metrics: {
@@ -331,16 +383,7 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
       usageCount: usageEvents.length,
       recentSources,
     },
-    latestEvent:
-      latest == null
-        ? null
-        : {
-            ts: latest.ts ?? "",
-            kind: latest.kind ?? "unknown",
-            source: latest.source ?? "unknown",
-            sessionId:
-              typeof latest.sessionId === "string" ? latest.sessionId : "unknown",
-          },
+    latestEvent: latestEventFromTimeline,
     highlightedText:
       status === "empty"
         ? "수집 이벤트가 아직 없어 기본 안내를 먼저 보여줍니다."
@@ -355,6 +398,10 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
           : "최근 이벤트를 기준으로 다음 구현/검증 액션을 선택하세요.",
     updatedAt: new Date().toISOString(),
     completeness: "complete" as const,
+    consistency: {
+      usageSampleAligned,
+      latestEventAligned,
+    },
   };
   const ui =
     presentationData.status === "empty"
@@ -414,6 +461,7 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
       needSource,
       action,
       actionItems,
+      actionItemDrafts,
       capabilityLogic: capability.summary,
       capabilityLogicStructured: capability.structured,
       coreIntegrity,
@@ -421,10 +469,7 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
       presentationBuilder,
       presentationData,
       ui,
-      releaseDebug:
-        latestError == null
-          ? "현재 활성 에러 신호 없음. 빌드/배포 체크리스트를 진행하세요."
-          : `최근 에러 로그 감지: ${latestError}`,
+      releaseDebug,
     },
   };
 }
