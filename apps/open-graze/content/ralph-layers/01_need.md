@@ -8,4 +8,5 @@
 - [x] `RALPH_TASK.md` Success Criteria 기준으로 Need/Action/Capability 데이터 경로를 레이어 문서 중심으로 통일한다.
 - [x] Need 출처 우선순위를 `앱 입력 > 01_need.md 미완 항목 > RALPH_TASK.md 미완 항목`으로 확정한다.
 - [x] `/api/ralph/layer-flow` 응답의 core(1~3) 요약이 빈 값 없이 항상 채워지는지 `flow.coreIntegrity`(`ok`/`issues`/`fields`)로 운영 검증을 노출한다.
-- [ ] 다음 이터레이션 Need: `flow.coreIntegrity.ok === false` 인 핸드오프를 차단/경고하도록 SSE 스트림(`/api/ralph/layer-flow/stream`) 소비자(쇼케이스/모니터)에 반영한다.
+- [x] 다음 이터레이션 Need: `flow.coreIntegrity.ok === false` 인 핸드오프를 차단/경고하도록 SSE 스트림(`/api/ralph/layer-flow/stream`) 소비자(쇼케이스/모니터)에 반영한다.
+- [ ] 다음 이터레이션 Need: core 무결성 경고(`core-integrity-warning`) 수신 시 핸드오프 차단 기준(경고/차단 임계값)을 문서화하고 UI CTA(수정할 md 위치 안내)를 추가한다.
