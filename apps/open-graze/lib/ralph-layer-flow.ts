@@ -13,6 +13,35 @@ export type LayerDoc = {
   thread: "core" | "presentation" | "ops";
 };
 
+/** core(1~3) Action 카드 우선순위 노출 한도 */
+export const CORE_ACTION_ITEMS_MAX = 3;
+
+/** Capability 본문이 03 미완 항목 없을 때 보여줄 안내 문구 */
+export const CAPABILITY_PLACEHOLDER =
+  "03_capability_business_logic.md에 미완 체크리스트를 추가하세요.";
+
+/** Action 본문이 02 미완 항목 없을 때 보여줄 안내 문구 */
+export const ACTION_PLACEHOLDER = "02_action.md에 미완 체크리스트를 추가하세요.";
+
+export type CoreIntegrityField = "need" | "action" | "capabilityLogic";
+
+export type CoreIntegrity = {
+  ok: boolean;
+  /** 비어 있거나 placeholder만 있는 필드 목록 */
+  issues: CoreIntegrityField[];
+  /** 각 필드가 실데이터(placeholder 아님)로 채워졌는지 */
+  fields: Record<CoreIntegrityField, boolean>;
+};
+
+export type CapabilityLogicStructured = {
+  /** 03 미완 체크리스트 첫 항목(우선 규칙) */
+  policy: string;
+  /** 사이클·자동확장 등 운영 제약 요약 */
+  constraints: string;
+  /** 활성 에러 우선 복구 정책 등 실패 처리 요약 */
+  errorHandling: string;
+};
+
 export type LayerFlowPayload = {
   generatedAt: string;
   layers: LayerDoc[];
@@ -35,7 +64,13 @@ export type LayerFlowPayload = {
     /** `app`: `.ralph/app_need.txt` · `layer_doc`: 01_need.md 미완 체크 · `ralph_task`: RALPH_TASK.md 첫 미완 항목 · `empty`: 모두 없음 */
     needSource: "app" | "layer_doc" | "ralph_task" | "empty";
     action: string;
+    /** 02_action.md 미완 체크리스트 상위 1~3개(우선순위 = 작성 순서). `action`은 `actionItems[0]`과 동일 */
+    actionItems: string[];
     capabilityLogic: string;
+    /** capabilityLogic을 정책·제약·실패처리 3축으로 구조화한 본문 */
+    capabilityLogicStructured: CapabilityLogicStructured;
+    /** core(1~3) 요약이 빈 값 없이 채워졌는지에 대한 운영 검증 결과 */
+    coreIntegrity: CoreIntegrity;
     usageData: {
       ts: string;
       source: string;
@@ -165,14 +200,25 @@ async function resolveDisplayedNeed(
   };
 }
 
-function resolveActionFromLayer(layers: LayerDoc[]): string {
-  const actionLayer = layers.find((layer) => layer.order === 2);
-  const pending = firstUncheckedItem(actionLayer);
-  if (pending) return pending;
-  return "02_action.md에 미완 체크리스트를 추가하세요.";
+function uncheckedItems(layer: LayerDoc | undefined, max: number): string[] {
+  if (!layer) return [];
+  return layer.checklist
+    .filter((item) => !item.checked)
+    .slice(0, Math.max(0, max))
+    .map((item) => item.text);
 }
 
-async function readCapabilitySummary(layers: LayerDoc[]): Promise<string> {
+function resolveActionItemsFromLayer(layers: LayerDoc[]): string[] {
+  const actionLayer = layers.find((layer) => layer.order === 2);
+  return uncheckedItems(actionLayer, CORE_ACTION_ITEMS_MAX);
+}
+
+type CapabilityComputed = {
+  summary: string;
+  structured: CapabilityLogicStructured;
+};
+
+async function readCapabilitySummary(layers: LayerDoc[]): Promise<CapabilityComputed> {
   const commonPath = path.join(resolveWorkspaceRoot(), ".codex", "ralph-scripts", "ralph-common.sh");
   const text = await readFile(commonPath, "utf-8");
   const roleCycle = text.includes("% 3")
@@ -183,10 +229,42 @@ async function readCapabilitySummary(layers: LayerDoc[]): Promise<string> {
     : "완료 후 자동 확장: 비활성/미구현";
   const capabilityLayer = layers.find((layer) => layer.order === 3);
   const pendingCapability = firstUncheckedItem(capabilityLayer);
-  const layerSummary = pendingCapability
+  const policy = pendingCapability
     ? `우선 규칙: ${pendingCapability}`
-    : "03_capability_business_logic.md에 미완 체크리스트를 추가하세요.";
-  return `${layerSummary} / ${roleCycle} / ${autoExpand}`;
+    : CAPABILITY_PLACEHOLDER;
+  const constraints = `${roleCycle} / ${autoExpand}`;
+  const errorHandling =
+    ".ralph/errors.log 최신 1건 기준으로 일반 체크리스트보다 복구를 우선";
+  return {
+    summary: `${policy} / ${constraints}`,
+    structured: { policy, constraints, errorHandling },
+  };
+}
+
+/**
+ * core(1~3) 요약이 빈 값/placeholder 없이 채워졌는지 운영 검증.
+ * UI/SSE 소비자가 `coreIntegrity.ok === false`일 때 1~3 레이어 md 보강을 즉시 알 수 있다.
+ */
+export function computeCoreIntegrity(
+  need: string,
+  action: string,
+  capabilityLogic: string,
+): CoreIntegrity {
+  const isMeaningful = (value: string, placeholder?: string) => {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return false;
+    if (placeholder && trimmed.startsWith(placeholder)) return false;
+    return true;
+  };
+  const fields: Record<CoreIntegrityField, boolean> = {
+    need: isMeaningful(need),
+    action: isMeaningful(action, ACTION_PLACEHOLDER),
+    capabilityLogic: isMeaningful(capabilityLogic, CAPABILITY_PLACEHOLDER),
+  };
+  const issues: CoreIntegrityField[] = (
+    ["need", "action", "capabilityLogic"] as CoreIntegrityField[]
+  ).filter((key) => !fields[key]);
+  return { ok: issues.length === 0, issues, fields };
 }
 
 async function readLatestErrorLine(): Promise<string | null> {
@@ -211,8 +289,10 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
     readCapabilitySummary(layers),
     readLatestErrorLine(),
   ]);
-  const action = resolveActionFromLayer(layers);
+  const actionItems = resolveActionItemsFromLayer(layers);
+  const action = actionItems[0] ?? ACTION_PLACEHOLDER;
   const { need, needSource } = needBlock;
+  const coreIntegrity = computeCoreIntegrity(need, action, capability.summary);
 
   const usageEvents = payload.events.slice(-8).map((event) => ({
     ts: event.ts ?? "",
@@ -323,7 +403,10 @@ export async function buildLayerFlowPayload(): Promise<LayerFlowPayload> {
       need,
       needSource,
       action,
-      capabilityLogic: capability,
+      actionItems,
+      capabilityLogic: capability.summary,
+      capabilityLogicStructured: capability.structured,
+      coreIntegrity,
       usageData: usageEvents,
       presentationBuilder,
       presentationData,

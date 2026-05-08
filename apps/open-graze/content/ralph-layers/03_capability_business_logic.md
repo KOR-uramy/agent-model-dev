@@ -7,4 +7,5 @@ Action을 실제 수행하는 기능과 규칙 계층이다.
 
 - [x] Action/Need 조회 로직 경로를 `apps/open-graze/lib/ralph-layer-flow.ts`로 단일화한다.
 - [x] Need 소스 규칙(`app`/`layer_doc`/`ralph_task`/`empty`)을 타입으로 고정해 UI와 API 응답을 일치시킨다.
-- [ ] 다음 핸드오프 규칙: `03`의 미완 체크리스트를 capabilityLogic 본문에 구조화(정책/제약/실패처리)해 노출하는 포맷을 추가한다.
+- [x] `03`의 미완 체크리스트를 capabilityLogic 본문에 정책(policy)/제약(constraints)/실패처리(errorHandling) 3축으로 구조화한 `flow.capabilityLogicStructured`를 layer-flow 응답에 추가한다(`flow.capabilityLogic` 문자열은 백워드 호환을 위해 유지).
+- [ ] 다음 핸드오프 규칙: `flow.capabilityLogicStructured.errorHandling`이 `.ralph/errors.log` 활성 신호 유무에 따라 동적으로 바뀌도록 정책을 확장해 활성 에러 발생 시 우선 복구 문구를 명시한다.
